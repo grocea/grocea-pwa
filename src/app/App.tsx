@@ -1,8 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ActivityDetailScreen, ActivityListScreen } from '../features/activity/ActivityScreens'
 import { CategoriesScreen, MoreScreen, ProfileScreen, SystemStatesScreen } from '../features/more/MoreScreens'
-import { CookPreviewScreen, CookingResultScreen, RecipeDetailScreen, RecipeEditorScreen, RecipeListScreen } from '../features/recipes/RecipeScreens'
-import { AddStockScreen, CatalogScreen, CreateIngredientScreen, PantryScreen } from '../pantry/screens'
+import { NewRecipeScreen, RecipeEditorScreen } from '../features/recipes/RecipeEditorScreens'
+import { CookPreviewScreen, CookingResultScreen, RecipeDetailScreen, RecipeListScreen } from '../features/recipes/RecipeScreens'
+import { AddStockScreen, CatalogScreen, CreateIngredientScreen, PantryScreen } from '../features/pantry/screens'
 import { GroceaProvider } from './GroceaProvider'
 import '../styles/app.css'
 
@@ -14,7 +15,9 @@ export default function App() {
     <Route path="/ingredients" element={<CatalogScreen />} />
     <Route path="/ingredients/new" element={<CreateIngredientScreen />} />
     <Route path="/recipes" element={<RecipeListScreen />} />
-    <Route path="/recipes/new" element={<RecipeEditorScreen />} />
+    <Route path="/recipes/new" element={<NewRecipeScreen />} />
+    <Route path="/recipes/:id/edit/:stage" element={<RecipeEditorScreen />} />
+    <Route path="/recipes/:recipeId/ingredients/new" element={<CreateIngredientScreen />} />
     <Route path="/recipes/:id" element={<RecipeDetailScreen />} />
     <Route path="/recipes/:id/cook" element={<CookPreviewScreen />} />
     <Route path="/recipes/:id/complete/:eventId" element={<CookingResultScreen />} />

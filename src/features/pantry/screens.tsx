@@ -11,11 +11,11 @@ import {
   WarningCircle,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { AppShell, BackHeader, BrandHeader } from './components'
-import { defaultUnit, familyUnits, formatQuantity, parseQuantity } from './quantity'
-import { usePantry } from './store-context'
-import type { Ingredient, MeasurementFamily, StockOperation, Unit } from './types'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { AppShell, BackHeader, BrandHeader } from '../../shared/ui/AppShell'
+import { defaultUnit, familyUnits, formatQuantity, parseQuantity } from '../../shared/lib/quantity'
+import { useGrocea as usePantry } from '../../app/grocea-context'
+import type { DraftRecipe, Ingredient, MeasurementFamily, StockOperation, Unit } from '../../domain/types'
 
 function ingredientIcon(ingredient: Ingredient) {
   const props = { size: 23, weight: 'regular' as const }
@@ -294,9 +294,12 @@ export function CatalogScreen() {
 }
 
 export function CreateIngredientScreen() {
-  const { ingredients, categories, createIngredient } = usePantry()
+  const { ingredients, categories, recipes, createIngredient, updateRecipeDraft } = usePantry()
   const navigate = useNavigate()
-  const [name, setName] = useState('')
+  const { recipeId } = useParams()
+  const draft = recipes.find((recipe): recipe is DraftRecipe => recipe.id === recipeId && recipe.status === 'draft')
+  const requestedName = new URLSearchParams(useLocation().search).get('name') ?? ''
+  const [name, setName] = useState(requestedName)
   const [categoryId, setCategoryId] = useState(
     categories.find((category) => category.id === 'pantry')?.id ?? categories[0]?.id ?? '',
   )
@@ -311,7 +314,12 @@ export function CreateIngredientScreen() {
     event.preventDefault()
     setSubmitted(true)
     if (nameError || !categoryId) return
-    createIngredient(trimmedName, categoryId, family)
+    const id = createIngredient(trimmedName, categoryId, family, Boolean(draft))
+    if (draft) {
+      updateRecipeDraft(draft.id, { ingredients: [...draft.ingredients, { ingredientId: id, quantity: '', unit: defaultUnit(family) }] })
+      navigate(`/recipes/${draft.id}/edit/ingredients`, { state: { message: `${trimmedName} created and selected.` } })
+      return
+    }
     navigate('/ingredients', {
       state: {
         message: `${trimmedName} added to your ingredients.`,

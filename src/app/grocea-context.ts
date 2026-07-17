@@ -1,12 +1,15 @@
 import { createContext, useContext } from 'react'
-import type { ActivityEvent, GroceaState, Ingredient, MeasurementFamily, Recipe, StockOperation } from '../domain/types'
+import type { ActivityEvent, DraftRecipe, GroceaState, Ingredient, MeasurementFamily, StockOperation } from '../domain/types'
 
 export interface GroceaContextValue extends GroceaState {
   categoryName: (id: string) => string
   ingredient: (id: string) => Ingredient | undefined
   adjustStock: (ingredientId: string, operation: StockOperation, amount: bigint, reason: string) => void
-  createIngredient: (name: string, categoryId: string, family: MeasurementFamily) => string
-  createRecipe: (recipe: Omit<Recipe, 'id' | 'scope'>) => string
+  createIngredient: (name: string, categoryId: string, family: MeasurementFamily, createStock?: boolean) => string
+  createRecipeDraft: () => string
+  updateRecipeDraft: (id: string, patch: Partial<Pick<DraftRecipe, 'name' | 'description' | 'baseServings' | 'ingredients' | 'steps'>>) => void
+  deleteRecipeDraft: (id: string) => void
+  publishRecipeDraft: (id: string) => boolean
   cookRecipe: (recipeId: string, servings: number, changes: ActivityEvent['changes']) => string
   reverseEvent: (eventId: string) => void
   createCategory: (name: string) => void

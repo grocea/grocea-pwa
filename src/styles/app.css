@@ -3,7 +3,7 @@
 .app-shell { min-height: 100svh; width: 100%; display: grid; background: var(--warm); }
 .app-page { min-width: 0; min-height: 100svh; display: flex; flex-direction: column; }
 .screen-content, .detail-screen, .result-screen { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) 112px; }
-.screen-content > *, .detail-screen > *, .result-screen > *, .form-screen > * { max-width: 1180px; margin-inline: auto; }
+.screen-content > *, .detail-screen > *, .result-screen > *, .form-screen > * { width: 100%; margin-inline: auto; }
 .brand-header, .back-header { min-height: 68px; flex-basis: auto; padding: max(env(safe-area-inset-top), 12px) clamp(18px, 4vw, 56px) 12px; position: sticky; top: 0; }
 .wordmark, .desktop-wordmark { display: flex; align-items: center; gap: 9px; font-weight: 800; }
 .wordmark span, .desktop-wordmark span { width: 32px; height: 32px; display: grid; place-items: center; color: #fff; background: var(--green); border-radius: 11px; }
@@ -47,6 +47,9 @@
 .recipe-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .recipe-art { width: 54px; height: 54px; display: grid; place-items: center; color: var(--green); background: var(--green-soft); border-radius: 16px; }
 .recipe-art.warning { color: var(--warning); background: var(--warning-bg); }
+.draft-card { color: inherit; }
+.draft-actions { display: grid; gap: 4px; }
+.draft-actions .icon-button { text-decoration: none; }
 
 .form-screen { width: 100%; flex: 1; gap: 20px; padding: clamp(20px, 4vw, 42px) clamp(18px, 4vw, 56px) 0; overflow: visible; }
 .wide-form > * { width: 100%; max-width: 900px; margin-inline: auto; }
@@ -139,8 +142,57 @@
 
 .floating-action { position: fixed; }
 .pantry-content, .catalog-content { padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) 112px; }
-.stock-list, .catalog-list { max-width: 1180px; }
+.stock-list, .catalog-list { width: 100%; }
 .ingredient-field, .split-field { width: 100%; min-width: 0; }
+
+.editor-loading { min-height: 100svh; display: grid; place-items: center; color: var(--muted); }
+.recipe-editor { width: 100%; min-height: calc(100svh - 68px); display: flex; flex-direction: column; gap: 18px; padding: clamp(16px, 3vw, 36px) clamp(14px, 4vw, 56px) 0; }
+.editor-progress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(4px, 1vw, 12px); }
+.editor-progress a { min-width: 0; display: grid; justify-items: center; gap: 5px; color: var(--quiet); text-decoration: none; }
+.editor-progress a > span { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: 12px; }
+.editor-progress a > span svg { width: 16px; }
+.editor-progress a small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: clamp(8px, 2.5vw, 11px); white-space: nowrap; }
+.editor-progress a.active, .editor-progress a.complete { color: var(--green); font-weight: 700; }
+.editor-progress a.active > span { color: #fff; border-color: var(--green); background: var(--green); }
+.editor-progress a.complete > span { background: var(--green-soft); }
+.editor-heading p { margin: 0 0 4px; color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.editor-heading h1 { margin: 0; font-size: clamp(28px, 4vw, 42px); }
+.editor-heading h1:focus { outline: 0; }
+.editor-card, .review-card { display: grid; gap: 16px; padding: clamp(16px, 3vw, 26px); border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.editor-card > p:first-child { margin: 0; color: var(--muted); line-height: 1.5; }
+.picker-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.picker-tools .search-field { margin: 0; }
+.selection-count { margin: 0; color: var(--muted); font-size: 12px; }
+.ingredient-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr)); gap: 10px; }
+.ingredient-grid > button { position: relative; min-height: 128px; display: grid; align-content: center; justify-items: center; gap: 7px; padding: 14px 10px; color: var(--ink); border: 1px solid var(--line); border-radius: 16px; background: var(--warm); cursor: pointer; }
+.ingredient-grid > button > span { width: 44px; height: 44px; display: grid; place-items: center; color: var(--green); border-radius: 14px; background: var(--green-soft); }
+.ingredient-grid > button strong { font-size: 14px; text-align: center; }
+.ingredient-grid > button small { color: var(--muted); font-size: 10px; text-align: center; }
+.ingredient-grid > button.selected { border: 2px solid var(--green); background: var(--green-soft); }
+.selection-check { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; padding: 3px; color: #fff; border-radius: 999px; background: var(--green); }
+.measurement-list { gap: 12px; }
+.measurement-row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(80px, .45fr) minmax(78px, .35fr); align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.measurement-row > span { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 2px 9px; }
+.measurement-row > span svg { grid-row: 1 / 3; width: 34px; height: 34px; padding: 7px; color: var(--green); border-radius: 10px; background: var(--green-soft); }
+.measurement-row > span small { color: var(--muted); font-size: 10px; text-transform: capitalize; }
+.measurement-row input, .measurement-row select { width: 100%; min-height: 46px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.measurement-row > .field-error { grid-column: 2 / -1; }
+.steps-editor { gap: 12px; }
+.step-editor-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) 44px; align-items: start; gap: 9px; }
+.step-editor-row > span { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; border-radius: 10px; background: var(--green); font-weight: 700; }
+.step-editor-row textarea { width: 100%; min-height: 82px; padding: 11px; border: 1px solid var(--line); border-radius: 10px; resize: vertical; }
+.add-step { justify-self: start; }
+.review-grid { display: grid; gap: 14px; }
+.review-card header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.review-card header h2 { margin: 0; font-size: 16px; }
+.review-card header a { color: var(--green); font-weight: 700; }
+.review-card h3, .review-card p { margin: 0; }
+.review-card p, .review-card > small { color: var(--muted); }
+.review-card ul, .review-card ol { display: grid; gap: 10px; margin: 0; padding-left: 22px; }
+.review-card ul { padding: 0; list-style: none; }
+.review-card li { line-height: 1.5; }
+.review-card ul li { display: flex; justify-content: space-between; gap: 14px; padding-bottom: 9px; border-bottom: 1px solid var(--line); }
+.editor-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(110px, .45fr) minmax(0, 1fr); gap: 10px; margin: auto calc(clamp(14px, 4vw, 56px) * -1) 0; padding: 14px clamp(14px, 4vw, 56px) calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(16px); z-index: 5; }
 
 @media (min-width: 680px) {
   .recipe-grid, .states-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -149,6 +201,15 @@
   .catalog-row { border-right: 1px solid var(--line); }
   .form-screen:not(.wide-form) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
   .form-screen:not(.wide-form) .form-actions, .form-screen:not(.wide-form) .info-banner, .form-screen:not(.wide-form) .units-card, .form-screen:not(.wide-form) .ownership-card { grid-column: 1 / -1; }
+  .review-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .review-grid .warning-banner, .review-grid .review-card:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 520px) {
+  .picker-tools { grid-template-columns: 1fr; }
+  .measurement-row { grid-template-columns: minmax(0, 1fr) minmax(72px, .4fr); }
+  .measurement-row > span { grid-column: 1 / -1; }
+  .measurement-row > .field-error { grid-column: 1 / -1; }
 }
 
 @media (min-width: 980px) {

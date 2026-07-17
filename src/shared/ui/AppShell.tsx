@@ -29,9 +29,9 @@ export function BrandHeader({ action }: { action?: ReactNode }) {
   return <header className="brand-header"><Link to="/pantry" className="wordmark"><span>G</span>grocea</Link><div className="header-action">{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header>
 }
 
-export function BackHeader({ title, eyebrow, action }: { title: string; eyebrow?: string; action?: ReactNode }) {
+export function BackHeader({ title, eyebrow, action, onBack }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void }) {
   const navigate = useNavigate()
-  return <header className="back-header"><button className="icon-button" type="button" onClick={() => navigate(-1)} aria-label="Go back"><CaretLeft size={24} /></button><div><strong>{title}</strong>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header>
+  return <header className="back-header"><button className="icon-button" type="button" onClick={onBack ?? (() => navigate(-1))} aria-label="Go back"><CaretLeft size={24} /></button><div><strong>{title}</strong>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header>
 }
 
 export function PageHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
