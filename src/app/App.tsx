@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ActivityDetailScreen, ActivityListScreen } from '../features/activity/ActivityScreens'
-import { CategoriesScreen, MoreScreen, ProfileScreen, SystemStatesScreen } from '../features/more/MoreScreens'
+import { CategoriesScreen, MoreScreen, ProfileScreen, SyncIssuesScreen, SystemStatesScreen } from '../features/more/MoreScreens'
 import { NewRecipeScreen, RecipeEditorScreen } from '../features/recipes/RecipeEditorScreens'
 import { CookPreviewScreen, CookingResultScreen, RecipeDetailScreen, RecipeListScreen } from '../features/recipes/RecipeScreens'
 import { AddStockScreen, CatalogScreen, CreateIngredientScreen, PantryScreen } from '../features/pantry/screens'
@@ -27,6 +27,7 @@ export default function App() {
     <Route path="/categories" element={<CategoriesScreen />} />
     <Route path="/profile" element={<ProfileScreen />} />
     <Route path="/system-states" element={<SystemStatesScreen />} />
+    <Route path="/sync-issues" element={<SyncIssuesScreen />} />
     <Route path="*" element={<Navigate to="/pantry" replace />} />
   </Routes></GroceaProvider>
 }

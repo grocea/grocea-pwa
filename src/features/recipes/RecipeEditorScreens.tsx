@@ -36,8 +36,9 @@ export function NewRecipeScreen() {
   useEffect(() => {
     if (started.current) return
     started.current = true
-    const id = createRecipeDraft()
-    navigate(`/recipes/${id}/edit/basics`, { replace: true })
+    void createRecipeDraft()
+      .then(id => navigate(`/recipes/${id}/edit/basics`, { replace: true }))
+      .catch(() => { /* Global storage recovery remains visible. */ })
   }, [createRecipeDraft, navigate])
   return <AppShell><main className="editor-loading" role="status">Creating draft…</main></AppShell>
 }
@@ -55,7 +56,7 @@ export function RecipeEditorScreen() {
 
   useEffect(() => { heading.current?.focus() }, [stage])
   useEffect(() => {
-    const discardUntouchedOnBrowserBack = () => { if (stage === 'basics' && draft && untouched(draft)) deleteRecipeDraft(draft.id) }
+    const discardUntouchedOnBrowserBack = () => { if (stage === 'basics' && draft && untouched(draft)) void deleteRecipeDraft(draft.id).catch(() => undefined) }
     window.addEventListener('popstate', discardUntouchedOnBrowserBack)
     return () => window.removeEventListener('popstate', discardUntouchedOnBrowserBack)
   }, [deleteRecipeDraft, draft, stage])
@@ -63,21 +64,23 @@ export function RecipeEditorScreen() {
   if (!draft) return <AppShell><BackHeader title="Recipe editor" /><EmptyState title="Draft not found" message="This draft may have been deleted or confirmed." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
 
   const index = stages.indexOf(stage)
-  const update = (patch: Parameters<typeof updateRecipeDraft>[1]) => updateRecipeDraft(draft.id, patch)
-  const leave = () => {
-    if (untouched(draft)) deleteRecipeDraft(draft.id)
-    navigate('/recipes', { state: { message: untouched(draft) ? undefined : 'Draft saved.' } })
+  const update = (patch: Parameters<typeof updateRecipeDraft>[1]) => { void updateRecipeDraft(draft.id, patch).catch(() => undefined) }
+  const leave = async () => {
+    try {
+      if (untouched(draft)) await deleteRecipeDraft(draft.id)
+      navigate('/recipes', { state: { message: untouched(draft) ? undefined : 'Draft saved.' } })
+    } catch { /* Global storage recovery remains visible. */ }
   }
-  const next = (event: FormEvent) => {
+  const next = async (event: FormEvent) => {
     event.preventDefault(); setAttemptedStage(stage)
     if (!stageValid(draft, stage)) return
     if (stage === 'review') {
-      if (publishRecipeDraft(draft.id)) navigate(`/recipes/${draft.id}`, { state: { message: 'Recipe confirmed.' } })
+      try { if (await publishRecipeDraft(draft.id)) navigate(`/recipes/${draft.id}`, { state: { message: 'Recipe confirmed.' } }) } catch { /* Global storage recovery remains visible. */ }
       return
     }
     navigate(`/recipes/${draft.id}/edit/${stages[index + 1]}`)
   }
-  const previous = () => index === 0 ? leave() : navigate(`/recipes/${draft.id}/edit/${stages[index - 1]}`)
+  const previous = () => { if (index === 0) void leave(); else navigate(`/recipes/${draft.id}/edit/${stages[index - 1]}`) }
   const attempted = attemptedStage === stage
 
   return <AppShell>

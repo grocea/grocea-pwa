@@ -1,9 +1,9 @@
-const CACHE_NAME = 'grocea-pwa-v1';
+const CACHE_NAME = 'grocea-pwa-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/favicon.svg',
+  '/brand/grocea-icon.png',
   '/pwa-192.png',
   '/pwa-512.png',
   '/apple-touch-icon.png',
@@ -29,6 +29,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  const url = new URL(request.url);
+
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(

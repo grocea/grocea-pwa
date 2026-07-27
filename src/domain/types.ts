@@ -51,4 +51,26 @@ export interface GroceaState {
   profile: Profile
 }
 
+export interface PendingMutation {
+  id: string
+  deviceId: string
+  type: string
+  createdAt: string
+  payload: unknown
+  attempts: number
+  lastAttemptAt?: string
+  status: 'pending' | 'syncing' | 'failed'
+  error?: { code: string; message: string; retryable: boolean }
+  dependsOn: string[]
+  serverRevision?: number
+}
+
+export interface ImportConflict {
+  kind: string
+  localId: string
+  message: string
+}
+
+export type SyncStatus = 'offline' | 'idle' | 'syncing' | 'pending' | 'failed'
+
 export const isPublishedRecipe = (recipe: Recipe): recipe is PublishedRecipe => recipe.status === 'published'

@@ -1,73 +1,42 @@
-# React + TypeScript + Vite
+# Grocea PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Offline-first React PWA for Grocea. FastAPI backend is authoritative; IndexedDB
+stores canonical server snapshot, optimistic local state, mutation outbox, stable
+device/import IDs, and synchronization issues.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Start `grocea-backend` on `127.0.0.1:8000`, then:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run api:generate
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Vite proxies `/api` to local backend. For another origin, copy `.env.example`
+and set `VITE_API_ORIGIN`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Checks
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run api:generate
+npm test
+npm run build
+npm run lint
 ```
+
+`src/api/generated.ts` is generated from
+`../grocea-backend/openapi/openapi.json`. Commit backend OpenAPI and regenerated
+frontend types together.
+
+## Synchronization
+
+Writes update UI immediately and enter IndexedDB outbox atomically. Sync runs on
+startup, reconnect, focus, and local writes. Network and server failures retry
+with bounded backoff; rejected mutations remain visible on Synchronization
+screen for retry or discard.
+
+Existing IndexedDB state uploads once. Backend maps legacy global fixture IDs,
+safe-merges compatible custom data, preserves exact balances/history, and
+reports conflicts without overwriting existing server data.

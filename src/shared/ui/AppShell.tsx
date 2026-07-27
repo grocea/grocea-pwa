@@ -1,4 +1,4 @@
-import { BookOpen, CaretLeft, ClockCounterClockwise, DotsThree, Package, UserCircle } from '@phosphor-icons/react'
+import { BookOpen, CaretLeft, ClockCounterClockwise, DotsThree, Package, UserCircle, WifiSlash } from '@phosphor-icons/react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useGrocea } from '../../app/grocea-context'
@@ -10,9 +10,13 @@ const navItems = [
   { label: 'More', path: '/more', icon: DotsThree },
 ]
 
+function Wordmark({ className }: { className: string }) {
+  return <Link className={className} to="/pantry"><img className="brand-mark" src="/brand/grocea-icon.png" alt="" />grocea</Link>
+}
+
 function Navigation() {
   return <nav className="primary-navigation" aria-label="Primary navigation">
-    <Link className="desktop-wordmark" to="/pantry"><span>G</span>grocea</Link>
+    <Wordmark className="desktop-wordmark" />
     <div className="nav-links">{navItems.map(({ label, path, icon: Icon }) => <NavLink key={path} to={path} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}><Icon size={24} /><span>{label}</span></NavLink>)}</div>
   </nav>
 }
@@ -25,8 +29,9 @@ export function AppShell({ children, navigation = false, action }: { children: R
 }
 
 export function BrandHeader({ action }: { action?: ReactNode }) {
-  const { profile } = useGrocea()
-  return <header className="brand-header"><Link to="/pantry" className="wordmark"><span>G</span>grocea</Link><div className="header-action">{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header>
+  const { profile, syncStatus, pendingMutationCount } = useGrocea()
+  const syncLabel = syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Synced'
+  return <header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-pill ${syncStatus}`} aria-label={`Synchronization status: ${syncLabel}`}>{syncStatus === 'offline' && <WifiSlash size={15} />}{syncLabel}</Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header>
 }
 
 export function BackHeader({ title, eyebrow, action, onBack }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void }) {

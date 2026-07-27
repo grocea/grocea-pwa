@@ -156,13 +156,15 @@ export function AddStockScreen() {
     setUnit(defaultUnit(next.family))
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
     if (!amountIsValid || parsed === null || note.length > 500) return
-    adjustStock(ingredient.id, operation, parsed, note.trim() || reason)
-    const verb = operation === 'set' ? 'Set' : operation === 'add' ? 'Added' : 'Removed'
-    navigate('/pantry', { state: { message: `${verb} ${formatQuantity(parsed, ingredient.family)} ${operation === 'set' ? 'for' : operation === 'add' ? 'to' : 'from'} ${ingredient.name}.` } })
+    try {
+      await adjustStock(ingredient.id, operation, parsed, note.trim() || reason)
+      const verb = operation === 'set' ? 'Set' : operation === 'add' ? 'Added' : 'Removed'
+      navigate('/pantry', { state: { message: `${verb} ${formatQuantity(parsed, ingredient.family)} ${operation === 'set' ? 'for' : operation === 'add' ? 'to' : 'from'} ${ingredient.name}.` } })
+    } catch { /* Global storage recovery remains visible. */ }
   }
 
   return (
@@ -310,22 +312,24 @@ export function CreateIngredientScreen() {
   const nameError = trimmedName.length === 0 ? 'Enter an ingredient name.' : trimmedName.length > 120 ? 'Name must be 120 characters or fewer.' : duplicate ? 'An ingredient with this name already exists.' : ''
   const showNameError = Boolean(nameError) && (submitted || name.length > 0)
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
     if (nameError || !categoryId) return
-    const id = createIngredient(trimmedName, categoryId, family, Boolean(draft))
-    if (draft) {
-      updateRecipeDraft(draft.id, { ingredients: [...draft.ingredients, { ingredientId: id, quantity: '', unit: defaultUnit(family) }] })
-      navigate(`/recipes/${draft.id}/edit/ingredients`, { state: { message: `${trimmedName} created and selected.` } })
-      return
-    }
-    navigate('/ingredients', {
-      state: {
-        message: `${trimmedName} added to your ingredients.`,
-        scope: 'custom',
-      },
-    })
+    try {
+      const id = await createIngredient(trimmedName, categoryId, family, Boolean(draft))
+      if (draft) {
+        await updateRecipeDraft(draft.id, { ingredients: [...draft.ingredients, { ingredientId: id, quantity: '', unit: defaultUnit(family) }] })
+        navigate(`/recipes/${draft.id}/edit/ingredients`, { state: { message: `${trimmedName} created and selected.` } })
+        return
+      }
+      navigate('/ingredients', {
+        state: {
+          message: `${trimmedName} added to your ingredients.`,
+          scope: 'custom',
+        },
+      })
+    } catch { /* Global storage recovery remains visible. */ }
   }
 
   return (
