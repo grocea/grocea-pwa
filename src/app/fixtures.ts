@@ -39,5 +39,5 @@ export const initialState: GroceaState = {
     { id: 'manual-rice', type: 'manual', title: 'Added Basmati rice', detail: '+1 kg · Groceries', occurredAt: '2026-07-17T09:15:00+08:00', changes: [{ ingredientId: 'rice', before: 1_400_000n, delta: 1_000_000n, after: 2_400_000n }] },
     { id: 'manual-milk', type: 'manual', title: 'Set Whole milk', detail: '1.5 L · Manual adjustment', occurredAt: '2026-07-16T18:02:00+08:00', changes: [{ ingredientId: 'milk', before: 900_000n, delta: 600_000n, after: 1_500_000n }] },
   ],
-  profile: { displayName: 'Ammar', measurementSystem: 'metric', preferredServings: 2 },
+  profile: { displayName: 'UserTest', measurementSystem: 'metric', preferredServings: 2 },
 }
