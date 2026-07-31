@@ -1,4 +1,4 @@
-import { BookOpen, CaretLeft, ClockCounterClockwise, DotsThree, Package, UserCircle, WifiSlash } from '@phosphor-icons/react'
+import { ArrowClockwise, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useGrocea } from '../../app/grocea-context'
@@ -32,7 +32,9 @@ export function AppShell({ children, navigation = false, action }: { children: R
 export function BrandHeader({ action }: { action?: ReactNode }) {
   const { profile, syncStatus, pendingMutationCount } = useGrocea()
   const syncLabel = syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Synced'
-  return <header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-pill ${syncStatus}`} aria-label={`Synchronization status: ${syncLabel}`}>{syncStatus === 'offline' && <WifiSlash size={15} />}{syncLabel}</Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header>
+  const status = syncStatus === 'syncing' ? 'syncing' : syncStatus === 'failed' ? 'failed' : syncStatus === 'offline' ? 'offline' : pendingMutationCount ? 'pending' : 'synced'
+  const StatusIcon = status === 'syncing' ? ArrowClockwise : status === 'failed' ? WarningCircle : status === 'offline' ? WifiSlash : status === 'pending' ? Clock : CheckCircle
+  return <header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-indicator ${status}`} aria-label={`Synchronization status: ${syncLabel}`} title={syncLabel}><StatusIcon size={21} weight={status === 'synced' ? 'fill' : 'bold'} aria-hidden="true" />{pendingMutationCount > 0 && <span className="sync-count" aria-hidden="true">{pendingMutationCount > 99 ? '99+' : pendingMutationCount}</span>}<span className="sr-only">{syncLabel}</span></Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header>
 }
 
 export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pantry' }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void; fallbackTo?: string }) {
@@ -47,6 +49,10 @@ export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pant
 
 export function PageHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return <header className="page-heading"><div><h1 data-page-title tabIndex={-1}>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>{action}</header>
+}
+
+export function OwnershipMark({ label, className = '' }: { label: string; className?: string }) {
+  return <span className={`ownership-mark${className ? ` ${className}` : ''}`} role="img" aria-label={label} title={label}><User size={15} weight="bold" aria-hidden="true" /></span>
 }
 
 export function EmptyState({ icon: Icon = UserCircle, title, message, action }: { icon?: typeof UserCircle; title: string; message: string; action?: ReactNode }) {

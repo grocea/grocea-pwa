@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ApiError, fetchState, importLocalState, sendMutation } from '../api/client'
 import type {
   ActivityEvent,
+  BasketItem,
   DraftRecipe,
   GroceaState,
+  GroceryList,
+  GroceryListItem,
   ImportConflict,
   Ingredient,
   PendingMutation,
@@ -12,7 +15,7 @@ import type {
   SyncStatus,
 } from '../domain/types'
 import { isPublishedRecipe } from '../domain/types'
-import { familyUnits, formatQuantityValue, parseQuantity } from '../shared/lib/quantity'
+import { familyUnits, formatQuantityValue, parseQuantity, scaleQuantity } from '../shared/lib/quantity'
 import { GroceaContext, type GroceaContextValue, type StorageStatus } from './grocea-context'
 import { groceaStorage, type GroceaStorage } from './persistence'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
@@ -135,6 +138,87 @@ interface Transition<T> {
   mutation?: MutationDraft
 }
 
+function canonicalUnit(ingredient: Ingredient) {
+  return ingredient.family === 'mass' ? 'g' : ingredient.family === 'volume' ? 'ml' : 'item'
+}
+
+function buildGroceryList(state: GroceaState, id: string, now: string): GroceryList {
+  if (state.groceryLists.some(list => list.status === 'active')) {
+    throw new Error('Complete or delete the active Grocery List first.')
+  }
+  if (!state.basket.length) throw new Error('Add at least one recipe to Basket first.')
+  const recipes = state.basket.map(item => {
+    const recipe = state.recipes.find((candidate): candidate is PublishedRecipe => (
+      candidate.id === item.recipeId && isPublishedRecipe(candidate)
+    ))
+    if (!recipe || !item.valid) throw new Error(`${item.recipeName} is no longer available.`)
+    return { basket: item, recipe }
+  })
+  const aggregates = new Map<string, {
+    required: bigint
+    sources: GroceryListItem['sources']
+  }>()
+  recipes.forEach(({ basket, recipe }) => {
+    recipe.ingredients.forEach(requirement => {
+      const ingredient = state.ingredients.find(candidate => candidate.id === requirement.ingredientId)
+      if (!ingredient) throw new Error('A Recipe Ingredient is no longer available.')
+      const contribution = scaleQuantity(requirement.quantity, basket.servings, recipe.baseServings)
+      const existing = aggregates.get(ingredient.id) ?? { required: 0n, sources: [] }
+      const unit = canonicalUnit(ingredient)
+      existing.required += contribution
+      existing.sources.push({
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        servings: basket.servings,
+        quantity: contribution,
+        unit,
+      })
+      aggregates.set(ingredient.id, existing)
+    })
+  })
+  const items = [...aggregates.entries()].flatMap(([ingredientId, aggregate]) => {
+    const ingredient = state.ingredients.find(candidate => candidate.id === ingredientId)!
+    const pantry = state.balances[ingredientId] ?? 0n
+    const quantity = aggregate.required - pantry
+    if (quantity <= 0n) return []
+    const unit = canonicalUnit(ingredient)
+    return [{
+      id: crypto.randomUUID(),
+      ingredientId,
+      label: ingredient.name,
+      categoryName: state.categories.find(category => category.id === ingredient.categoryId)?.name ?? 'Other',
+      family: ingredient.family,
+      quantity,
+      unit,
+      checked: false,
+      origin: 'generated' as const,
+      edited: false,
+      originalRequired: aggregate.required,
+      originalPantry: pantry,
+      originalQuantity: quantity,
+      sources: aggregate.sources,
+      createdAt: now,
+      updatedAt: now,
+    }]
+  })
+  const first = recipes[0].recipe.name
+  return {
+    id,
+    title: `Groceries — ${first}${recipes.length > 1 ? ` + ${recipes.length - 1}` : ''}`,
+    status: items.length ? 'active' : 'completed',
+    recipes: recipes.map(({ basket, recipe }) => ({
+      recipeId: recipe.id,
+      recipeName: recipe.name,
+      servings: basket.servings,
+      baseServings: recipe.baseServings,
+    })),
+    items,
+    createdAt: now,
+    updatedAt: now,
+    completedAt: items.length ? undefined : now,
+  }
+}
+
 const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, string>): PendingMutation => {
   const payload = mutation.payload as Record<string, unknown>
   const remap = (value: unknown) => typeof value === 'string' ? idMap[value] ?? value : value
@@ -153,6 +237,37 @@ const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, strin
         : recipe.ingredients,
     }
   }
+  const remapObjects = (value: unknown, fields: string[]) => Array.isArray(value)
+    ? value.map(item => {
+        if (!item || typeof item !== 'object') return item
+        const record = item as Record<string, unknown>
+        return Object.fromEntries(Object.entries(record).map(([key, entry]) => [
+          key,
+          fields.includes(key) ? remap(entry) : entry,
+        ]))
+      })
+    : value
+  const remapBasisRecipes = (value: unknown) => Array.isArray(value)
+    ? value.map(item => {
+        if (!item || typeof item !== 'object') return item
+        const recipe = item as Record<string, unknown>
+        return {
+          ...recipe,
+          recipeId: remap(recipe.recipeId),
+          ingredients: remapObjects(recipe.ingredients, ['ingredientId']),
+        }
+      })
+    : value
+  const remapItem = (value: unknown) => {
+    if (!value || typeof value !== 'object') return value
+    const item = value as Record<string, unknown>
+    return {
+      ...item,
+      id: remap(item.id),
+      ingredientId: remap(item.ingredientId),
+      sources: remapObjects(item.sources, ['recipeId']),
+    }
+  }
   return {
     ...mutation,
     payload: {
@@ -161,9 +276,15 @@ const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, strin
       categoryId: remap(payload.categoryId),
       ingredientId: remap(payload.ingredientId),
       recipeId: remap(payload.recipeId),
+      listId: remap(payload.listId),
+      itemId: remap(payload.itemId),
       eventId: remap(payload.eventId),
       reversalId: remap(payload.reversalId),
       recipe: remapRecipe(payload.recipe),
+      item: remapItem(payload.item),
+      generatedItemIds: remapObjects(payload.generatedItemIds, ['ingredientId', 'id']),
+      recipeBasis: remapBasisRecipes(payload.recipeBasis),
+      pantryBasis: remapObjects(payload.pantryBasis, ['ingredientId']),
     },
   }
 }
@@ -274,6 +395,34 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             error: { code: apiError.code, message: apiError.message, retryable: apiError.retryable },
           }
           if (storage.updateMutation) await storage.updateMutation(failed)
+          if (apiError.code === 'GROCERY_CALCULATION_STALE' && mutation.type === 'grocery-list.create') {
+            const listId = (mutation.payload as { id?: unknown }).id
+            const currentState = stateRef.current
+            const provisional = currentState?.groceryLists.find(list => list.id === listId)
+            if (currentState && provisional) {
+              const restored = provisional.recipes.flatMap(source => {
+                if (currentState.basket.some(item => item.recipeId === source.recipeId)) return []
+                const recipe = currentState.recipes.find(
+                  (item): item is PublishedRecipe => item.id === source.recipeId && isPublishedRecipe(item),
+                )
+                return recipe ? [{
+                  recipeId: recipe.id,
+                  recipeName: recipe.name,
+                  servings: source.servings,
+                  baseServings: recipe.baseServings,
+                  valid: true,
+                } satisfies BasketItem] : []
+              })
+              const recovered = {
+                ...currentState,
+                basket: [...currentState.basket, ...restored],
+                groceryLists: currentState.groceryLists.filter(list => list.id !== listId),
+              }
+              await storage.saveState(recovered)
+              stateRef.current = recovered
+              setState(recovered)
+            }
+          }
           if (apiError.retryable) scheduleRetry(failed.attempts)
           break
         }
@@ -534,6 +683,264 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       result: undefined,
       mutation: { type: 'profile.update', payload: { displayName, preferredServings } },
     })),
+    addRecipeToBasket: (recipeId: string, requestedServings?: number) => commit(current => {
+      const recipe = current.recipes.find(item => item.id === recipeId && isPublishedRecipe(item))
+      if (!recipe) throw new Error('Only published Recipes can be added to Basket.')
+      const servings = Math.max(1, Math.min(12, requestedServings ?? recipe.baseServings))
+      const item: BasketItem = {
+        recipeId: recipe.id,
+        recipeName: recipe.name,
+        servings,
+        baseServings: recipe.baseServings,
+        valid: true,
+      }
+      const exists = current.basket.some(candidate => candidate.recipeId === recipeId)
+      return {
+        state: {
+          ...current,
+          basket: exists
+            ? current.basket.map(candidate => candidate.recipeId === recipeId ? item : candidate)
+            : [...current.basket, item],
+        },
+        result: undefined,
+        mutation: { type: 'basket.recipe.upsert', payload: { recipeId, servings } },
+      }
+    }),
+    removeRecipeFromBasket: (recipeId: string) => commit(current => ({
+      state: { ...current, basket: current.basket.filter(item => item.recipeId !== recipeId) },
+      result: undefined,
+      mutation: { type: 'basket.recipe.remove', payload: { recipeId } },
+    })),
+    clearBasket: () => commit(current => ({
+      state: { ...current, basket: [] },
+      result: undefined,
+      mutation: { type: 'basket.clear', payload: {} },
+    })),
+    confirmBasket: () => {
+      const id = crypto.randomUUID()
+      const now = new Date().toISOString()
+      return commit(current => {
+        const groceryList = buildGroceryList(current, id, now)
+        const selectedRecipes = current.basket.map(item => current.recipes.find(
+          (recipe): recipe is PublishedRecipe => recipe.id === item.recipeId && isPublishedRecipe(recipe),
+        )!)
+        const ingredientIds = [...new Set(selectedRecipes.flatMap(recipe => recipe.ingredients.map(item => item.ingredientId)))]
+        return {
+          state: { ...current, basket: [], groceryLists: [groceryList, ...current.groceryLists] },
+          result: id,
+          mutation: {
+            type: 'grocery-list.create',
+            payload: {
+              id,
+              generatedItemIds: groceryList.items.flatMap(item => item.ingredientId
+                ? [{ ingredientId: item.ingredientId, id: item.id }]
+                : []),
+              recipeBasis: selectedRecipes.map(recipe => ({
+                recipeId: recipe.id,
+                baseServings: recipe.baseServings,
+                ingredients: recipe.ingredients.map(item => ({
+                  ingredientId: item.ingredientId,
+                  quantity: item.quantity.toString(),
+                })),
+              })),
+              pantryBasis: ingredientIds.map(ingredientId => ({
+                ingredientId,
+                quantity: (current.balances[ingredientId] ?? 0n).toString(),
+              })),
+            },
+          },
+        }
+      })
+    },
+    renameGroceryList: (listId: string, title: string) => commit(current => {
+      const value = title.trim()
+      if (!value) throw new Error('Grocery List title is required.')
+      return {
+        state: {
+          ...current,
+          groceryLists: current.groceryLists.map(list => list.id === listId && list.status === 'active'
+            ? { ...list, title: value, updatedAt: new Date().toISOString() }
+            : list),
+        },
+        result: undefined,
+        mutation: { type: 'grocery-list.update', payload: { listId, title: value } },
+      }
+    }),
+    addGroceryItem: (
+      listId: string,
+      input: Pick<GroceryListItem, 'label' | 'ingredientId' | 'quantity' | 'unit'>,
+    ) => {
+      const id = crypto.randomUUID()
+      const now = new Date().toISOString()
+      return commit(current => {
+        const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
+        if (!list) throw new Error('Active Grocery List was not found.')
+        const ingredient = input.ingredientId
+          ? current.ingredients.find(candidate => candidate.id === input.ingredientId)
+          : undefined
+        if (input.ingredientId && !ingredient) throw new Error('Ingredient was not found.')
+        const item: GroceryListItem = {
+          id,
+          ingredientId: ingredient?.id,
+          label: ingredient?.name ?? input.label.trim(),
+          categoryName: ingredient
+            ? current.categories.find(category => category.id === ingredient.categoryId)?.name ?? 'Other'
+            : 'Other',
+          family: ingredient?.family,
+          quantity: input.quantity,
+          unit: ingredient && input.quantity !== undefined ? canonicalUnit(ingredient) : input.unit,
+          checked: false,
+          origin: 'manual',
+          edited: false,
+          sources: [],
+          createdAt: now,
+          updatedAt: now,
+        }
+        return {
+          state: {
+            ...current,
+            groceryLists: current.groceryLists.map(candidate => candidate.id === listId
+              ? { ...candidate, items: [...candidate.items, item], updatedAt: now }
+              : candidate),
+          },
+          result: id,
+          mutation: { type: 'grocery-list.item.create', payload: { listId, item } },
+        }
+      })
+    },
+    updateGroceryItem: (listId: string, item: GroceryListItem) => commit(current => {
+      const now = new Date().toISOString()
+      const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
+      if (!list || !list.items.some(candidate => candidate.id === item.id)) {
+        throw new Error('Active Grocery List Item was not found.')
+      }
+      const previous = list.items.find(candidate => candidate.id === item.id)!
+      const ingredient = item.ingredientId
+        ? current.ingredients.find(candidate => candidate.id === item.ingredientId)
+        : undefined
+      if (item.ingredientId && !ingredient) throw new Error('Ingredient was not found.')
+      const normalizedItem: GroceryListItem = {
+        ...item,
+        ingredientId: ingredient?.id,
+        label: ingredient?.name ?? item.label.trim(),
+        categoryName: ingredient
+          ? current.categories.find(category => category.id === ingredient.categoryId)?.name ?? 'Other'
+          : 'Other',
+        family: ingredient?.family,
+        unit: ingredient && item.quantity !== undefined ? canonicalUnit(ingredient) : item.unit,
+      }
+      const changed = previous.ingredientId !== normalizedItem.ingredientId
+        || previous.label !== normalizedItem.label
+        || previous.quantity !== normalizedItem.quantity
+        || previous.unit !== normalizedItem.unit
+      const nextItem = { ...normalizedItem, edited: item.edited || changed, updatedAt: now }
+      return {
+        state: {
+          ...current,
+          groceryLists: current.groceryLists.map(candidate => candidate.id === listId
+            ? { ...candidate, items: candidate.items.map(value => value.id === item.id ? nextItem : value), updatedAt: now }
+            : candidate),
+        },
+        result: undefined,
+        mutation: { type: 'grocery-list.item.update', payload: { listId, item: nextItem } },
+      }
+    }),
+    removeGroceryItem: (listId: string, itemId: string) => commit(current => ({
+      state: {
+        ...current,
+        groceryLists: current.groceryLists.map(list => list.id === listId && list.status === 'active'
+          ? { ...list, items: list.items.filter(item => item.id !== itemId), updatedAt: new Date().toISOString() }
+          : list),
+      },
+      result: undefined,
+      mutation: { type: 'grocery-list.item.delete', payload: { listId, itemId } },
+    })),
+    completeGroceryList: (listId: string, pantryItemIds: string[]) => {
+      const eventId = crypto.randomUUID()
+      const now = new Date().toISOString()
+      return commit(current => {
+        const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
+        if (!list) throw new Error('Active Grocery List was not found.')
+        const selected = list.items.filter(item => pantryItemIds.includes(item.id))
+        if (selected.some(item => !item.checked || !item.ingredientId || item.quantity === undefined)) {
+          throw new Error('Pantry updates require checked catalog items with quantities.')
+        }
+        const additions = new Map<string, bigint>()
+        selected.forEach(item => {
+          const ingredientId = item.ingredientId!
+          additions.set(ingredientId, (additions.get(ingredientId) ?? 0n) + item.quantity!)
+        })
+        const balances = { ...current.balances }
+        const changes = [...additions].map(([ingredientId, quantity]) => {
+          const before = balances[ingredientId] ?? 0n
+          const after = before + quantity
+          balances[ingredientId] = after
+          return { ingredientId, before, delta: quantity, after }
+        })
+        const activity = changes.length
+          ? [{
+              id: eventId,
+              type: 'manual' as const,
+              title: 'Groceries added to pantry',
+              detail: `${selected.length} purchased item${selected.length === 1 ? '' : 's'}`,
+              occurredAt: now,
+              changes,
+            }, ...current.activity]
+          : current.activity
+        return {
+          state: {
+            ...current,
+            balances,
+            activity,
+            groceryLists: current.groceryLists.map(candidate => candidate.id === listId
+              ? { ...candidate, status: 'completed', completedAt: now, updatedAt: now }
+              : candidate),
+          },
+          result: undefined,
+          mutation: { type: 'grocery-list.complete', payload: { listId, eventId, pantryItemIds } },
+        }
+      })
+    },
+    reuseGroceryList: (listId: string) => commit(current => {
+      const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'completed')
+      if (!list) throw new Error('Completed Grocery List was not found.')
+      const additions = list.recipes.flatMap(source => {
+        if (current.basket.some(item => item.recipeId === source.recipeId)) return []
+        const recipe = current.recipes.find(candidate => candidate.id === source.recipeId && isPublishedRecipe(candidate))
+        if (!recipe) throw new Error(`${source.recipeName} is no longer available.`)
+        return [{
+          recipeId: recipe.id,
+          recipeName: recipe.name,
+          servings: source.servings,
+          baseServings: recipe.baseServings,
+          valid: true,
+        } satisfies BasketItem]
+      })
+      return {
+        state: { ...current, basket: [...current.basket, ...additions] },
+        result: undefined,
+        mutation: { type: 'grocery-list.reuse', payload: { listId } },
+      }
+    }),
+    deleteGroceryList: (listId: string, restoreRecipes = false) => commit(current => {
+      const list = current.groceryLists.find(candidate => candidate.id === listId)
+      if (!list) return { state: current, result: undefined }
+      let basket = current.basket
+      if (restoreRecipes) {
+        const additions = list.recipes.flatMap(source => {
+          if (basket.some(item => item.recipeId === source.recipeId)) return []
+          const recipe = current.recipes.find(candidate => candidate.id === source.recipeId && isPublishedRecipe(candidate))
+          if (!recipe) throw new Error(`${source.recipeName} is no longer available.`)
+          return [{ recipeId: recipe.id, recipeName: recipe.name, servings: source.servings, baseServings: recipe.baseServings, valid: true } satisfies BasketItem]
+        })
+        basket = [...basket, ...additions]
+      }
+      return {
+        state: { ...current, basket, groceryLists: current.groceryLists.filter(candidate => candidate.id !== listId) },
+        result: undefined,
+        mutation: { type: 'grocery-list.delete', payload: { listId, restoreRecipes } },
+      }
+    }),
   }), [commit])
 
   const retrySync = useCallback(async () => {

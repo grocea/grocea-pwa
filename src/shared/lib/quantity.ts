@@ -47,4 +47,8 @@ export function formatQuantityValue(quantity: bigint, unit: Unit) {
 }
 
 export const defaultUnit = (family: MeasurementFamily): Unit => family === 'mass' ? 'kg' : family === 'volume' ? 'L' : 'item'
-export const scaleQuantity = (quantity: bigint, servings: number, baseServings: number) => quantity * BigInt(servings) / BigInt(baseServings)
+export const scaleQuantity = (quantity: bigint, servings: number, baseServings: number) => {
+  const numerator = quantity * BigInt(servings)
+  const denominator = BigInt(baseServings)
+  return (numerator + denominator / 2n) / denominator
+}

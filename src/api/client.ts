@@ -2,6 +2,8 @@ import type {
   ActivityEvent,
   Category,
   DraftRecipe,
+  GroceryList,
+  GroceryListItem,
   GroceaState,
   Ingredient,
   PendingMutation,
@@ -38,6 +40,7 @@ export class ApiError extends Error {
 type ApiRecipe = schemas['RecipeResponse']
 type ApiActivity = schemas['ActivityResponse']
 type ApiState = schemas['StateResponse']
+type ApiGroceryList = schemas['GroceryListResponse']
 
 const decimalToMinor = (value: string): bigint => {
   const match = value.match(/^(-?)(\d+)(?:\.(\d{1,3}))?$/)
@@ -107,6 +110,47 @@ function mapActivity(event: ApiActivity): ActivityEvent {
   }
 }
 
+function mapGroceryList(list: ApiGroceryList): GroceryList {
+  return {
+    id: list.id,
+    title: list.title,
+    status: list.status,
+    recipes: list.recipes.map(recipe => ({
+      recipeId: recipe.recipe_id,
+      recipeName: recipe.recipe_name,
+      servings: recipe.servings,
+      baseServings: recipe.base_servings,
+    })),
+    items: list.items.map(item => ({
+      id: item.id,
+      ingredientId: item.ingredient_id ?? undefined,
+      label: item.label,
+      categoryName: item.category_name,
+      family: item.measurement_family ?? undefined,
+      quantity: item.quantity === null ? undefined : decimalToMinor(item.quantity),
+      unit: item.unit ?? undefined,
+      checked: item.checked,
+      origin: item.origin,
+      edited: item.edited,
+      originalRequired: item.original_required === null ? undefined : decimalToMinor(item.original_required),
+      originalPantry: item.original_pantry === null ? undefined : decimalToMinor(item.original_pantry),
+      originalQuantity: item.original_quantity === null ? undefined : decimalToMinor(item.original_quantity),
+      sources: item.sources.map(source => ({
+        recipeId: source.recipe_id,
+        recipeName: source.recipe_name,
+        servings: source.servings,
+        quantity: decimalToMinor(source.quantity),
+        unit: source.unit,
+      })),
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+    })),
+    createdAt: list.created_at,
+    updatedAt: list.updated_at,
+    completedAt: list.completed_at ?? undefined,
+  }
+}
+
 export function mapApiState(value: ApiState): { state: GroceaState; revision: number } {
   const categories: Category[] = value.categories.map(category => ({ ...category }))
   const ingredients: Ingredient[] = value.ingredients.map(ingredient => ({
@@ -131,6 +175,15 @@ export function mapApiState(value: ApiState): { state: GroceaState; revision: nu
       recipes: value.recipes.map(mapRecipe),
       activity: value.activity.map(mapActivity),
       profile,
+      basket: value.basket.items.map(item => ({
+        recipeId: item.recipe_id,
+        recipeName: item.recipe_name,
+        servings: item.servings,
+        baseServings: item.base_servings,
+        valid: item.valid,
+        error: item.error ?? undefined,
+      })),
+      groceryLists: value.grocery_lists.map(mapGroceryList),
     },
   }
 }
@@ -253,10 +306,99 @@ export async function sendMutation(mutation: PendingMutation): Promise<void> {
       path = `/api/activity/${payload.eventId}/reverse`
       body = { event_id: payload.reversalId }
       break
+    case 'basket.recipe.upsert':
+      path = `/api/basket/recipes/${payload.recipeId}`
+      method = 'PUT'
+      body = { servings: payload.servings }
+      break
+    case 'basket.recipe.remove':
+      path = `/api/basket/recipes/${payload.recipeId}`
+      method = 'DELETE'
+      body = undefined
+      break
+    case 'basket.clear':
+      path = '/api/basket'
+      method = 'DELETE'
+      body = undefined
+      break
+    case 'grocery-list.create':
+      path = '/api/grocery-lists/from-basket'
+      body = {
+        id: payload.id,
+        ...(payload.title ? { title: payload.title } : {}),
+        generated_item_ids: ((payload.generatedItemIds as Array<{ ingredientId: string; id: string }> | undefined) ?? []).map(item => ({
+          ingredient_id: item.ingredientId,
+          id: item.id,
+        })),
+        recipe_basis: ((payload.recipeBasis as Array<{
+          recipeId: string
+          baseServings: number
+          ingredients: Array<{ ingredientId: string; quantity: string }>
+        }> | undefined) ?? []).map(recipe => ({
+          recipe_id: recipe.recipeId,
+          base_servings: recipe.baseServings,
+          ingredients: recipe.ingredients.map(item => ({
+            ingredient_id: item.ingredientId,
+            quantity: minorToDecimal(BigInt(item.quantity)),
+          })),
+        })),
+        pantry_basis: ((payload.pantryBasis as Array<{ ingredientId: string; quantity: string }> | undefined) ?? []).map(item => ({
+          ingredient_id: item.ingredientId,
+          quantity: minorToDecimal(BigInt(item.quantity)),
+        })),
+      }
+      break
+    case 'grocery-list.update':
+      path = `/api/grocery-lists/${payload.listId}`
+      method = 'PATCH'
+      body = { title: payload.title }
+      break
+    case 'grocery-list.item.create': {
+      const item = payload.item as GroceryListItem
+      path = `/api/grocery-lists/${payload.listId}/items`
+      body = groceryItemPayload(item, true)
+      break
+    }
+    case 'grocery-list.item.update': {
+      const item = payload.item as GroceryListItem
+      path = `/api/grocery-lists/${payload.listId}/items/${item.id}`
+      method = 'PUT'
+      body = groceryItemPayload(item, false)
+      break
+    }
+    case 'grocery-list.item.delete':
+      path = `/api/grocery-lists/${payload.listId}/items/${payload.itemId}`
+      method = 'DELETE'
+      body = undefined
+      break
+    case 'grocery-list.complete':
+      path = `/api/grocery-lists/${payload.listId}/complete`
+      body = { event_id: payload.eventId, pantry_item_ids: payload.pantryItemIds }
+      break
+    case 'grocery-list.reuse':
+      path = `/api/grocery-lists/${payload.listId}/reuse-recipes`
+      body = {}
+      break
+    case 'grocery-list.delete':
+      path = `/api/grocery-lists/${payload.listId}?restore_recipes=${payload.restoreRecipes ? 'true' : 'false'}`
+      method = 'DELETE'
+      body = undefined
+      break
     default:
       throw new ApiError(400, 'UNKNOWN_MUTATION', `Unsupported mutation type: ${mutation.type}`)
   }
   await request(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+}
+
+function groceryItemPayload(item: GroceryListItem, includeId: boolean) {
+  return {
+    ...(includeId ? { id: item.id } : {}),
+    ingredient_id: item.ingredientId ?? null,
+    label: item.label,
+    quantity: item.quantity === undefined ? null : minorToDecimal(item.quantity),
+    unit: item.unit ?? null,
+    ...(!includeId ? { checked: item.checked } : {}),
+  }
 }
 
 export interface ImportResult {

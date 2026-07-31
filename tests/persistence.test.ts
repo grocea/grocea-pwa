@@ -7,6 +7,23 @@ import { cloneState, DATABASE_VERSION, IndexedDbGroceaStorage, LEGACY_STORAGE_KE
 const databaseName = () => `grocea-test-${crypto.randomUUID()}`
 
 describe('IndexedDbGroceaStorage', () => {
+  it('adds empty Basket and Grocery List history when loading pre-v4 state', async () => {
+    const name = databaseName()
+    const first = new IndexedDbGroceaStorage(initialState, name)
+    await first.open()
+    const database = await openDB(name, DATABASE_VERSION)
+    const oldState = cloneState(initialState) as unknown as Record<string, unknown>
+    delete oldState.basket
+    delete oldState.groceryLists
+    await database.put('state', { key: 'current', value: oldState })
+
+    const reopened = new IndexedDbGroceaStorage(initialState, name)
+    await reopened.open()
+    const migrated = await reopened.loadState()
+    expect(migrated.basket).toEqual([])
+    expect(migrated.groceryLists).toEqual([])
+  })
+
   it('boots from fixtures and round-trips bigint user state', async () => {
     const name = databaseName()
     const storage = new IndexedDbGroceaStorage(initialState, name)

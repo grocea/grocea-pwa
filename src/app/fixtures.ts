@@ -1,6 +1,8 @@
 import type { GroceaState } from '../domain/types'
 
 export const initialState: GroceaState = {
+  basket: [],
+  groceryLists: [],
   categories: [
     { id: 'produce', name: 'Produce', scope: 'global' },
     { id: 'dairy', name: 'Dairy & chilled', scope: 'global' },

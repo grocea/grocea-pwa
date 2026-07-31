@@ -38,6 +38,8 @@ describe('API contract mapping', () => {
       }],
       recipes: [],
       activity: [],
+      basket: { items: [] },
+      grocery_lists: [],
     }
     const mapped = mapApiState(apiState)
     expect(mapped.revision).toBe(7)
@@ -76,5 +78,36 @@ describe('API contract mapping', () => {
     await sendMutation({ ...base, id: crypto.randomUUID(), type: 'recipe.update', payload: { id: recipe.id, recipe } })
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toHaveProperty('id', recipe.id)
     expect(JSON.parse(fetchMock.mock.calls[1][1].body)).not.toHaveProperty('id')
+  })
+
+  it('sends stable generated Item IDs when confirming an offline Basket', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response('{}', {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const listId = crypto.randomUUID()
+    const ingredientId = crypto.randomUUID()
+    const itemId = crypto.randomUUID()
+    const mutation: PendingMutation = {
+      id: crypto.randomUUID(),
+      deviceId: crypto.randomUUID(),
+      type: 'grocery-list.create',
+      createdAt: new Date().toISOString(),
+      payload: { listId, id: listId, generatedItemIds: [{ ingredientId, id: itemId }] },
+      attempts: 0,
+      status: 'pending',
+      dependsOn: [],
+    }
+
+    await sendMutation(mutation)
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/grocery-lists/from-basket')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      id: listId,
+      generated_item_ids: [{ ingredient_id: ingredientId, id: itemId }],
+      recipe_basis: [],
+      pantry_basis: [],
+    })
   })
 })

@@ -3,6 +3,7 @@ import type {
   ActivityEvent,
   DraftRecipe,
   GroceaState,
+  GroceryListItem,
   ImportConflict,
   Ingredient,
   MeasurementFamily,
@@ -32,6 +33,17 @@ export interface GroceaContextValue extends GroceaState {
   reverseEvent: (eventId: string) => Promise<void>
   createCategory: (name: string) => Promise<void>
   updateProfile: (displayName: string, preferredServings: number) => Promise<void>
+  addRecipeToBasket: (recipeId: string, servings?: number) => Promise<void>
+  removeRecipeFromBasket: (recipeId: string) => Promise<void>
+  clearBasket: () => Promise<void>
+  confirmBasket: () => Promise<string>
+  renameGroceryList: (listId: string, title: string) => Promise<void>
+  addGroceryItem: (listId: string, item: Pick<GroceryListItem, 'label' | 'ingredientId' | 'quantity' | 'unit'>) => Promise<string>
+  updateGroceryItem: (listId: string, item: GroceryListItem) => Promise<void>
+  removeGroceryItem: (listId: string, itemId: string) => Promise<void>
+  completeGroceryList: (listId: string, pantryItemIds: string[]) => Promise<void>
+  reuseGroceryList: (listId: string) => Promise<void>
+  deleteGroceryList: (listId: string, restoreRecipes?: boolean) => Promise<void>
   retrySync: () => Promise<void>
   discardSyncIssue: (id: string) => Promise<void>
 }

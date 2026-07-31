@@ -4,6 +4,8 @@ import type {
   Category,
   DraftRecipe,
   GroceaState,
+  GroceryList,
+  GroceryListItem,
   Ingredient,
   MeasurementFamily,
   ImportConflict,
@@ -18,7 +20,7 @@ import { familyUnits } from '../shared/lib/quantity'
 import { initialState } from './fixtures'
 
 export const DATABASE_NAME = 'grocea'
-export const DATABASE_VERSION = 3
+export const DATABASE_VERSION = 4
 export const LEGACY_STORAGE_KEY = 'grocea:user-content:v1'
 const CURRENT_STATE_KEY = 'current'
 const DATABASE_METADATA_KEY = 'database'
@@ -167,6 +169,70 @@ function isProfile(value: unknown): value is Profile {
     && value.preferredServings >= 1
 }
 
+function isBasketItem(value: unknown): boolean {
+  return isRecord(value)
+    && isString(value.recipeId)
+    && isString(value.recipeName)
+    && typeof value.servings === 'number'
+    && Number.isInteger(value.servings)
+    && value.servings >= 1
+    && value.servings <= 12
+    && typeof value.baseServings === 'number'
+    && Number.isInteger(value.baseServings)
+    && typeof value.valid === 'boolean'
+    && (value.error === undefined || isString(value.error))
+}
+
+function isGroceryListItem(value: unknown): value is GroceryListItem {
+  return isRecord(value)
+    && isString(value.id)
+    && (value.ingredientId === undefined || isString(value.ingredientId))
+    && isString(value.label)
+    && isString(value.categoryName)
+    && (value.family === undefined || isFamily(value.family))
+    && (value.quantity === undefined || typeof value.quantity === 'bigint')
+    && (value.unit === undefined || isString(value.unit))
+    && typeof value.checked === 'boolean'
+    && (value.origin === 'generated' || value.origin === 'manual')
+    && typeof value.edited === 'boolean'
+    && Array.isArray(value.sources)
+    && value.sources.every(source => isRecord(source)
+      && isString(source.recipeId)
+      && isString(source.recipeName)
+      && typeof source.servings === 'number'
+      && typeof source.quantity === 'bigint'
+      && isUnit(source.unit))
+    && isString(value.createdAt)
+    && isString(value.updatedAt)
+}
+
+function isGroceryList(value: unknown): value is GroceryList {
+  return isRecord(value)
+    && isString(value.id)
+    && isString(value.title)
+    && (value.status === 'active' || value.status === 'completed')
+    && Array.isArray(value.recipes)
+    && value.recipes.every(recipe => isRecord(recipe)
+      && isString(recipe.recipeId)
+      && isString(recipe.recipeName)
+      && typeof recipe.servings === 'number'
+      && typeof recipe.baseServings === 'number')
+    && Array.isArray(value.items)
+    && value.items.every(isGroceryListItem)
+    && isString(value.createdAt)
+    && isString(value.updatedAt)
+    && (value.completedAt === undefined || isString(value.completedAt))
+}
+
+function normalizeStateShape(value: unknown): unknown {
+  if (!isRecord(value)) return value
+  return {
+    ...value,
+    basket: Array.isArray(value.basket) ? value.basket : [],
+    groceryLists: Array.isArray(value.groceryLists) ? value.groceryLists : [],
+  }
+}
+
 export function isGroceaState(value: unknown): value is GroceaState {
   if (!isRecord(value)
     || !Array.isArray(value.categories)
@@ -177,6 +243,10 @@ export function isGroceaState(value: unknown): value is GroceaState {
     || !value.recipes.every(isRecipe)
     || !Array.isArray(value.activity)
     || !value.activity.every(isActivityEvent)
+    || !Array.isArray(value.basket)
+    || !value.basket.every(isBasketItem)
+    || !Array.isArray(value.groceryLists)
+    || !value.groceryLists.every(isGroceryList)
     || !isProfile(value.profile)
     || !isRecord(value.balances)) return false
 
@@ -206,6 +276,12 @@ export function cloneState(state: GroceaState): GroceaState {
     })) as Recipe[],
     activity: state.activity.map(event => ({ ...event, changes: event.changes.map(change => ({ ...change })) })),
     profile: { ...state.profile },
+    basket: state.basket.map(item => ({ ...item })),
+    groceryLists: state.groceryLists.map(list => ({
+      ...list,
+      recipes: list.recipes.map(recipe => ({ ...recipe })),
+      items: list.items.map(item => ({ ...item, sources: item.sources.map(source => ({ ...source })) })),
+    })),
   }
 }
 
@@ -353,8 +429,9 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
       database.get('state', CURRENT_STATE_KEY),
       database.get('metadata', DATABASE_METADATA_KEY),
     ])
-    if (!record || !isGroceaState(record.value)) throw new Error('Stored Grocea data is corrupt or incompatible.')
-    const reconciled = reconcileGlobalFixtures(record.value, this.seed)
+    const normalized = record ? normalizeStateShape(record.value) : null
+    if (!normalized || !isGroceaState(normalized)) throw new Error('Stored Grocea data is corrupt or incompatible.')
+    const reconciled = reconcileGlobalFixtures(normalized, this.seed)
     if (!isGroceaState(reconciled)) throw new Error('Stored Grocea data could not be reconciled.')
     const transaction = database.transaction(['state', 'metadata'], 'readwrite')
     await Promise.all([
@@ -407,10 +484,17 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
     const superseded = existing.filter(item => {
       if (item.status !== 'pending' || item.type !== mutation.type) return false
       if (mutation.type === 'profile.update') return true
-      if (mutation.type !== 'recipe.update') return false
       const currentPayload = item.payload as { id?: unknown }
       const nextPayload = mutation.payload as { id?: unknown }
-      return currentPayload.id === nextPayload.id
+      if (mutation.type === 'recipe.update') return currentPayload.id === nextPayload.id
+      const current = item.payload as { recipeId?: unknown; listId?: unknown; item?: { id?: unknown } }
+      const next = mutation.payload as { recipeId?: unknown; listId?: unknown; item?: { id?: unknown } }
+      if (mutation.type === 'basket.recipe.upsert') return current.recipeId === next.recipeId
+      if (mutation.type === 'grocery-list.update') return current.listId === next.listId
+      if (mutation.type === 'grocery-list.item.update') {
+        return current.listId === next.listId && current.item?.id === next.item?.id
+      }
+      return false
     })
     await Promise.all([
       transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: cloneState(state) }),

@@ -62,7 +62,103 @@ function SyncProbe() {
   </div>
 }
 
+function GroceryProbe() {
+  const { basket, groceryLists, addRecipeToBasket, confirmBasket } = useGrocea()
+  return <div>
+    <span data-testid="basket-count">{basket.length}</span>
+    <span data-testid="basket-servings">{basket[0]?.servings ?? 0}</span>
+    <span data-testid="list-count">{groceryLists.length}</span>
+    <span data-testid="list-items">{groceryLists[0]?.items.length ?? 0}</span>
+    <button onClick={() => void addRecipeToBasket('tomato-egg-rice', 4)}>Add recipe</button>
+    <button onClick={() => void confirmBasket()}>Create groceries</button>
+  </div>
+}
+
+function DuplicatePantryProbe() {
+  const { balances, activity, completeGroceryList } = useGrocea()
+  const latest = activity[0]
+  return <div>
+    <span data-testid="rice-balance">{balances.rice?.toString() ?? '0'}</span>
+    <span data-testid="change-count">{latest?.changes.length ?? 0}</span>
+    <span data-testid="change-delta">{latest?.changes[0]?.delta.toString() ?? '0'}</span>
+    <button onClick={() => void completeGroceryList('duplicate-list', ['rice-one', 'rice-two'])}>Complete duplicates</button>
+  </div>
+}
+
 describe('GroceaProvider persistence', () => {
+  it('plans groceries optimistically while offline and queues Basket then confirmation mutations', async () => {
+    const storage = new MemoryStorage()
+    render(<GroceaProvider storage={storage}><GroceryProbe /></GroceaProvider>)
+    await screen.findByRole('button', { name: 'Add recipe' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add recipe' }))
+    await waitFor(() => expect(screen.getByTestId('basket-count').textContent).toBe('1'))
+    expect(screen.getByTestId('basket-servings').textContent).toBe('4')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create groceries' }))
+    await waitFor(() => expect(screen.getByTestId('basket-count').textContent).toBe('0'))
+    expect(screen.getByTestId('list-count').textContent).toBe('1')
+    expect(Number(screen.getByTestId('list-items').textContent)).toBeGreaterThan(0)
+    expect(storage.mutations.map(item => item.type)).toEqual([
+      'basket.recipe.upsert',
+      'grocery-list.create',
+    ])
+  })
+
+  it('aggregates duplicate catalog rows into one Pantry change while offline', async () => {
+    const storage = new MemoryStorage()
+    const now = '2026-07-31T00:00:00Z'
+    storage.state.balances.rice = 0n
+    storage.state.groceryLists = [{
+      id: 'duplicate-list',
+      title: 'Duplicate rice',
+      status: 'active',
+      recipes: [],
+      items: [
+        {
+          id: 'rice-one',
+          ingredientId: 'rice',
+          label: 'Rice',
+          categoryName: 'Pantry',
+          family: 'mass',
+          quantity: 300_000n,
+          unit: 'g',
+          checked: true,
+          origin: 'manual',
+          edited: false,
+          sources: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'rice-two',
+          ingredientId: 'rice',
+          label: 'Rice',
+          categoryName: 'Pantry',
+          family: 'mass',
+          quantity: 100_000n,
+          unit: 'g',
+          checked: true,
+          origin: 'manual',
+          edited: false,
+          sources: [],
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    }]
+    render(<GroceaProvider storage={storage}><DuplicatePantryProbe /></GroceaProvider>)
+    await screen.findByRole('button', { name: 'Complete duplicates' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete duplicates' }))
+
+    await waitFor(() => expect(screen.getByTestId('rice-balance').textContent).toBe('400000'))
+    expect(screen.getByTestId('change-count').textContent).toBe('1')
+    expect(screen.getByTestId('change-delta').textContent).toBe('400000')
+  })
+
   it('hydrates before rendering children and serializes rapid durable writes', async () => {
     const storage = new MemoryStorage()
     render(<GroceaProvider storage={storage}><Probe /></GroceaProvider>)
@@ -176,6 +272,8 @@ describe('GroceaProvider persistence', () => {
         pantry_stocks: [],
         recipes: [],
         activity: [],
+        basket: { items: [] },
+        grocery_lists: [],
       }), { status: 200, headers: { 'Content-Type': 'application/json' } })
       throw new Error(`Unexpected request: ${url}`)
     })

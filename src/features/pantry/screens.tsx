@@ -1,18 +1,27 @@
 import {
   ArrowRight,
+  ArrowsLeftRight,
+  CheckCircle,
   Circle,
+  ClockCounterClockwise,
   Drop,
   Egg,
+  Equals,
   Grains,
   Info,
+  Lightbulb,
+  LockSimple,
   MagnifyingGlass,
+  Minus,
+  NotePencil,
+  Package,
   Plus,
   User,
   WarningCircle,
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AppShell, BackHeader, BrandHeader } from '../../shared/ui/AppShell'
+import { AppShell, BackHeader, BrandHeader, OwnershipMark } from '../../shared/ui/AppShell'
 import { defaultUnit, familyUnits, formatQuantity, parseQuantity } from '../../shared/lib/quantity'
 import { usePendingAction } from '../../shared/lib/usePendingAction'
 import { useGrocea as usePantry } from '../../app/grocea-context'
@@ -162,11 +171,12 @@ export function AddStockScreen() {
     : defaultUnit(ingredient?.family ?? 'mass')
   const [unit, setUnit] = useState<Unit>(initialUnit)
   const [quantity, setQuantity] = useState(params.get('quantity') ?? '1')
-  const [reason, setReason] = useState('')
+  const [reason, setReason] = useState('Manual adjustment')
   const [note, setNote] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [quantityTouched, setQuantityTouched] = useState(false)
   const [reasonTouched, setReasonTouched] = useState(false)
+  const [formError, setFormError] = useState('')
   const quantityRef = useRef<HTMLInputElement>(null)
   const reasonRef = useRef<HTMLSelectElement>(null)
 
@@ -180,6 +190,14 @@ export function AddStockScreen() {
       : operation === 'add'
         ? current + parsed
         : current - parsed
+  const formattedAmount = parsed !== null && amountIsValid ? formatQuantity(parsed, ingredient?.family ?? 'mass') : null
+  const deltaLabel = formattedAmount
+    ? operation === 'set'
+      ? 'Set balance'
+      : `${operation === 'add' ? '+' : '−'}${formattedAmount}`
+    : '—'
+  const reasonLabel = reason === 'Manual adjustment' ? 'Manual' : reason
+  const SubmitIcon = operation === 'add' ? Plus : operation === 'set' ? Equals : Minus
   const { pending, run } = usePendingAction(async () => {
     if (!ingredient || parsed === null || !amountIsValid || !reason || note.length > 500) return
     const detail = note.trim() ? `${reason}: ${note.trim()}` : reason
@@ -188,6 +206,11 @@ export function AddStockScreen() {
     const message = `${verb} ${formatQuantity(parsed, ingredient.family)} ${operation === 'set' ? 'for' : operation === 'add' ? 'to' : 'from'} ${ingredient.name}.`
     navigate(returnTo ?? '/pantry', { state: { message } })
   })
+  const submitLabel = pending
+    ? 'Saving…'
+    : operation === 'set'
+      ? 'Set balance'
+      : `${operation === 'add' ? 'Add' : 'Remove'} ${quantity || 'quantity'} ${unit}`
 
   if (!ingredient) return null
 
@@ -201,70 +224,111 @@ export function AddStockScreen() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
+    setFormError('')
     if (!amountIsValid || parsed === null) { quantityRef.current?.focus(); return }
     if (!reason) { reasonRef.current?.focus(); return }
     if (note.length > 500) return
-    await run().catch(() => undefined)
+    try {
+      await run()
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : 'Stock could not be updated. Try again.')
+    }
   }
 
   return (
     <AppShell>
-      <BackHeader title="Add stock" fallbackTo={returnTo ?? '/pantry'} />
-      <form className="form-screen" onSubmit={submit} noValidate aria-busy={pending}>
-        <div className="field-group ingredient-field">
-          <label htmlFor="ingredient">Ingredient</label>
-          <select id="ingredient" value={ingredient.id} disabled={pending} onChange={(event) => changeIngredient(event.target.value)}>
-            {sortedIngredients.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </div>
+      <BackHeader title="Add stock" eyebrow="Record an inventory increase" fallbackTo={returnTo ?? '/pantry'} action={<span className="history-status" role="status" aria-label="Saved to activity history"><CheckCircle weight="fill" aria-hidden="true" /><span>Saved to activity history</span></span>} />
+      <form className="form-screen stock-adjustment-form" onSubmit={submit} noValidate aria-busy={pending}>
+        {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Stock was not updated</strong><small>{formError}</small></span></div>}
+        <div className="stock-adjustment-layout">
+          <section className="workflow-card stock-form-card">
+            <section className="workflow-section">
+              <header className="workflow-section-heading"><span><Package aria-hidden="true" /></span><h2>1. Stock item</h2></header>
+              <div className="field-group ingredient-field">
+                <label htmlFor="ingredient">Ingredient</label>
+                <div className="ingredient-select-control">
+                  <span className="ingredient-select-icon" aria-hidden="true">{ingredientIcon(ingredient)}</span>
+                  <select id="ingredient" value={ingredient.id} disabled={pending} onChange={(event) => changeIngredient(event.target.value)}>
+                    {sortedIngredients.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                  <small>Current balance {formatQuantity(current, ingredient.family)}</small>
+                </div>
+              </div>
+            </section>
 
-        <fieldset className="field-group">
-          <legend>Operation</legend>
-          <div className="segmented-control three">
-            {(['add', 'set', 'remove'] as StockOperation[]).map((item) => (
-              <button key={item} type="button" disabled={pending} className={operation === item ? 'selected' : ''} onClick={() => setOperation(item)} aria-pressed={operation === item}>{item[0].toUpperCase() + item.slice(1)}</button>
-            ))}
-          </div>
-        </fieldset>
+            <section className="workflow-section">
+              <header className="workflow-section-heading"><span><ArrowsLeftRight aria-hidden="true" /></span><h2>2. Adjustment</h2></header>
+              <fieldset className="field-group">
+                <legend>Operation</legend>
+                <div className="segmented-control three operation-control">
+                  {(['add', 'set', 'remove'] as StockOperation[]).map((item) => {
+                    const Icon = item === 'add' ? Plus : item === 'set' ? Equals : Minus
+                    return <button key={item} type="button" disabled={pending} className={operation === item ? 'selected' : ''} onClick={() => setOperation(item)} aria-pressed={operation === item}><Icon aria-hidden="true" />{item[0].toUpperCase() + item.slice(1)}</button>
+                  })}
+                </div>
+              </fieldset>
 
-        <div className="field-group">
-          <label htmlFor="quantity">Quantity</label>
-          <div className="quantity-inputs">
-            <input ref={quantityRef} id="quantity" inputMode="decimal" value={quantity} disabled={pending} onBlur={() => setQuantityTouched(true)} onChange={(event) => setQuantity(event.target.value)} aria-describedby="quantity-help quantity-error" aria-invalid={(submitted || quantityTouched) && !amountIsValid} />
-            <select value={unit} disabled={pending} onChange={(event) => setUnit(event.target.value as Unit)} aria-label="Unit">
-              {familyUnits[ingredient.family].map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </div>
-          <small id="quantity-help">{ingredient.family[0].toUpperCase() + ingredient.family.slice(1)} units only for this ingredient.</small>
-          {(submitted || quantityTouched) && !amountIsValid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
-        </div>
+              <div className="stock-quantity-row">
+                <div className="field-group quantity-field">
+                  <label htmlFor="quantity">Quantity</label>
+                  <input ref={quantityRef} id="quantity" inputMode="decimal" value={quantity} disabled={pending} onBlur={() => setQuantityTouched(true)} onChange={(event) => setQuantity(event.target.value)} aria-describedby="quantity-help quantity-error" aria-invalid={(submitted || quantityTouched) && !amountIsValid} />
+                </div>
+                <div className="field-group unit-field">
+                  <label htmlFor="unit">Unit</label>
+                  <select id="unit" value={unit} disabled={pending} onChange={(event) => setUnit(event.target.value as Unit)}>
+                    {familyUnits[ingredient.family].map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                </div>
+              </div>
+              <small className="field-help" id="quantity-help"><Info aria-hidden="true" />{ingredient.family[0].toUpperCase() + ingredient.family.slice(1)} units only for {ingredient.name}.</small>
+              {(submitted || quantityTouched) && !amountIsValid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
 
-        <div className={`balance-preview${projected <= 0n ? ' warning' : ''}`} aria-live="polite">
-          <span><small>Current</small><strong>{formatQuantity(current, ingredient.family)}</strong></span>
-          <ArrowRight size={24} />
-          <span><small>New balance</small><strong>{formatQuantity(projected, ingredient.family)}</strong></span>
-        </div>
+              <div className={`balance-preview mobile-balance-preview${projected <= 0n ? ' warning' : ''}`} aria-live="polite">
+                <span><small>Current</small><strong>{formatQuantity(current, ingredient.family)}</strong></span>
+                <span className="balance-delta"><small>{deltaLabel}</small><ArrowRight aria-hidden="true" /></span>
+                <span><small>New balance</small><strong>{formatQuantity(projected, ingredient.family)}</strong></span>
+              </div>
+            </section>
 
-        <div className="field-group split-field">
-          <label htmlFor="reason">Reason</label>
-          <select ref={reasonRef} id="reason" value={reason} disabled={pending} onBlur={() => setReasonTouched(true)} onChange={(event) => setReason(event.target.value)} aria-invalid={(submitted || reasonTouched) && !reason} aria-describedby="reason-help reason-error">
-            <option value="">Select a reason…</option><option>Groceries</option><option>Correction</option><option>Waste</option><option>Other</option>
-          </select>
-          <small id="reason-help">Shown in activity history.</small>
-          {(submitted || reasonTouched) && !reason && <span className="field-error" id="reason-error" role="alert">Select a reason for this stock change.</span>}
-        </div>
+            <section className="workflow-section">
+              <header className="workflow-section-heading"><span><NotePencil aria-hidden="true" /></span><h2>3. Record details</h2></header>
+              <div className="record-detail-fields">
+                <div className="field-group split-field">
+                  <label htmlFor="reason">Reason</label>
+                  <select ref={reasonRef} id="reason" value={reason} disabled={pending} onBlur={() => setReasonTouched(true)} onChange={(event) => setReason(event.target.value)} aria-invalid={(submitted || reasonTouched) && !reason} aria-describedby="reason-help reason-error">
+                    <option value="Manual adjustment">Manual</option><option>Groceries</option><option>Correction</option><option>Waste</option><option>Other</option>
+                  </select>
+                  <small id="reason-help">Shown in activity history.</small>
+                  {(submitted || reasonTouched) && !reason && <span className="field-error" id="reason-error" role="alert">Select a reason for this stock change.</span>}
+                </div>
 
-        <div className="field-group grow-field">
-          <label htmlFor="note">Note <span>· optional</span></label>
-          <textarea id="note" value={note} disabled={pending} onChange={(event) => setNote(event.target.value)} placeholder="Add a short note…" maxLength={501} aria-describedby="note-error" />
-          {note.length > 500 && <span className="field-error" id="note-error" role="alert">Note must be 500 characters or fewer.</span>}
-        </div>
+                <div className="field-group grow-field">
+                  <label htmlFor="note">Note <span>· optional</span></label>
+                  <textarea id="note" value={note} disabled={pending} onChange={(event) => setNote(event.target.value)} placeholder="Invoice or supplier note" maxLength={501} aria-describedby="note-error" />
+                  {note.length > 500 && <span className="field-error" id="note-error" role="alert">Note must be 500 characters or fewer.</span>}
+                </div>
+              </div>
+            </section>
 
-        <div className="form-actions">
-          <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(returnTo ?? '/pantry')}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={pending}>
-            {pending ? 'Saving…' : operation === 'set' ? 'Set balance' : `${operation === 'add' ? 'Add' : 'Remove'} ${quantity || 'quantity'} ${unit}`}
-          </button>
+            <div className="form-actions">
+              <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(returnTo ?? '/pantry')}>Cancel</button>
+              <button type="submit" className="primary-button" disabled={pending}><SubmitIcon aria-hidden="true" />{submitLabel}</button>
+            </div>
+          </section>
+
+          <aside className="stock-summary-panel" aria-label="Stock adjustment summary">
+            <section className={`stock-balance-card${projected <= 0n ? ' warning' : ''}`} aria-live="polite">
+              <header><span>After adjustment</span><strong>{deltaLabel}</strong></header>
+              <p>{formatQuantity(projected, ingredient.family)}</p>
+              <small>New {ingredient.name} balance</small>
+              <footer><span>Current</span><strong>{formatQuantity(current, ingredient.family)}</strong></footer>
+            </section>
+            <section className="activity-summary-card">
+              <h2><ClockCounterClockwise aria-hidden="true" />Activity record</h2>
+              <dl><div><dt>Ingredient</dt><dd>{ingredient.name}</dd></div><div><dt>Change</dt><dd>{deltaLabel}</dd></div><div><dt>Reason</dt><dd>{reasonLabel}</dd></div></dl>
+            </section>
+            <div className="summary-note"><Lightbulb aria-hidden="true" /><span>Balance updates immediately. You can reverse this entry later from Activity.</span></div>
+          </aside>
         </div>
       </form>
     </AppShell>
@@ -327,7 +391,7 @@ export function CatalogScreen() {
           {shown.map((ingredient) => (
             <article key={ingredient.id} className="catalog-row">
               <span><strong>{ingredient.name}</strong><small>{categoryName(ingredient.categoryId)} · {ingredient.family[0].toUpperCase() + ingredient.family.slice(1)}</small></span>
-              <b>{ingredient.scope === 'global' ? 'Global' : 'Yours'}</b>
+              {ingredient.scope === 'global' ? <span className="scope-mark" role="img" aria-label="Global ingredient" title="Global ingredient"><LockSimple aria-hidden="true" /></span> : <OwnershipMark label="Your ingredient" />}
             </article>
           ))}
           {shown.length === 0 && <div className="empty-state"><strong>{scope === 'custom' ? 'No custom ingredients yet' : 'No ingredients found'}</strong><span>{scope === 'custom' ? 'Create one when the global catalog has no match.' : 'Try another search or category.'}</span></div>}
@@ -349,6 +413,7 @@ export function CreateIngredientScreen() {
   )
   const [family, setFamily] = useState<MeasurementFamily>('mass')
   const [submitted, setSubmitted] = useState(false)
+  const [formError, setFormError] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
   const trimmedName = name.trim()
   const duplicate = ingredients.some((item) => item.name.trim().toLowerCase() === trimmedName.toLowerCase())
@@ -368,36 +433,57 @@ export function CreateIngredientScreen() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
+    setFormError('')
     if (nameError || !categoryId) { nameRef.current?.focus(); return }
-    await run().catch(() => undefined)
+    try {
+      await run()
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : 'Ingredient could not be created. Try again.')
+    }
   }
 
   return (
     <AppShell>
-      <BackHeader title="Create ingredient" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
-      <form className="form-screen create-form" onSubmit={submit} noValidate aria-busy={pending}>
+      <BackHeader title="Create ingredient" eyebrow="Add a custom pantry item" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
+      <form className="form-screen create-form workflow-form" onSubmit={submit} noValidate aria-busy={pending}>
+        {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Ingredient was not created</strong><small>{formError}</small></span></div>}
         <div className="info-banner"><Info size={21} /><span>Create custom ingredient only when catalog search has no match.</span></div>
-        <div className="field-group">
-          <label htmlFor="name">Name</label>
-          <input ref={nameRef} id="name" value={name} disabled={pending} onChange={(event) => setName(event.target.value)} placeholder="Tempeh" aria-describedby="name-help name-error" aria-invalid={showNameError} />
-          <small id="name-help">Compared case-insensitively with global and custom names.</small>
-          {showNameError && <span className="field-error" id="name-error" role="alert">{nameError}</span>}
-        </div>
-        <div className="field-group split-field">
-          <label htmlFor="category">Category</label>
-          <select id="category" value={categoryId} disabled={pending} onChange={(event) => setCategoryId(event.target.value)}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-        </div>
-        <fieldset className="field-group">
-          <legend>Measurement family</legend>
-          <div className="segmented-control three">
-            {(['mass', 'volume', 'count'] as MeasurementFamily[]).map((item) => <button key={item} type="button" disabled={pending} className={family === item ? 'selected' : ''} onClick={() => setFamily(item)} aria-pressed={family === item}>{item[0].toUpperCase() + item.slice(1)}</button>)}
-          </div>
-        </fieldset>
-        <div className="units-card"><span><small>Supported units</small><strong>{familyUnits[family].join(' · ')}</strong></span><p>Measurement family cannot change after ingredient is used in stock, recipes or history.</p></div>
-        <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Saved to this local profile</small></span></div>
-        <div className="form-actions">
-          <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients')}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={pending}>{pending ? 'Creating…' : 'Create ingredient'}</button>
+        <div className="workflow-layout">
+          <section className="workflow-card create-workflow-card">
+            <section className="workflow-section">
+              <header className="workflow-section-heading"><span><Package aria-hidden="true" /></span><h2>1. Ingredient details</h2></header>
+              <div className="create-detail-fields">
+                <div className="field-group">
+                  <label htmlFor="name">Name</label>
+                  <input ref={nameRef} id="name" value={name} disabled={pending} onChange={(event) => setName(event.target.value)} placeholder="Tempeh" aria-describedby="name-help name-error" aria-invalid={showNameError} />
+                  <small id="name-help">Compared case-insensitively with global and custom names.</small>
+                  {showNameError && <span className="field-error" id="name-error" role="alert">{nameError}</span>}
+                </div>
+                <div className="field-group split-field">
+                  <label htmlFor="category">Category</label>
+                  <select id="category" value={categoryId} disabled={pending} onChange={(event) => setCategoryId(event.target.value)}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+                </div>
+              </div>
+            </section>
+            <section className="workflow-section">
+              <header className="workflow-section-heading"><span><ArrowsLeftRight aria-hidden="true" /></span><h2>2. Measurement</h2></header>
+              <fieldset className="field-group">
+                <legend>Measurement family</legend>
+                <div className="segmented-control three operation-control">
+                  {(['mass', 'volume', 'count'] as MeasurementFamily[]).map((item) => <button key={item} type="button" disabled={pending} className={family === item ? 'selected' : ''} onClick={() => setFamily(item)} aria-pressed={family === item}>{item[0].toUpperCase() + item.slice(1)}</button>)}
+                </div>
+              </fieldset>
+              <div className="units-card"><span><small>Supported units</small><strong>{familyUnits[family].join(' · ')}</strong></span><p>Measurement family cannot change after ingredient is used in stock, recipes or history.</p></div>
+            </section>
+            <div className="form-actions">
+              <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients')}>Cancel</button>
+              <button type="submit" className="primary-button" disabled={pending}><Plus aria-hidden="true" />{pending ? 'Creating…' : 'Create ingredient'}</button>
+            </div>
+          </section>
+          <aside className="workflow-summary-panel">
+            <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Saved to this local profile</small></span></div>
+            <div className="summary-note"><Lightbulb aria-hidden="true" /><span>Custom ingredients remain editable until they appear in stock, recipes, or activity history.</span></div>
+          </aside>
         </div>
       </form>
     </AppShell>

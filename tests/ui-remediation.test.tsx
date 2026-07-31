@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -10,6 +10,7 @@ import { ActivityListScreen } from '../src/features/activity/ActivityScreens'
 import { CategoriesScreen, SyncIssuesScreen } from '../src/features/more/MoreScreens'
 import { AddStockScreen } from '../src/features/pantry/screens'
 import { RecipeListScreen } from '../src/features/recipes/RecipeScreens'
+import { BasketScreen, GroceriesScreen, GroceryListScreen } from '../src/features/groceries/GroceryScreens'
 import { usePendingAction } from '../src/shared/lib/usePendingAction'
 import { BackHeader, PageHeading } from '../src/shared/ui/AppShell'
 import { ConfirmDialog } from '../src/shared/ui/ConfirmDialog'
@@ -43,13 +44,10 @@ describe('stock and catalog recovery', () => {
     expect(document.activeElement).toBe(quantity)
   })
 
-  it('requires a stock reason and returns a prefilled recovery to its recipe', async () => {
+  it('defaults stock reason to Manual and returns a prefilled recovery to its recipe', async () => {
     renderRoute(<AddStockScreen />, '/pantry/stock/new?ingredient=carrots&quantity=2&unit=item&returnTo=%2Frecipes%2Ffried-rice', undefined, <Route path="/recipes/fried-rice" element={<div>Recipe returned</div>} />)
     await screen.findByLabelText('Quantity')
-    fireEvent.click(screen.getByRole('button', { name: 'Add 2 item' }))
-    expect(await screen.findByText('Select a reason for this stock change.')).toBeTruthy()
-    expect(document.activeElement).toBe(screen.getByLabelText('Reason'))
-    fireEvent.change(screen.getByLabelText('Reason'), { target: { value: 'Groceries' } })
+    expect((screen.getByLabelText('Reason') as HTMLSelectElement).value).toBe('Manual adjustment')
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 item' }))
     expect(await screen.findByText('Recipe returned')).toBeTruthy()
   })
@@ -125,6 +123,33 @@ describe('pending and destructive actions', () => {
 })
 
 describe('navigation and selection semantics', () => {
+  it('moves a Recipe through Basket into an active Grocery List and completes it with Pantry preview', async () => {
+    const storage = new MemoryStorage()
+    render(<GroceaProvider storage={storage}><MemoryRouter initialEntries={['/recipes']}><Routes>
+      <Route path="/recipes" element={<RecipeListScreen />} />
+      <Route path="/recipes/basket" element={<BasketScreen />} />
+      <Route path="/groceries" element={<GroceriesScreen />} />
+      <Route path="/groceries/:id" element={<GroceryListScreen />} />
+    </Routes></MemoryRouter></GroceaProvider>)
+    await screen.findByRole('heading', { name: 'Recipes' })
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Chickpea bowl to Basket' }))
+    await screen.findByRole('button', { name: 'Chickpea bowl is in Basket' })
+    fireEvent.click(screen.getByRole('link', { name: 'Basket, 1 recipe' }))
+
+    expect(await screen.findByRole('heading', { name: 'Plan your groceries' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Create Grocery List' }))
+    expect(await screen.findByText('Grocery List created from your Basket.')).toBeTruthy()
+    const purchase = screen.getAllByRole('checkbox')[0]
+    fireEvent.click(purchase)
+    await waitFor(() => expect((purchase as HTMLInputElement).checked).toBe(true))
+    fireEvent.click(screen.getByRole('button', { name: 'Complete list' }))
+    expect(await screen.findByRole('heading', { name: 'Complete Grocery List?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Update Pantry & complete/ }))
+    expect(await screen.findByRole('heading', { name: 'Groceries' })).toBeTruthy()
+    expect(screen.getByText('Grocery List completed.')).toBeTruthy()
+  })
+
   it('exposes pressed state for recipe and activity filters', async () => {
     const { unmount } = renderRoute(<RecipeListScreen />, '/recipes')
     const ready = await screen.findByRole('button', { name: 'Ready' })
@@ -144,10 +169,22 @@ describe('navigation and selection semantics', () => {
     fireEvent.click(screen.getByRole('button', { name: 'All' }))
     const customCard = screen.getByRole('link', { name: /Chickpea bowl/ })
     expect(customCard.textContent).toContain('CHECK 1')
-    expect(customCard.textContent).toContain('Your recipe')
+    expect(within(customCard).getByRole('img', { name: 'Your recipe' })).toBeTruthy()
     const globalCard = screen.getByRole('link', { name: /Oat porridge/ })
     expect(globalCard.textContent).toContain('READY')
-    expect(globalCard.textContent).not.toContain('Your recipe')
+    expect(within(globalCard).queryByRole('img', { name: 'Your recipe' })).toBeNull()
+  })
+
+  it('keeps activity-history details behind contextual help', async () => {
+    renderRoute(<ActivityListScreen />, '/activity')
+    await screen.findByRole('heading', { name: 'Activity history' })
+    expect(screen.queryByText('Immutable history')).toBeNull()
+    const trigger = screen.getByRole('button', { name: 'About activity history' })
+    trigger.focus()
+    fireEvent.click(trigger)
+    expect(await screen.findByRole('heading', { name: 'Why records stay unchanged' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+    await waitFor(() => expect(document.activeElement).toBe(trigger))
   })
 
   it('uses the logical fallback for a deep-linked back action', () => {

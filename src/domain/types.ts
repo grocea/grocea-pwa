@@ -3,6 +3,7 @@ export type IngredientScope = 'global' | 'custom'
 export type StockOperation = 'add' | 'set' | 'remove'
 export type Unit = 'mg' | 'g' | 'kg' | 'ml' | 'L' | 'item'
 export type RecipeStatus = 'draft' | 'published'
+export type GroceryListStatus = 'active' | 'completed'
 
 export interface Category { id: string; name: string; scope: IngredientScope }
 export interface Ingredient { id: string; name: string; categoryId: string; family: MeasurementFamily; scope: IngredientScope }
@@ -42,6 +43,55 @@ export interface ActivityEvent {
   reversalOf?: string
 }
 export interface Profile { displayName: string; measurementSystem: 'metric'; preferredServings: number }
+export interface BasketItem {
+  recipeId: string
+  recipeName: string
+  servings: number
+  baseServings: number
+  valid: boolean
+  error?: string
+}
+export interface GroceryListRecipe {
+  recipeId: string
+  recipeName: string
+  servings: number
+  baseServings: number
+}
+export interface GroceryListItemSource {
+  recipeId: string
+  recipeName: string
+  servings: number
+  quantity: bigint
+  unit: Unit
+}
+export interface GroceryListItem {
+  id: string
+  ingredientId?: string
+  label: string
+  categoryName: string
+  family?: MeasurementFamily
+  quantity?: bigint
+  unit?: string
+  checked: boolean
+  origin: 'generated' | 'manual'
+  edited: boolean
+  originalRequired?: bigint
+  originalPantry?: bigint
+  originalQuantity?: bigint
+  sources: GroceryListItemSource[]
+  createdAt: string
+  updatedAt: string
+}
+export interface GroceryList {
+  id: string
+  title: string
+  status: GroceryListStatus
+  recipes: GroceryListRecipe[]
+  items: GroceryListItem[]
+  createdAt: string
+  updatedAt: string
+  completedAt?: string
+}
 export interface GroceaState {
   categories: Category[]
   ingredients: Ingredient[]
@@ -49,6 +99,8 @@ export interface GroceaState {
   recipes: Recipe[]
   activity: ActivityEvent[]
   profile: Profile
+  basket: BasketItem[]
+  groceryLists: GroceryList[]
 }
 
 export interface PendingMutation {
