@@ -135,6 +135,39 @@ interface Transition<T> {
   mutation?: MutationDraft
 }
 
+const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, string>): PendingMutation => {
+  const payload = mutation.payload as Record<string, unknown>
+  const remap = (value: unknown) => typeof value === 'string' ? idMap[value] ?? value : value
+  const remapRecipe = (value: unknown) => {
+    if (!value || typeof value !== 'object') return value
+    const recipe = value as Record<string, unknown>
+    return {
+      ...recipe,
+      id: remap(recipe.id),
+      ingredients: Array.isArray(recipe.ingredients)
+        ? recipe.ingredients.map(item => {
+          if (!item || typeof item !== 'object') return item
+          const ingredient = item as Record<string, unknown>
+          return { ...ingredient, ingredientId: remap(ingredient.ingredientId) }
+        })
+        : recipe.ingredients,
+    }
+  }
+  return {
+    ...mutation,
+    payload: {
+      ...payload,
+      id: remap(payload.id),
+      categoryId: remap(payload.categoryId),
+      ingredientId: remap(payload.ingredientId),
+      recipeId: remap(payload.recipeId),
+      eventId: remap(payload.eventId),
+      reversalId: remap(payload.reversalId),
+      recipe: remapRecipe(payload.recipe),
+    },
+  }
+}
+
 export function GroceaProvider({ children, storage = groceaStorage }: { children: ReactNode; storage?: GroceaStorage }) {
   const [state, setState] = useState<GroceaState | null>(null)
   const [storageStatus, setStorageStatus] = useState<StorageStatus>('loading')
@@ -183,10 +216,13 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     setSyncStatus('syncing')
     try {
       let metadata = await storage.getMetadata()
+      let idMap: Record<string, string> = {}
       deviceIdRef.current = metadata.deviceId
       setImportConflicts(metadata.importConflicts)
-      if (metadata.remoteImportStatus === 'pending' && importCandidate) {
-        const imported = await importLocalState(importCandidate, metadata.importId, metadata.deviceId)
+      const localCandidate = importCandidate ?? stateRef.current
+      if (metadata.remoteImportStatus !== 'complete' && localCandidate) {
+        const imported = await importLocalState(localCandidate, metadata.importId, metadata.deviceId)
+        idMap = imported.idMap
         metadata = {
           ...metadata,
           syncCursor: String(imported.revision),
@@ -197,7 +233,14 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         setImportConflicts(imported.conflicts)
       }
 
-      const queued = await storage.listPendingMutations()
+      let queued = await storage.listPendingMutations()
+      if (storage.updateMutation && Object.keys(idMap).length) {
+        queued = await Promise.all(queued.map(async item => {
+          const remapped = remapMutationIds(item, idMap)
+          await storage.updateMutation!(remapped)
+          return remapped
+        }))
+      }
       const failedIds = new Set(queued.filter(item => item.status === 'failed').map(item => item.id))
       for (const current of queued) {
         if (current.status === 'failed') continue
@@ -237,11 +280,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       }
 
       const remaining = await storage.listPendingMutations()
-      if (remaining.length === 0 && metadata.remoteImportStatus !== 'conflicts') {
+      if (remaining.length === 0) {
         const remote = await fetchState()
         if (storage.saveCanonicalState) await storage.saveCanonicalState(remote.state)
         else await storage.saveState(remote.state)
-        metadata = { ...metadata, syncCursor: String(remote.revision) }
+        metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
         await storage.saveMetadata(metadata)
         stateRef.current = remote.state
         setState(remote.state)
