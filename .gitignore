@@ -25,3 +25,6 @@ dist-ssr
 
 # docs
 docs
+artifacts
+notes-to-improve.md
+context.md
