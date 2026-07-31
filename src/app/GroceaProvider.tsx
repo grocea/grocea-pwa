@@ -12,9 +12,10 @@ import type {
   SyncStatus,
 } from '../domain/types'
 import { isPublishedRecipe } from '../domain/types'
-import { familyUnits, parseQuantity } from '../shared/lib/quantity'
+import { familyUnits, formatQuantityValue, parseQuantity } from '../shared/lib/quantity'
 import { GroceaContext, type GroceaContextValue, type StorageStatus } from './grocea-context'
 import { groceaStorage, type GroceaStorage } from './persistence'
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 
 type Action =
   | { type: 'stock'; eventId: string; ingredientId: string; operation: StockOperation; amount: bigint; reason: string }
@@ -142,6 +143,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   const [pendingMutationCount, setPendingMutationCount] = useState(0)
   const [syncIssues, setSyncIssues] = useState<PendingMutation[]>([])
   const [importConflicts, setImportConflicts] = useState<ImportConflict[]>([])
+  const [resetRequested, setResetRequested] = useState(false)
   const stateRef = useRef<GroceaState | null>(null)
   const statusRef = useRef<StorageStatus>('loading')
   const writeQueue = useRef<Promise<void>>(Promise.resolve())
@@ -351,19 +353,27 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         mutation: { type: 'ingredient.create', payload: { id, name, categoryId, family, createStock } },
       }))
     },
-    createRecipeDraft: () => {
+    createRecipeDraft: (sourceRecipeId?: string) => {
       const id = crypto.randomUUID()
       const now = new Date().toISOString()
       return commit(current => {
+        const source = sourceRecipeId
+          ? current.recipes.find((recipe): recipe is PublishedRecipe => recipe.id === sourceRecipeId && isPublishedRecipe(recipe))
+          : undefined
+        if (sourceRecipeId && !source) throw new Error('Published recipe could not be copied.')
         const recipe: DraftRecipe = {
           id,
           status: 'draft',
           scope: 'custom',
-          name: '',
-          description: '',
-          baseServings: current.profile.preferredServings,
-          ingredients: [],
-          steps: [''],
+          name: source?.name ?? '',
+          description: source?.description ?? '',
+          baseServings: source?.baseServings ?? current.profile.preferredServings,
+          ingredients: source?.ingredients.map(item => ({
+            ingredientId: item.ingredientId,
+            quantity: formatQuantityValue(item.quantity, item.unit),
+            unit: item.unit,
+          })) ?? [],
+          steps: source ? [...source.steps] : [''],
           createdAt: now,
           updatedAt: now,
         }
@@ -514,7 +524,6 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }, [refreshQueueStatus, storage, synchronize])
 
   const reset = useCallback(async () => {
-    if (!window.confirm('Reset all Grocea data stored on this device? This cannot be undone.')) return
     updateStorageStatus('loading')
     try {
       const resetState = await storage.reset()
@@ -528,7 +537,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
 
   if (!state) {
     if (storageStatus === 'error') {
-      return <StorageFailure message={storageError} retry={boot} reset={reset} />
+      return <><StorageFailure message={storageError} retry={boot} reset={() => setResetRequested(true)} /><ConfirmDialog open={resetRequested} title="Reset all local data?" description="Every pantry balance, recipe, activity event, profile preference, and queued change stored on this device will be permanently removed. This cannot be undone." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} /></>
     }
     return <main className="storage-state" aria-busy="true"><div className="storage-state-card">
       <span className="eyebrow">LOCAL DATA</span><h1>Opening Grocea…</h1><p>Preparing your offline pantry.</p>
@@ -555,8 +564,9 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     {storageStatus === 'error' && <div className="storage-error-banner" role="alert">
       <div><strong>Changes are paused</strong><small>{storageError ?? 'Grocea could not save to this device.'}</small></div>
       <button className="button secondary compact" type="button" onClick={() => void boot()}>Retry</button>
-      <button className="button danger compact" type="button" onClick={() => void reset()}>Reset local data</button>
+      <button className="button danger compact" type="button" onClick={() => setResetRequested(true)}>Reset local data</button>
     </div>}
+    <ConfirmDialog open={resetRequested} title="Reset all local data?" description="Every pantry balance, recipe, activity event, profile preference, and queued change stored on this device will be permanently removed. This cannot be undone." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
   </GroceaContext.Provider>
 }
 
@@ -567,7 +577,7 @@ function StorageFailure({
 }: {
   message: string | null
   retry: () => Promise<void>
-  reset: () => Promise<void>
+  reset: () => void
 }) {
   return <main className="storage-state"><div className="storage-state-card">
     <span className="eyebrow">LOCAL STORAGE ERROR</span>
@@ -575,7 +585,7 @@ function StorageFailure({
     <p>{message ?? 'Your offline data is unavailable.'}</p>
     <div className="form-actions">
       <button className="button primary" type="button" onClick={() => void retry()}>Retry</button>
-      <button className="button danger" type="button" onClick={() => void reset()}>Reset local data</button>
+      <button className="button danger" type="button" onClick={reset}>Reset local data</button>
     </div>
   </div></main>
 }

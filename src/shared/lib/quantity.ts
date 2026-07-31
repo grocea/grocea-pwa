@@ -35,5 +35,16 @@ export function formatQuantityInUnit(quantity: bigint, unit: Unit) {
   return formatWithFactor(quantity, unitFactors[unit], unit)
 }
 
+export function formatQuantityValue(quantity: bigint, unit: Unit) {
+  const negative = quantity < 0n
+  const absolute = negative ? -quantity : quantity
+  const factor = unitFactors[unit]
+  const whole = absolute / factor
+  const remainder = absolute % factor
+  if (remainder === 0n) return `${negative ? '-' : ''}${whole}`
+  const fraction = (remainder * 1_000_000n / factor).toString().padStart(6, '0').replace(/0+$/, '')
+  return `${negative ? '-' : ''}${whole}.${fraction}`
+}
+
 export const defaultUnit = (family: MeasurementFamily): Unit => family === 'mass' ? 'kg' : family === 'volume' ? 'L' : 'item'
 export const scaleQuantity = (quantity: bigint, servings: number, baseServings: number) => quantity * BigInt(servings) / BigInt(baseServings)

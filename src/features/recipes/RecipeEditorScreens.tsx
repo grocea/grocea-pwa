@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 import { useGrocea } from '../../app/grocea-context'
 import type { DraftRecipe, Ingredient, Unit } from '../../domain/types'
 import { defaultUnit, familyUnits, formatQuantityInUnit, parseQuantity } from '../../shared/lib/quantity'
+import { usePendingAction } from '../../shared/lib/usePendingAction'
 import { AppShell, BackHeader, EmptyState } from '../../shared/ui/AppShell'
 
 const stages = ['basics', 'ingredients', 'measurements', 'steps', 'review'] as const
@@ -53,6 +54,15 @@ export function RecipeEditorScreen() {
   const heading = useRef<HTMLHeadingElement>(null)
   const [attemptedStage, setAttemptedStage] = useState<Stage | null>(null)
   const [query, setQuery] = useState('')
+  const leaveAction = usePendingAction(async () => {
+    if (!draft) return
+    const isUntouched = untouched(draft)
+    if (isUntouched) await deleteRecipeDraft(draft.id)
+    navigate('/recipes', { state: { message: isUntouched ? undefined : 'Draft saved.' } })
+  })
+  const publishAction = usePendingAction(async () => {
+    if (draft && await publishRecipeDraft(draft.id)) navigate(`/recipes/${draft.id}`, { state: { message: 'Recipe confirmed.' } })
+  })
 
   useEffect(() => { heading.current?.focus() }, [stage])
   useEffect(() => {
@@ -61,31 +71,25 @@ export function RecipeEditorScreen() {
     return () => window.removeEventListener('popstate', discardUntouchedOnBrowserBack)
   }, [deleteRecipeDraft, draft, stage])
   if (!stage) return <Navigate to={`/recipes/${id}/edit/basics`} replace />
-  if (!draft) return <AppShell><BackHeader title="Recipe editor" /><EmptyState title="Draft not found" message="This draft may have been deleted or confirmed." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
+  if (!draft) return <AppShell><BackHeader title="Recipe editor" fallbackTo="/recipes" /><EmptyState title="Draft not found" message="This draft may have been deleted or confirmed." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
 
   const index = stages.indexOf(stage)
   const update = (patch: Parameters<typeof updateRecipeDraft>[1]) => { void updateRecipeDraft(draft.id, patch).catch(() => undefined) }
-  const leave = async () => {
-    try {
-      if (untouched(draft)) await deleteRecipeDraft(draft.id)
-      navigate('/recipes', { state: { message: untouched(draft) ? undefined : 'Draft saved.' } })
-    } catch { /* Global storage recovery remains visible. */ }
-  }
   const next = async (event: FormEvent) => {
     event.preventDefault(); setAttemptedStage(stage)
     if (!stageValid(draft, stage)) return
     if (stage === 'review') {
-      try { if (await publishRecipeDraft(draft.id)) navigate(`/recipes/${draft.id}`, { state: { message: 'Recipe confirmed.' } }) } catch { /* Global storage recovery remains visible. */ }
+      await publishAction.run().catch(() => undefined)
       return
     }
     navigate(`/recipes/${draft.id}/edit/${stages[index + 1]}`)
   }
-  const previous = () => { if (index === 0) void leave(); else navigate(`/recipes/${draft.id}/edit/${stages[index - 1]}`) }
+  const previous = () => { if (index === 0) void leaveAction.run().catch(() => undefined); else navigate(`/recipes/${draft.id}/edit/${stages[index - 1]}`) }
   const attempted = attemptedStage === stage
 
   return <AppShell>
     <BackHeader title="Recipe draft" eyebrow="Autosaved locally" action={<span className="tag">Draft</span>} onBack={previous} />
-    <form className="recipe-editor" onSubmit={next} noValidate>
+    <form className="recipe-editor" onSubmit={next} noValidate aria-busy={leaveAction.pending || publishAction.pending}>
       <nav className="editor-progress" aria-label="Recipe creation progress">{stages.map((item, itemIndex) => <Link key={item} to={`/recipes/${draft.id}/edit/${item}`} aria-current={item === stage ? 'step' : undefined} className={item === stage ? 'active' : itemIndex < index ? 'complete' : ''}><span>{itemIndex < index ? <Check /> : itemIndex + 1}</span><small>{labels[item]}</small></Link>)}</nav>
       <header className="editor-heading"><p>Step {index + 1} of {stages.length}</p><h1 ref={heading} tabIndex={-1}>{labels[stage]}</h1></header>
       {(location.state as { message?: string } | null)?.message && <div className="success-notice" role="status">{(location.state as { message: string }).message}</div>}
@@ -102,7 +106,7 @@ export function RecipeEditorScreen() {
       {stage === 'steps' && <StepsStage draft={draft} update={update} attempted={attempted} />}
       {stage === 'review' && <ReviewStage draft={draft} ingredients={ingredients} />}
 
-      <div className="editor-actions"><button type="button" className="button secondary" onClick={leave}>Save &amp; exit</button><button type="submit" className="button primary">{stage === 'review' ? 'Confirm recipe' : 'Next'}</button></div>
+      <div className="editor-actions"><button type="button" className="button secondary" disabled={leaveAction.pending || publishAction.pending} onClick={() => void leaveAction.run().catch(() => undefined)}>{leaveAction.pending ? 'Saving…' : 'Save & exit'}</button><button type="submit" className="button primary" disabled={leaveAction.pending || publishAction.pending}>{publishAction.pending ? 'Publishing…' : stage === 'review' ? 'Confirm recipe' : 'Next'}</button></div>
     </form>
   </AppShell>
 }

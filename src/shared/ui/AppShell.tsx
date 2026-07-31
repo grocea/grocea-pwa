@@ -23,8 +23,9 @@ function Navigation() {
 
 export function AppShell({ children, navigation = false, action }: { children: ReactNode; navigation?: boolean; action?: ReactNode }) {
   return <div className={`app-shell${navigation ? ' with-navigation' : ''}`}>
+    <a className="skip-link" href="#main-content">Skip to content</a>
     {navigation && <Navigation />}
-    <div className="app-page">{children}{action}</div>
+    <div className="app-page" id="main-content">{children}{action}</div>
   </div>
 }
 
@@ -34,13 +35,18 @@ export function BrandHeader({ action }: { action?: ReactNode }) {
   return <header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-pill ${syncStatus}`} aria-label={`Synchronization status: ${syncLabel}`}>{syncStatus === 'offline' && <WifiSlash size={15} />}{syncLabel}</Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header>
 }
 
-export function BackHeader({ title, eyebrow, action, onBack }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void }) {
+export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pantry' }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void; fallbackTo?: string }) {
   const navigate = useNavigate()
-  return <header className="back-header"><button className="icon-button" type="button" onClick={onBack ?? (() => navigate(-1))} aria-label="Go back"><CaretLeft size={24} /></button><div><strong>{title}</strong>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header>
+  const back = onBack ?? (() => {
+    const index = (window.history.state as { idx?: number } | null)?.idx
+    if (typeof index === 'number' && index > 0) navigate(-1)
+    else navigate(fallbackTo, { replace: true })
+  })
+  return <header className="back-header"><button className="icon-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={24} /></button><div><strong data-page-title tabIndex={-1}>{title}</strong>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header>
 }
 
 export function PageHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
-  return <header className="page-heading"><div><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>{action}</header>
+  return <header className="page-heading"><div><h1 data-page-title tabIndex={-1}>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>{action}</header>
 }
 
 export function EmptyState({ icon: Icon = UserCircle, title, message, action }: { icon?: typeof UserCircle; title: string; message: string; action?: ReactNode }) {

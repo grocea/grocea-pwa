@@ -10,10 +10,11 @@ import {
   User,
   WarningCircle,
 } from '@phosphor-icons/react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AppShell, BackHeader, BrandHeader } from '../../shared/ui/AppShell'
 import { defaultUnit, familyUnits, formatQuantity, parseQuantity } from '../../shared/lib/quantity'
+import { usePendingAction } from '../../shared/lib/usePendingAction'
 import { useGrocea as usePantry } from '../../app/grocea-context'
 import type { DraftRecipe, Ingredient, MeasurementFamily, StockOperation, Unit } from '../../domain/types'
 
@@ -34,8 +35,20 @@ function SuccessNotice({ message }: { message?: string }) {
   )
 }
 
+function safeRecipeReturnTo(value: string | null) {
+  if (!value) return null
+  try {
+    const url = new URL(value, window.location.origin)
+    return url.origin === window.location.origin && url.pathname.startsWith('/recipes/')
+      ? `${url.pathname}${url.search}${url.hash}`
+      : null
+  } catch {
+    return null
+  }
+}
+
 export function PantryScreen() {
-  const { ingredients, balances, categories, categoryName } = usePantry()
+  const { ingredients, balances, categories, categoryName, recipes } = usePantry()
   const location = useLocation()
   const navigate = useNavigate()
   const routeMessage = (location.state as { message?: string } | null)?.message
@@ -46,6 +59,7 @@ export function PantryScreen() {
 
   const inStockCount = ingredients.filter((item) => (balances[item.id] ?? 0n) > 0n).length
   const restockCount = ingredients.length - inStockCount
+  const publishedRecipeCount = recipes.filter((recipe) => recipe.status === 'published').length
   useEffect(() => {
     if (routeMessage) navigate(location.pathname, { replace: true, state: null })
   }, [location.pathname, navigate, routeMessage])
@@ -70,9 +84,18 @@ export function PantryScreen() {
       <main className="screen-content pantry-content">
         <SuccessNotice message={notice} />
         <header className="page-heading">
-          <h1>Pantry</h1>
+          <h1 data-page-title tabIndex={-1}>Pantry</h1>
           <p>{inStockCount} in stock · {restockCount} need restock</p>
         </header>
+
+        <section className="pantry-pulse" aria-label="Pantry overview">
+          <div>
+            <span className="eyebrow">Pantry pulse</span>
+            <strong>{inStockCount} <small>ingredients ready</small></strong>
+            <p>{publishedRecipeCount ? `Browse ${publishedRecipeCount} recipes and see what your stock can make.` : 'Add recipes to connect your stock to cooking.'}</p>
+          </div>
+          <Link to="/recipes" className="pulse-action">Find a recipe <ArrowRight size={18} /></Link>
+        </section>
 
         {restockCount > 0 && (
           <button className="restock-alert" type="button" onClick={() => setTab('restock')}>
@@ -120,7 +143,9 @@ export function PantryScreen() {
 export function AddStockScreen() {
   const { ingredients, balances, adjustStock } = usePantry()
   const navigate = useNavigate()
-  const params = new URLSearchParams(useLocation().search)
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const returnTo = safeRecipeReturnTo(params.get('returnTo'))
   const sortedIngredients = useMemo(() => [...ingredients].sort((a, b) => a.name.localeCompare(b.name)), [ingredients])
   const requestedIngredient = params.get('ingredient')
   const firstId =
@@ -131,14 +156,21 @@ export function AddStockScreen() {
   const [ingredientId, setIngredientId] = useState(firstId)
   const [operation, setOperation] = useState<StockOperation>('add')
   const ingredient = sortedIngredients.find((item) => item.id === ingredientId) ?? sortedIngredients[0]
-  const [unit, setUnit] = useState<Unit>(defaultUnit(ingredient?.family ?? 'mass'))
-  const [quantity, setQuantity] = useState('1')
-  const [reason, setReason] = useState('Groceries')
+  const requestedUnit = params.get('unit') as Unit | null
+  const initialUnit = requestedUnit && ingredient && familyUnits[ingredient.family].includes(requestedUnit)
+    ? requestedUnit
+    : defaultUnit(ingredient?.family ?? 'mass')
+  const [unit, setUnit] = useState<Unit>(initialUnit)
+  const [quantity, setQuantity] = useState(params.get('quantity') ?? '1')
+  const [reason, setReason] = useState('')
   const [note, setNote] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [quantityTouched, setQuantityTouched] = useState(false)
+  const [reasonTouched, setReasonTouched] = useState(false)
+  const quantityRef = useRef<HTMLInputElement>(null)
+  const reasonRef = useRef<HTMLSelectElement>(null)
 
-  if (!ingredient) return null
-  const current = balances[ingredient.id] ?? 0n
+  const current = ingredient ? balances[ingredient.id] ?? 0n : 0n
   const parsed = parseQuantity(quantity, unit)
   const amountIsValid = parsed !== null && (operation === 'set' || parsed > 0n)
   const projected = !amountIsValid
@@ -148,6 +180,16 @@ export function AddStockScreen() {
       : operation === 'add'
         ? current + parsed
         : current - parsed
+  const { pending, run } = usePendingAction(async () => {
+    if (!ingredient || parsed === null || !amountIsValid || !reason || note.length > 500) return
+    const detail = note.trim() ? `${reason}: ${note.trim()}` : reason
+    await adjustStock(ingredient.id, operation, parsed, detail)
+    const verb = operation === 'set' ? 'Set' : operation === 'add' ? 'Added' : 'Removed'
+    const message = `${verb} ${formatQuantity(parsed, ingredient.family)} ${operation === 'set' ? 'for' : operation === 'add' ? 'to' : 'from'} ${ingredient.name}.`
+    navigate(returnTo ?? '/pantry', { state: { message } })
+  })
+
+  if (!ingredient) return null
 
   function changeIngredient(id: string) {
     const next = sortedIngredients.find((item) => item.id === id)
@@ -159,21 +201,19 @@ export function AddStockScreen() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
-    if (!amountIsValid || parsed === null || note.length > 500) return
-    try {
-      await adjustStock(ingredient.id, operation, parsed, note.trim() || reason)
-      const verb = operation === 'set' ? 'Set' : operation === 'add' ? 'Added' : 'Removed'
-      navigate('/pantry', { state: { message: `${verb} ${formatQuantity(parsed, ingredient.family)} ${operation === 'set' ? 'for' : operation === 'add' ? 'to' : 'from'} ${ingredient.name}.` } })
-    } catch { /* Global storage recovery remains visible. */ }
+    if (!amountIsValid || parsed === null) { quantityRef.current?.focus(); return }
+    if (!reason) { reasonRef.current?.focus(); return }
+    if (note.length > 500) return
+    await run().catch(() => undefined)
   }
 
   return (
     <AppShell>
-      <BackHeader title="Add stock" />
-      <form className="form-screen" onSubmit={submit} noValidate>
+      <BackHeader title="Add stock" fallbackTo={returnTo ?? '/pantry'} />
+      <form className="form-screen" onSubmit={submit} noValidate aria-busy={pending}>
         <div className="field-group ingredient-field">
           <label htmlFor="ingredient">Ingredient</label>
-          <select id="ingredient" value={ingredient.id} onChange={(event) => changeIngredient(event.target.value)}>
+          <select id="ingredient" value={ingredient.id} disabled={pending} onChange={(event) => changeIngredient(event.target.value)}>
             {sortedIngredients.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </div>
@@ -182,7 +222,7 @@ export function AddStockScreen() {
           <legend>Operation</legend>
           <div className="segmented-control three">
             {(['add', 'set', 'remove'] as StockOperation[]).map((item) => (
-              <button key={item} type="button" className={operation === item ? 'selected' : ''} onClick={() => setOperation(item)} aria-pressed={operation === item}>{item[0].toUpperCase() + item.slice(1)}</button>
+              <button key={item} type="button" disabled={pending} className={operation === item ? 'selected' : ''} onClick={() => setOperation(item)} aria-pressed={operation === item}>{item[0].toUpperCase() + item.slice(1)}</button>
             ))}
           </div>
         </fieldset>
@@ -190,13 +230,13 @@ export function AddStockScreen() {
         <div className="field-group">
           <label htmlFor="quantity">Quantity</label>
           <div className="quantity-inputs">
-            <input id="quantity" inputMode="decimal" value={quantity} onChange={(event) => setQuantity(event.target.value)} aria-describedby="quantity-help quantity-error" />
-            <select value={unit} onChange={(event) => setUnit(event.target.value as Unit)} aria-label="Unit">
+            <input ref={quantityRef} id="quantity" inputMode="decimal" value={quantity} disabled={pending} onBlur={() => setQuantityTouched(true)} onChange={(event) => setQuantity(event.target.value)} aria-describedby="quantity-help quantity-error" aria-invalid={(submitted || quantityTouched) && !amountIsValid} />
+            <select value={unit} disabled={pending} onChange={(event) => setUnit(event.target.value as Unit)} aria-label="Unit">
               {familyUnits[ingredient.family].map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </div>
           <small id="quantity-help">{ingredient.family[0].toUpperCase() + ingredient.family.slice(1)} units only for this ingredient.</small>
-          {submitted && !amountIsValid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
+          {(submitted || quantityTouched) && !amountIsValid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
         </div>
 
         <div className={`balance-preview${projected <= 0n ? ' warning' : ''}`} aria-live="polite">
@@ -206,22 +246,24 @@ export function AddStockScreen() {
         </div>
 
         <div className="field-group split-field">
-          <label htmlFor="reason">Reason <span>· optional</span></label>
-          <select id="reason" value={reason} onChange={(event) => setReason(event.target.value)}>
-            <option>Groceries</option><option>Correction</option><option>Waste</option><option>Other</option>
+          <label htmlFor="reason">Reason</label>
+          <select ref={reasonRef} id="reason" value={reason} disabled={pending} onBlur={() => setReasonTouched(true)} onChange={(event) => setReason(event.target.value)} aria-invalid={(submitted || reasonTouched) && !reason} aria-describedby="reason-help reason-error">
+            <option value="">Select a reason…</option><option>Groceries</option><option>Correction</option><option>Waste</option><option>Other</option>
           </select>
+          <small id="reason-help">Shown in activity history.</small>
+          {(submitted || reasonTouched) && !reason && <span className="field-error" id="reason-error" role="alert">Select a reason for this stock change.</span>}
         </div>
 
         <div className="field-group grow-field">
           <label htmlFor="note">Note <span>· optional</span></label>
-          <textarea id="note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Add a short note…" maxLength={501} aria-describedby="note-error" />
+          <textarea id="note" value={note} disabled={pending} onChange={(event) => setNote(event.target.value)} placeholder="Add a short note…" maxLength={501} aria-describedby="note-error" />
           {note.length > 500 && <span className="field-error" id="note-error" role="alert">Note must be 500 characters or fewer.</span>}
         </div>
 
         <div className="form-actions">
-          <button type="button" className="secondary-button" onClick={() => navigate(-1)}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={!amountIsValid || note.length > 500}>
-            {operation === 'set' ? 'Set balance' : `${operation === 'add' ? 'Add' : 'Remove'} ${quantity || 'quantity'} ${unit}`}
+          <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(returnTo ?? '/pantry')}>Cancel</button>
+          <button type="submit" className="primary-button" disabled={pending}>
+            {pending ? 'Saving…' : operation === 'set' ? 'Set balance' : `${operation === 'add' ? 'Add' : 'Remove'} ${quantity || 'quantity'} ${unit}`}
           </button>
         </div>
       </form>
@@ -259,7 +301,7 @@ export function CatalogScreen() {
       <main className="screen-content catalog-content">
         <SuccessNotice message={notice} />
         <header className="catalog-heading">
-          <div><h1>Ingredients</h1><p>{globalCount} global · {customCount} yours</p></div>
+          <div><h1 data-page-title tabIndex={-1}>Ingredients</h1><p>{globalCount} global · {customCount} yours</p></div>
           <Link className="new-button" to="/ingredients/new"><Plus size={20} /> New</Link>
         </header>
 
@@ -275,8 +317,8 @@ export function CatalogScreen() {
         </div>
 
         <div className="category-chips" aria-label="Filter ingredients by category">
-          <button type="button" className={category === 'all' ? 'selected' : ''} onClick={() => setCategory('all')}>All</button>
-          {categories.slice(0, 3).map((item) => <button type="button" key={item.id} className={category === item.id ? 'selected' : ''} onClick={() => setCategory(item.id)}>{item.name}</button>)}
+          <button type="button" className={category === 'all' ? 'selected' : ''} onClick={() => setCategory('all')} aria-pressed={category === 'all'}>All</button>
+          {categories.slice(0, 3).map((item) => <button type="button" key={item.id} className={category === item.id ? 'selected' : ''} onClick={() => setCategory(item.id)} aria-pressed={category === item.id}>{item.name}</button>)}
         </div>
 
         <div className="catalog-sort"><strong>Alphabetical</strong><label><span className="sr-only">Category filter</span><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">Category</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
@@ -307,57 +349,55 @@ export function CreateIngredientScreen() {
   )
   const [family, setFamily] = useState<MeasurementFamily>('mass')
   const [submitted, setSubmitted] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
   const trimmedName = name.trim()
   const duplicate = ingredients.some((item) => item.name.trim().toLowerCase() === trimmedName.toLowerCase())
   const nameError = trimmedName.length === 0 ? 'Enter an ingredient name.' : trimmedName.length > 120 ? 'Name must be 120 characters or fewer.' : duplicate ? 'An ingredient with this name already exists.' : ''
   const showNameError = Boolean(nameError) && (submitted || name.length > 0)
 
+  const { pending, run } = usePendingAction(async () => {
+    const id = await createIngredient(trimmedName, categoryId, family, Boolean(draft))
+    if (draft) {
+      await updateRecipeDraft(draft.id, { ingredients: [...draft.ingredients, { ingredientId: id, quantity: '', unit: defaultUnit(family) }] })
+      navigate(`/recipes/${draft.id}/edit/ingredients`, { state: { message: `${trimmedName} created and selected.` } })
+      return
+    }
+    navigate('/ingredients', { state: { message: `${trimmedName} added to your ingredients.`, scope: 'custom' } })
+  })
+
   async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
-    if (nameError || !categoryId) return
-    try {
-      const id = await createIngredient(trimmedName, categoryId, family, Boolean(draft))
-      if (draft) {
-        await updateRecipeDraft(draft.id, { ingredients: [...draft.ingredients, { ingredientId: id, quantity: '', unit: defaultUnit(family) }] })
-        navigate(`/recipes/${draft.id}/edit/ingredients`, { state: { message: `${trimmedName} created and selected.` } })
-        return
-      }
-      navigate('/ingredients', {
-        state: {
-          message: `${trimmedName} added to your ingredients.`,
-          scope: 'custom',
-        },
-      })
-    } catch { /* Global storage recovery remains visible. */ }
+    if (nameError || !categoryId) { nameRef.current?.focus(); return }
+    await run().catch(() => undefined)
   }
 
   return (
     <AppShell>
-      <BackHeader title="Create ingredient" />
-      <form className="form-screen create-form" onSubmit={submit} noValidate>
+      <BackHeader title="Create ingredient" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
+      <form className="form-screen create-form" onSubmit={submit} noValidate aria-busy={pending}>
         <div className="info-banner"><Info size={21} /><span>Create custom ingredient only when catalog search has no match.</span></div>
         <div className="field-group">
           <label htmlFor="name">Name</label>
-          <input id="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Tempeh" aria-describedby="name-help name-error" aria-invalid={showNameError} />
+          <input ref={nameRef} id="name" value={name} disabled={pending} onChange={(event) => setName(event.target.value)} placeholder="Tempeh" aria-describedby="name-help name-error" aria-invalid={showNameError} />
           <small id="name-help">Compared case-insensitively with global and custom names.</small>
           {showNameError && <span className="field-error" id="name-error" role="alert">{nameError}</span>}
         </div>
         <div className="field-group split-field">
           <label htmlFor="category">Category</label>
-          <select id="category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+          <select id="category" value={categoryId} disabled={pending} onChange={(event) => setCategoryId(event.target.value)}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
         </div>
         <fieldset className="field-group">
           <legend>Measurement family</legend>
           <div className="segmented-control three">
-            {(['mass', 'volume', 'count'] as MeasurementFamily[]).map((item) => <button key={item} type="button" className={family === item ? 'selected' : ''} onClick={() => setFamily(item)} aria-pressed={family === item}>{item[0].toUpperCase() + item.slice(1)}</button>)}
+            {(['mass', 'volume', 'count'] as MeasurementFamily[]).map((item) => <button key={item} type="button" disabled={pending} className={family === item ? 'selected' : ''} onClick={() => setFamily(item)} aria-pressed={family === item}>{item[0].toUpperCase() + item.slice(1)}</button>)}
           </div>
         </fieldset>
         <div className="units-card"><span><small>Supported units</small><strong>{familyUnits[family].join(' · ')}</strong></span><p>Measurement family cannot change after ingredient is used in stock, recipes or history.</p></div>
-        <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Owned by local profile · editable later</small></span></div>
+        <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Saved to this local profile</small></span></div>
         <div className="form-actions">
-          <button type="button" className="secondary-button" onClick={() => navigate(-1)}>Cancel</button>
-          <button type="submit" className="primary-button" disabled={Boolean(nameError)}>Create ingredient</button>
+          <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients')}>Cancel</button>
+          <button type="submit" className="primary-button" disabled={pending}>{pending ? 'Creating…' : 'Create ingredient'}</button>
         </div>
       </form>
     </AppShell>
