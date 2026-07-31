@@ -8,7 +8,7 @@ import { cloneState, type GroceaStorage } from '../src/app/persistence'
 import type { GroceaState, PendingMutation } from '../src/domain/types'
 import { ActivityListScreen } from '../src/features/activity/ActivityScreens'
 import { CategoriesScreen, SyncIssuesScreen } from '../src/features/more/MoreScreens'
-import { AddStockScreen } from '../src/features/pantry/screens'
+import { AddStockScreen, PantryScreen } from '../src/features/pantry/screens'
 import { RecipeListScreen } from '../src/features/recipes/RecipeScreens'
 import { BasketScreen, GroceriesScreen, GroceryListScreen } from '../src/features/groceries/GroceryScreens'
 import { usePendingAction } from '../src/shared/lib/usePendingAction'
@@ -33,6 +33,24 @@ function renderRoute(element: React.ReactNode, initialEntry: string, storage = n
 }
 
 describe('stock and catalog recovery', () => {
+  it('groups pantry stock by category and flattens filtered search results', async () => {
+    renderRoute(<PantryScreen />, '/pantry')
+
+    const pantryGroup = await screen.findByRole('region', { name: 'Pantry staples' })
+    expect(within(pantryGroup).getByRole('link', { name: 'Adjust stock for Basmati rice, 2.4 kg available' })).toBeTruthy()
+    expect(screen.queryByText('Adjust')).toBeNull()
+
+    fireEvent.change(screen.getByLabelText('Search pantry ingredients'), { target: { value: 'Basmati' } })
+    const results = screen.getByRole('region', { name: 'Search results' })
+    expect(within(results).getByText('Pantry staples')).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Produce' })).toBeNull()
+
+    fireEvent.change(screen.getByLabelText('Search pantry ingredients'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /Needs restock/ }))
+    const produceGroup = screen.getByRole('region', { name: 'Produce' })
+    expect(within(produceGroup).getByRole('link', { name: 'Adjust stock for Bananas, 0 items available' })).toBeTruthy()
+  })
+
   it('validates quantity on blur and submit, then focuses the invalid quantity', async () => {
     renderRoute(<AddStockScreen />, '/pantry/stock/new?ingredient=rice')
     const quantity = await screen.findByLabelText('Quantity')

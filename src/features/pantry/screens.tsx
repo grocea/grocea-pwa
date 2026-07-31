@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   ArrowsLeftRight,
+  CaretRight,
   CheckCircle,
   Circle,
   ClockCounterClockwise,
@@ -86,6 +87,30 @@ export function PantryScreen() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [balances, category, ingredients, query, tab],
   )
+  const ingredientGroups = useMemo(() => {
+    if (query.trim()) {
+      return [{ id: 'search-results', name: 'Search results', ingredients: shown, showCategory: true }]
+    }
+
+    const visibleCategories = category === 'all'
+      ? categories
+      : categories.filter((item) => item.id === category)
+    const groups = visibleCategories
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        ingredients: shown.filter((ingredient) => ingredient.categoryId === item.id),
+        showCategory: false,
+      }))
+      .filter((group) => group.ingredients.length > 0)
+    const knownCategoryIds = new Set(categories.map((item) => item.id))
+    const uncategorized = shown.filter((ingredient) => !knownCategoryIds.has(ingredient.categoryId))
+
+    if (uncategorized.length > 0) {
+      groups.push({ id: 'other', name: 'Other', ingredients: uncategorized, showCategory: false })
+    }
+    return groups
+  }, [categories, category, query, shown])
 
   return (
     <AppShell navigation>
@@ -106,45 +131,64 @@ export function PantryScreen() {
           <Link to="/recipes" className="pulse-action">Find a recipe <ArrowRight size={18} /></Link>
         </section>
 
-        {restockCount > 0 && (
-          <button className="restock-alert" type="button" onClick={() => setTab('restock')}>
-            <WarningCircle size={25} weight="regular" />
-            <span><strong>{restockCount} items worth checking</strong><small>Plan restock before your next cook</small></span>
-          </button>
-        )}
+        <div className="pantry-tools">
+          <div className="segmented-control pantry-view-tabs" aria-label="Pantry stock view">
+            <button type="button" className={tab === 'stock' ? 'selected' : ''} onClick={() => setTab('stock')} aria-pressed={tab === 'stock'}>
+              <span>In stock</span><small>{inStockCount}</small>
+            </button>
+            <button type="button" className={tab === 'restock' ? 'selected' : ''} onClick={() => setTab('restock')} aria-pressed={tab === 'restock'}>
+              <span>Needs restock</span><small>{restockCount}</small>
+            </button>
+          </div>
 
-        <div className="segmented-control" aria-label="Pantry stock view">
-          <button type="button" className={tab === 'stock' ? 'selected' : ''} onClick={() => setTab('stock')} aria-pressed={tab === 'stock'}>In stock</button>
-          <button type="button" className={tab === 'restock' ? 'selected' : ''} onClick={() => setTab('restock')} aria-pressed={tab === 'restock'}>Needs restock</button>
+          <div className="filter-row pantry-filters">
+            <label className="search-field">
+              <MagnifyingGlass size={23} aria-hidden="true" />
+              <span className="sr-only">Search pantry ingredients</span>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ingredients…" />
+            </label>
+            <label className="compact-select">
+              <span className="sr-only">Filter by category</span>
+              <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                <option value="all">All</option>
+                {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
 
-        <div className="filter-row">
-          <label className="search-field">
-            <MagnifyingGlass size={23} aria-hidden="true" />
-            <span className="sr-only">Search pantry ingredients</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ingredients…" />
-          </label>
-          <label className="compact-select">
-            <span className="sr-only">Filter by category</span>
-            <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              <option value="all">All</option>
-              {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>
-        </div>
+        <Link className="floating-action pantry-add-stock" to="/pantry/stock/new"><Plus size={24} /> Add stock</Link>
 
         <section className="stock-list" aria-live="polite" aria-label={tab === 'stock' ? 'In-stock ingredients' : 'Ingredients needing restock'}>
-          {shown.map((ingredient) => (
-            <Link key={ingredient.id} className={`stock-row${(balances[ingredient.id] ?? 0n) <= 0n ? ' warning' : ''}`} to={`/pantry/stock/new?ingredient=${ingredient.id}`}>
-              <span className="ingredient-icon">{ingredientIcon(ingredient)}</span>
-              <span className="stock-name"><strong>{ingredient.name}</strong><small>{categoryName(ingredient.categoryId)}</small></span>
-              <span className="stock-quantity"><strong>{formatQuantity(balances[ingredient.id] ?? 0n, ingredient.family)}</strong><small>Adjust</small></span>
-            </Link>
+          {ingredientGroups.map((group) => (
+            <section className="stock-group" key={group.id} aria-labelledby={`stock-group-${group.id}`}>
+              <header className="stock-group-heading">
+                <h2 id={`stock-group-${group.id}`}>{group.name}</h2>
+                <span>{group.ingredients.length} {group.ingredients.length === 1 ? 'ingredient' : 'ingredients'}</span>
+              </header>
+              <div className="stock-group-rows">
+                {group.ingredients.map((ingredient) => {
+                  const quantity = formatQuantity(balances[ingredient.id] ?? 0n, ingredient.family)
+                  return (
+                    <Link
+                      key={ingredient.id}
+                      className={`stock-row${(balances[ingredient.id] ?? 0n) <= 0n ? ' warning' : ''}`}
+                      to={`/pantry/stock/new?ingredient=${ingredient.id}`}
+                      aria-label={`Adjust stock for ${ingredient.name}, ${quantity} available`}
+                    >
+                      <span className="ingredient-icon">{ingredientIcon(ingredient)}</span>
+                      <span className="stock-name"><strong>{ingredient.name}</strong>{group.showCategory && <small>{categoryName(ingredient.categoryId)}</small>}</span>
+                      <span className="stock-quantity"><strong>{quantity}</strong></span>
+                      <CaretRight className="stock-row-caret" size={18} weight="bold" aria-hidden="true" />
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
           ))}
           {shown.length === 0 && <div className="empty-state"><strong>No ingredients found</strong><span>Try another search or category.</span></div>}
         </section>
       </main>
-      <Link className="floating-action" to="/pantry/stock/new"><Plus size={24} /> Add stock</Link>
     </AppShell>
   )
 }

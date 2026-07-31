@@ -43,12 +43,98 @@ export function RecipeListScreen() {
     try { await addRecipeToBasket(recipe.id, recipe.baseServings) } finally { setAddingId(null) }
   }
 
-  return <AppShell navigation><BrandHeader /><main className="screen-content"><SuccessNotice message={message} /><PageHeading title="Recipes" subtitle={`${readyCount} ready · ${published.length} recipes · ${drafts.length} drafts`} action={<div className="heading-actions"><Link className="button secondary compact basket-link" to="/recipes/basket" aria-label={`Basket, ${basket.length} recipe${basket.length === 1 ? '' : 's'}`}><Basket size={19} />Basket{basket.length > 0 && <span className="count-badge">{basket.length}</span>}</Link><button className="button primary compact" type="button" disabled={createAction.pending} aria-busy={createAction.pending} onClick={() => void createAction.run().catch(() => undefined)}><Plus size={19} />{createAction.pending ? 'Creating…' : 'New'}</button></div>} />
-    <div className="segmented-control three" aria-label="Recipe view"><button type="button" className={tab === 'ready' ? 'selected' : ''} aria-pressed={tab === 'ready'} onClick={() => setTab('ready')}>Ready</button><button type="button" className={tab === 'all' ? 'selected' : ''} aria-pressed={tab === 'all'} onClick={() => setTab('all')}>All</button><button type="button" className={tab === 'drafts' ? 'selected' : ''} aria-pressed={tab === 'drafts'} onClick={() => setTab('drafts')}>Drafts ({drafts.length})</button></div>
-    <label className="search-field"><MagnifyingGlass size={21} /><span className="sr-only">Search recipes</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder={tab === 'drafts' ? 'Search drafts…' : 'Search recipes…'} /></label>
-    <div className="section-label"><strong>{tab === 'drafts' ? 'Recently edited' : 'Available first'}</strong><span>{tab === 'drafts' ? shownDrafts.length : shownPublished.length} shown</span></div>
-    {tab === 'drafts' ? <section className="recipe-grid">{shownDrafts.map(recipe => <article className="recipe-card draft-card" key={recipe.id}><span className="recipe-art"><BookOpen /></span><div className="recipe-card-copy"><span className="eyebrow">DRAFT</span><h2>{recipe.name.trim() || 'Untitled recipe'}</h2><p>{recipe.ingredients.length} ingredients · {recipe.steps.filter(step => step.trim()).length} steps</p></div><div className="draft-actions"><Link className="icon-button" aria-label={`Resume ${recipe.name || 'Untitled recipe'}`} to={`/recipes/${recipe.id}/edit/basics`}><ArrowRight /></Link><button className="icon-button danger-text" type="button" aria-label={`Delete ${recipe.name || 'Untitled recipe'}`} onClick={() => setDeleteTarget({ id: recipe.id, name: recipe.name.trim() || 'Untitled recipe' })}><Trash /></button></div></article>)}{!shownDrafts.length && <EmptyState icon={BookOpen} title="No drafts found" message={drafts.length ? 'Try another search.' : 'Start a recipe and save it for later.'} action={!drafts.length ? <button className="button primary" type="button" disabled={createAction.pending} onClick={() => void createAction.run().catch(() => undefined)}>{createAction.pending ? 'Creating…' : 'New recipe'}</button> : undefined} />}</section> : <section className="recipe-grid">{shownPublished.map(recipe => { const missing = availability(recipe, recipe.baseServings, balances).filter(item => item.short); const inBasket = basket.some(item => item.recipeId === recipe.id); return <article className="recipe-card recipe-card-with-action" key={recipe.id}><Link className="recipe-card-main" to={`/recipes/${recipe.id}`}><span className={`recipe-art${missing.length ? ' warning' : ''}`}><CookingPot size={30} />{recipe.scope === 'custom' && <OwnershipMark className="recipe-owner-mark" label="Your recipe" />}</span><div className="recipe-card-copy"><span className="eyebrow">{missing.length ? `CHECK ${missing.length}` : 'READY'}</span><h2>{recipe.name}</h2><p>{missing.length ? `${ingredient(missing[0].ingredientId)?.name ?? 'Ingredient'} short · You can still cook` : `Serves ${recipe.baseServings} · All ingredients available`}</p></div></Link><button className={`icon-button basket-add${inBasket ? ' selected' : ''}`} type="button" disabled={addingId === recipe.id} aria-label={inBasket ? `${recipe.name} is in Basket` : `Add ${recipe.name} to Basket`} onClick={() => void addToBasket(recipe)}>{inBasket ? <Check /> : <Basket />}</button></article> })}{!shownPublished.length && <EmptyState icon={BookOpen} title="No recipes found" message={tab === 'ready' ? 'No recipes are fully stocked. View all recipes to cook with a shortage.' : 'Try another search.'} />}</section>}
-  </main><ConfirmDialog open={Boolean(deleteTarget)} title="Delete draft?" description={`${deleteTarget?.name ?? 'This draft'} and its unsaved recipe details will be permanently removed.`} confirmLabel="Delete draft" pendingLabel="Deleting…" onDismiss={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget) await deleteRecipeDraft(deleteTarget.id) }} /></AppShell>
+  const resultCount = tab === 'drafts' ? shownDrafts.length : shownPublished.length
+  const resultLabel = tab === 'drafts' ? 'Recently edited' : tab === 'ready' ? 'Ready to cook' : 'All recipes'
+
+  return <AppShell navigation>
+    <BrandHeader />
+    <main className="screen-content recipe-list-screen">
+      <SuccessNotice message={message} />
+      <PageHeading
+        title="Recipes"
+        subtitle={`${readyCount} ready · ${published.length} recipes · ${drafts.length} drafts`}
+        action={<div className="heading-actions recipe-heading-actions">
+          <Link className="button secondary compact basket-link" to="/recipes/basket" aria-label={`Basket, ${basket.length} recipe${basket.length === 1 ? '' : 's'}`}>
+            <span className="basket-link-icon"><Basket size={20} /></span>
+            <span>Basket</span>
+            {basket.length > 0 && <span className="count-badge">{basket.length}</span>}
+          </Link>
+          <button className="button primary compact new-recipe-button" type="button" disabled={createAction.pending} aria-busy={createAction.pending} onClick={() => void createAction.run().catch(() => undefined)}>
+            <Plus size={20} />{createAction.pending ? 'Creating…' : 'New recipe'}
+          </button>
+        </div>}
+      />
+
+      <div className="recipe-toolbar">
+        <label className="search-field recipe-search">
+          <MagnifyingGlass size={21} />
+          <span className="sr-only">Search recipes</span>
+          <input value={query} onChange={event => setQuery(event.target.value)} placeholder={tab === 'drafts' ? 'Search drafts…' : 'Search recipes…'} />
+        </label>
+        <div className="segmented-control three recipe-tabs" aria-label="Recipe view">
+          <button type="button" className={tab === 'ready' ? 'selected' : ''} aria-pressed={tab === 'ready'} onClick={() => setTab('ready')}>Ready</button>
+          <button type="button" className={tab === 'all' ? 'selected' : ''} aria-pressed={tab === 'all'} onClick={() => setTab('all')}>All</button>
+          <button type="button" className={tab === 'drafts' ? 'selected' : ''} aria-pressed={tab === 'drafts'} onClick={() => setTab('drafts')}>Drafts ({drafts.length})</button>
+        </div>
+      </div>
+
+      <div className="section-label recipe-results-heading" id="recipe-results-title">
+        <strong>{resultLabel}</strong>
+        <span>{resultCount} {resultCount === 1 ? 'recipe' : 'recipes'}</span>
+      </div>
+
+      {tab === 'drafts' ? <section className="recipe-grid" aria-labelledby="recipe-results-title">
+        {shownDrafts.map(recipe => {
+          const name = recipe.name.trim() || 'Untitled recipe'
+          return <article className="recipe-card draft-card" key={recipe.id}>
+            <div className="recipe-card-main recipe-draft-main">
+              <div className="recipe-card-topline">
+                <span className="recipe-art"><BookOpen size={28} /></span>
+                <span className="recipe-status draft">Draft</span>
+              </div>
+              <div className="recipe-card-copy">
+                <h2>{name}</h2>
+                <p>{recipe.ingredients.length} ingredients · {recipe.steps.filter(step => step.trim()).length} steps</p>
+              </div>
+            </div>
+            <div className="draft-actions">
+              <Link className="button secondary recipe-resume" aria-label={`Resume ${name}`} to={`/recipes/${recipe.id}/edit/basics`}>Continue <ArrowRight size={18} /></Link>
+              <button className="icon-button danger-text" type="button" aria-label={`Delete ${name}`} onClick={() => setDeleteTarget({ id: recipe.id, name })}><Trash size={19} /></button>
+            </div>
+          </article>
+        })}
+        {!shownDrafts.length && <EmptyState icon={BookOpen} title="No drafts found" message={drafts.length ? 'Try another search.' : 'Start a recipe and save it for later.'} action={!drafts.length ? <button className="button primary" type="button" disabled={createAction.pending} onClick={() => void createAction.run().catch(() => undefined)}>{createAction.pending ? 'Creating…' : 'New recipe'}</button> : undefined} />}
+      </section> : <section className="recipe-grid" aria-labelledby="recipe-results-title">
+        {shownPublished.map(recipe => {
+          const missing = availability(recipe, recipe.baseServings, balances).filter(item => item.short)
+          const inBasket = basket.some(item => item.recipeId === recipe.id)
+          const isAdding = addingId === recipe.id
+          return <article className={`recipe-card recipe-card-with-action${missing.length ? ' needs-check' : ' is-ready'}`} key={recipe.id}>
+            <Link className="recipe-card-main" to={`/recipes/${recipe.id}`}>
+              <div className="recipe-card-topline">
+                <span className={`recipe-art${missing.length ? ' warning' : ''}`}>
+                  <CookingPot size={30} />
+                  {recipe.scope === 'custom' && <OwnershipMark className="recipe-owner-mark" label="Your recipe" />}
+                </span>
+                <span className={`recipe-status${missing.length ? ' warning' : ''}`}>{missing.length ? `CHECK ${missing.length}` : 'READY'}</span>
+              </div>
+              <div className="recipe-card-copy">
+                <h2>{recipe.name}</h2>
+                <p>{missing.length ? `${ingredient(missing[0].ingredientId)?.name ?? 'Ingredient'} short · You can still cook` : `Serves ${recipe.baseServings} · All ingredients available`}</p>
+              </div>
+              <span className="recipe-card-hint">View recipe <ArrowRight size={16} /></span>
+            </Link>
+            <button className={`basket-add${inBasket ? ' selected' : ''}`} type="button" disabled={isAdding} aria-busy={isAdding} aria-label={inBasket ? `${recipe.name} is in Basket` : `Add ${recipe.name} to Basket`} onClick={() => void addToBasket(recipe)}>
+              {inBasket ? <Check size={18} weight="bold" /> : <Basket size={18} />}
+              <span>{isAdding ? 'Adding…' : inBasket ? 'In basket' : 'Add to basket'}</span>
+            </button>
+          </article>
+        })}
+        {!shownPublished.length && <EmptyState icon={BookOpen} title="No recipes found" message={tab === 'ready' ? 'No recipes are fully stocked. View all recipes to cook with a shortage.' : 'Try another search.'} />}
+      </section>}
+    </main>
+    <ConfirmDialog open={Boolean(deleteTarget)} title="Delete draft?" description={`${deleteTarget?.name ?? 'This draft'} and its unsaved recipe details will be permanently removed.`} confirmLabel="Delete draft" pendingLabel="Deleting…" onDismiss={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget) await deleteRecipeDraft(deleteTarget.id) }} />
+  </AppShell>
 }
 
 function Stepper({ value, onChange, disabled = false }: { value: number; onChange: (value: number) => void; disabled?: boolean }) {
