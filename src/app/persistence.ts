@@ -1,4 +1,4 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
+import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type {
   ActivityEvent,
   Category,
@@ -22,6 +22,7 @@ import { initialState } from './fixtures'
 export const DATABASE_NAME = 'grocea'
 export const DATABASE_VERSION = 4
 export const LEGACY_STORAGE_KEY = 'grocea:user-content:v1'
+export const LEGACY_OWNER_KEY = 'grocea:legacy-owner'
 const CURRENT_STATE_KEY = 'current'
 const DATABASE_METADATA_KEY = 'database'
 const SEED_VERSION = 1
@@ -36,6 +37,8 @@ export interface DatabaseMetadata {
   remoteImportStatus: 'pending' | 'complete' | 'conflicts'
   importId: string
   importConflicts: ImportConflict[]
+  ownerUserId?: string
+  legacyClaimed?: boolean
 }
 
 interface GroceaDatabase extends DBSchema {
@@ -71,6 +74,8 @@ export interface GroceaStorage {
   getMetadata?(): Promise<DatabaseMetadata>
   saveMetadata?(metadata: DatabaseMetadata): Promise<void>
   reset(): Promise<GroceaState>
+  close?(): void
+  destroy?(): Promise<void>
 }
 
 type StoredRecipe = Omit<Recipe, 'ingredients'> & {
@@ -377,10 +382,12 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
   private database?: IDBPDatabase<GroceaDatabase>
   private readonly seed: GroceaState
   private readonly databaseName: string
+  private readonly ownerUserId?: string
 
-  constructor(seed: GroceaState = initialState, databaseName: string = DATABASE_NAME) {
+  constructor(seed: GroceaState = initialState, databaseName: string = DATABASE_NAME, ownerUserId?: string) {
     this.seed = seed
     this.databaseName = databaseName
+    this.ownerUserId = ownerUserId
   }
 
   async open(): Promise<void> {
@@ -399,26 +406,38 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
     this.database = database
 
     const existing = await database.get('state', CURRENT_STATE_KEY)
+    const existingMetadata = await database.get('metadata', DATABASE_METADATA_KEY)
     if (!existing) {
-      const legacyRaw = typeof localStorage === 'undefined' ? null : localStorage.getItem(LEGACY_STORAGE_KEY)
-      const imported = importLegacy(this.seed, legacyRaw)
-      const transaction = database.transaction(['state', 'metadata'], 'readwrite')
-      await Promise.all([
-        transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: imported.state }),
-        transaction.objectStore('metadata').put({
-          key: DATABASE_METADATA_KEY,
-          schemaVersion: DATABASE_VERSION,
-          seedVersion: SEED_VERSION,
-          migrationStatus: imported.status,
-          deviceId: crypto.randomUUID(),
-          syncCursor: null,
-          remoteImportStatus: 'pending',
-          importId: crypto.randomUUID(),
-          importConflicts: [],
-        }),
-        transaction.done,
-      ])
+      const accountScoped = Boolean(this.ownerUserId)
+      const legacyRaw = accountScoped || typeof localStorage === 'undefined' ? null : localStorage.getItem(LEGACY_STORAGE_KEY)
+      const imported = accountScoped
+        ? { state: cloneState(this.seed), status: 'none' as const }
+        : importLegacy(this.seed, legacyRaw)
+      if (!accountScoped || !existingMetadata) {
+        const transaction = database.transaction(['state', 'metadata'], 'readwrite')
+        await Promise.all([
+          ...(accountScoped ? [] : [transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: imported.state })]),
+          transaction.objectStore('metadata').put({
+            key: DATABASE_METADATA_KEY,
+            schemaVersion: DATABASE_VERSION,
+            seedVersion: SEED_VERSION,
+            migrationStatus: imported.status,
+            deviceId: crypto.randomUUID(),
+            syncCursor: null,
+            remoteImportStatus: accountScoped ? 'complete' : 'pending',
+            importId: crypto.randomUUID(),
+            importConflicts: [],
+            ownerUserId: this.ownerUserId,
+            legacyClaimed: false,
+          }),
+          transaction.done,
+        ])
+      }
       if (legacyRaw !== null) localStorage.removeItem(LEGACY_STORAGE_KEY)
+    }
+    const metadata = await database.get('metadata', DATABASE_METADATA_KEY)
+    if (this.ownerUserId && metadata?.ownerUserId !== this.ownerUserId) {
+      throw new Error('Grocea database belongs to another account.')
     }
     requestPersistentStorage()
   }
@@ -446,6 +465,8 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
         remoteImportStatus: metadata?.remoteImportStatus ?? 'pending',
         importId: metadata?.importId ?? crypto.randomUUID(),
         importConflicts: metadata?.importConflicts ?? [],
+        ownerUserId: this.ownerUserId ?? metadata?.ownerUserId,
+        legacyClaimed: metadata?.legacyClaimed ?? false,
       }),
       transaction.done,
     ])
@@ -541,11 +562,23 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
         remoteImportStatus: 'complete',
         importId: metadata?.importId ?? crypto.randomUUID(),
         importConflicts: [],
+        ownerUserId: this.ownerUserId ?? metadata?.ownerUserId,
+        legacyClaimed: metadata?.legacyClaimed ?? false,
       }),
       transaction.done,
     ])
     if (typeof localStorage !== 'undefined') localStorage.removeItem(LEGACY_STORAGE_KEY)
     return cloneState(resetState)
+  }
+
+  close(): void {
+    this.database?.close()
+    this.database = undefined
+  }
+
+  async destroy(): Promise<void> {
+    this.close()
+    await deleteDB(this.databaseName)
   }
 
   private requireDatabase(): IDBPDatabase<GroceaDatabase> {
@@ -555,3 +588,126 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
 }
 
 export const groceaStorage = new IndexedDbGroceaStorage()
+
+export function createGroceaStorage(userId: string): IndexedDbGroceaStorage {
+  return new IndexedDbGroceaStorage(initialState, `${DATABASE_NAME}:${userId}`, userId)
+}
+
+export async function legacyStorageExists(): Promise<boolean> {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(LEGACY_STORAGE_KEY) !== null) return true
+  if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return false
+  const databases = await indexedDB.databases()
+  return databases.some(database => database.name === DATABASE_NAME)
+}
+
+export async function legacyStorageOwner(): Promise<string | null> {
+  if (typeof localStorage !== 'undefined') {
+    const localOwner = localStorage.getItem(LEGACY_OWNER_KEY)
+    if (localOwner) return localOwner
+  }
+  if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return null
+  const databases = await indexedDB.databases()
+  if (!databases.some(database => database.name === DATABASE_NAME)) return null
+  const database = await openDB<GroceaDatabase>(DATABASE_NAME)
+  try {
+    if (!database.objectStoreNames.contains('metadata')) return null
+    return (await database.get('metadata', DATABASE_METADATA_KEY))?.ownerUserId ?? null
+  } finally {
+    database.close()
+  }
+}
+
+export async function deleteLegacyStorage(expectedOwner?: string): Promise<void> {
+  const owner = await legacyStorageOwner()
+  if (expectedOwner && owner && owner !== expectedOwner) throw new Error('Legacy local data is owned by another account.')
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_OWNER_KEY)
+  }
+  if (typeof indexedDB !== 'undefined') await deleteDB(DATABASE_NAME)
+}
+
+export async function migrateLegacyStorage(userId: string): Promise<void> {
+  const accountStorage = createGroceaStorage(userId)
+  await accountStorage.open()
+  let legacyClaimed = false
+  let localStorageClaimed = false
+
+  const legacyRaw = typeof localStorage !== 'undefined' ? localStorage.getItem(LEGACY_STORAGE_KEY) : null
+  const localOwner = typeof localStorage !== 'undefined' ? localStorage.getItem(LEGACY_OWNER_KEY) : null
+  if (localOwner && localOwner !== userId) {
+    accountStorage.close()
+    throw new Error('Legacy local data is already claimed by another account.')
+  }
+  if (legacyRaw !== null) {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(LEGACY_OWNER_KEY, userId)
+    const imported = importLegacy(initialState, legacyRaw)
+    await accountStorage.saveState(imported.state)
+    localStorageClaimed = true
+  }
+
+  if (typeof indexedDB !== 'undefined' && typeof indexedDB.databases === 'function') {
+    const databases = await indexedDB.databases()
+    if (databases.some(database => database.name === DATABASE_NAME)) {
+      const legacy = await openDB<GroceaDatabase>(DATABASE_NAME)
+      const metadata = legacy.objectStoreNames.contains('metadata')
+        ? await legacy.get('metadata', DATABASE_METADATA_KEY)
+        : undefined
+      if (metadata?.ownerUserId && metadata.ownerUserId !== userId) {
+        legacy.close()
+        accountStorage.close()
+        throw new Error('Legacy local data is already claimed by another account.')
+      }
+      if (legacy.objectStoreNames.contains('metadata')) {
+        await legacy.put('metadata', {
+          key: DATABASE_METADATA_KEY,
+          schemaVersion: metadata?.schemaVersion ?? DATABASE_VERSION,
+          seedVersion: metadata?.seedVersion ?? SEED_VERSION,
+          migrationStatus: metadata?.migrationStatus ?? 'none',
+          deviceId: metadata?.deviceId ?? crypto.randomUUID(),
+          syncCursor: metadata?.syncCursor ?? null,
+          remoteImportStatus: metadata?.remoteImportStatus ?? 'pending',
+          importId: metadata?.importId ?? crypto.randomUUID(),
+          importConflicts: metadata?.importConflicts ?? [],
+          ownerUserId: userId,
+          legacyClaimed: true,
+        })
+      }
+      const state = legacy.objectStoreNames.contains('state')
+        ? await legacy.get('state', CURRENT_STATE_KEY)
+        : undefined
+      const canonical = legacy.objectStoreNames.contains('canonical')
+        ? await legacy.get('canonical', CURRENT_STATE_KEY)
+        : undefined
+      const mutations = legacy.objectStoreNames.contains('outbox') ? await legacy.getAll('outbox') : []
+      if (legacy.objectStoreNames.contains('metadata')) {
+        const nextMetadata: DatabaseMetadata = {
+          key: DATABASE_METADATA_KEY,
+          schemaVersion: metadata?.schemaVersion ?? DATABASE_VERSION,
+          seedVersion: metadata?.seedVersion ?? SEED_VERSION,
+          migrationStatus: metadata?.migrationStatus ?? 'none',
+          deviceId: metadata?.deviceId ?? crypto.randomUUID(),
+          syncCursor: null,
+          remoteImportStatus: 'pending',
+          importId: metadata?.importId ?? crypto.randomUUID(),
+          importConflicts: metadata?.importConflicts ?? [],
+          ownerUserId: userId,
+          legacyClaimed: true,
+        }
+        await legacy.put('metadata', nextMetadata)
+        const accountMetadata = await accountStorage.getMetadata()
+        await accountStorage.saveMetadata({ ...accountMetadata, ...nextMetadata, ownerUserId: userId, legacyClaimed: true })
+        const normalizedCanonical = canonical ? normalizeStateShape(canonical.value) : null
+        if (normalizedCanonical && isGroceaState(normalizedCanonical)) await accountStorage.saveCanonicalState(normalizedCanonical)
+        const normalized = state ? normalizeStateShape(state.value) : null
+        if (normalized && isGroceaState(normalized)) await accountStorage.saveState(normalized)
+        await Promise.all(mutations.map(mutation => accountStorage.enqueueMutation(mutation)))
+        legacyClaimed = true
+      }
+      legacy.close()
+    }
+  }
+  const metadata = await accountStorage.getMetadata()
+  await accountStorage.saveMetadata({ ...metadata, legacyClaimed: metadata.legacyClaimed || legacyClaimed || localStorageClaimed, remoteImportStatus: 'pending', syncCursor: null })
+  accountStorage.close()
+}

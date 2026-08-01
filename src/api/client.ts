@@ -14,6 +14,18 @@ import type {
 import type { schemas } from './generated'
 
 const apiOrigin = (import.meta.env.VITE_API_ORIGIN as string | undefined)?.replace(/\/$/, '') ?? ''
+let csrfToken: string | null = null
+
+export interface AuthAccount {
+  id: string
+  email: string
+}
+
+export interface AuthSession {
+  account: AuthAccount
+  csrf_token: string
+  expires_at: string
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -34,6 +46,10 @@ export class ApiError extends Error {
 
   get retryable() {
     return this.status === 0 || this.status >= 500
+  }
+
+  get authRequired() {
+    return this.status === 401 || this.code === 'AUTHENTICATION_REQUIRED'
   }
 }
 
@@ -188,12 +204,22 @@ export function mapApiState(value: ApiState): { state: GroceaState; revision: nu
   }
 }
 
+export function setCsrfToken(token: string | null) {
+  csrfToken = token
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response: Response
   try {
+    const headers = new Headers(init.headers)
+    if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
+    const unsafe = ['POST', 'PUT', 'PATCH', 'DELETE'].includes((init.method ?? 'GET').toUpperCase())
+    const csrfExempt = path === '/api/auth/login' || path === '/api/auth/register'
+    if (unsafe && csrfToken && !csrfExempt) headers.set('X-CSRF-Token', csrfToken)
     response = await fetch(`${apiOrigin}${path}`, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...init.headers },
+      credentials: 'include',
+      headers,
     })
   } catch {
     throw new ApiError(0, 'NETWORK_UNAVAILABLE', 'Backend API is unavailable.')
@@ -204,14 +230,57 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       message?: string
       details?: Record<string, unknown>
     } | null
-    throw new ApiError(
+    const error = new ApiError(
       response.status,
       body?.code ?? 'API_ERROR',
       body?.message ?? `API request failed with ${response.status}.`,
       body?.details,
     )
+    if (error.authRequired && !path.startsWith('/api/auth/') && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('grocea:auth-expired'))
+    }
+    throw error
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
+}
+
+export async function registerAccount(email: string, password: string, displayName: string): Promise<AuthSession> {
+  const session = await request<AuthSession>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, display_name: displayName }),
+  })
+  setCsrfToken(session.csrf_token)
+  return session
+}
+
+export async function loginAccount(email: string, password: string): Promise<AuthSession> {
+  const session = await request<AuthSession>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
+  setCsrfToken(session.csrf_token)
+  return session
+}
+
+export async function fetchSession(): Promise<AuthSession> {
+  const session = await request<AuthSession>('/api/auth/session')
+  setCsrfToken(session.csrf_token)
+  return session
+}
+
+export async function logoutAccount(): Promise<void> {
+  await request<void>('/api/auth/logout', { method: 'POST' })
+  setCsrfToken(null)
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthSession> {
+  const session = await request<AuthSession>('/api/auth/password', {
+    method: 'PATCH',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
+  setCsrfToken(session.csrf_token)
+  return session
 }
 
 export async function checkReady(): Promise<boolean> {

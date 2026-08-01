@@ -1,4 +1,4 @@
-const CACHE_NAME = 'grocea-pwa-v3';
+const CACHE_NAME = 'grocea-pwa-v4-auth';
 const APP_SHELL = [
   '/',
   '/index.html',

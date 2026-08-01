@@ -17,7 +17,7 @@ import type {
 import { isPublishedRecipe } from '../domain/types'
 import { familyUnits, formatQuantityValue, parseQuantity, scaleQuantity } from '../shared/lib/quantity'
 import { GroceaContext, type GroceaContextValue, type StorageStatus } from './grocea-context'
-import { groceaStorage, type GroceaStorage } from './persistence'
+import { deleteLegacyStorage, groceaStorage, type GroceaStorage } from './persistence'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 
 type Action =
@@ -388,6 +388,13 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           const apiError = error instanceof ApiError
             ? error
             : new ApiError(0, 'SYNC_FAILED', error instanceof Error ? error.message : 'Sync failed.')
+          if (apiError.authRequired) {
+            if (storage.updateMutation) {
+              await storage.updateMutation({ ...mutation, status: 'pending', error: undefined })
+            }
+            setSyncStatus('offline')
+            break
+          }
           const failed: PendingMutation = {
             ...mutation,
             status: apiError.retryable ? 'pending' : 'failed',
@@ -435,6 +442,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         else await storage.saveState(remote.state)
         metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
         await storage.saveMetadata(metadata)
+        if (metadata.legacyClaimed) await deleteLegacyStorage()
         stateRef.current = remote.state
         setState(remote.state)
       }
@@ -451,12 +459,32 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     updateStorageStatus('loading')
     try {
       await storage.open()
-      const loaded = await storage.loadState()
+      let loaded: GroceaState
+      let metadata = storage.getMetadata ? await storage.getMetadata() : null
+      if (metadata) deviceIdRef.current = metadata.deviceId
+      const freshAccount = Boolean(metadata?.ownerUserId && metadata.syncCursor === null && metadata.remoteImportStatus === 'complete')
+      if (freshAccount) {
+        try {
+          const remote = await fetchState()
+          loaded = remote.state
+          if (storage.saveCanonicalState) await storage.saveCanonicalState(remote.state)
+          else await storage.saveState(remote.state)
+          if (metadata && storage.saveMetadata) {
+            metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
+            await storage.saveMetadata(metadata)
+          }
+        } catch (error) {
+          if (error instanceof ApiError && error.authRequired) throw error
+          loaded = await storage.loadState()
+        }
+      } else {
+        loaded = await storage.loadState()
+      }
       stateRef.current = loaded
       setState(loaded)
       updateStorageStatus('ready')
       await refreshQueueStatus()
-      if (storage.getMetadata) void synchronize(loaded)
+      if (storage.getMetadata && !freshAccount) void synchronize(loaded)
     } catch (error) {
       updateStorageStatus('error', error instanceof Error ? error.message : 'Local storage could not be opened.')
     }
@@ -465,17 +493,18 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   useEffect(() => {
     const timer = window.setTimeout(() => { void boot() }, 0)
     const sync = () => { void synchronize() }
-    window.addEventListener('online', sync)
     window.addEventListener('focus', sync)
     window.addEventListener('grocea:sync', sync)
+    window.addEventListener('grocea:auth-validated', sync)
     return () => {
       window.clearTimeout(timer)
       if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current)
-      window.removeEventListener('online', sync)
       window.removeEventListener('focus', sync)
       window.removeEventListener('grocea:sync', sync)
+      window.removeEventListener('grocea:auth-validated', sync)
+      storage.close?.()
     }
-  }, [boot, synchronize])
+  }, [boot, storage, synchronize])
 
   const commit = useCallback(function commit<T>(transition: (current: GroceaState) => Transition<T>): Promise<T> {
     const operation = writeQueue.current.then(async () => {
@@ -955,6 +984,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     await synchronize()
   }, [storage, synchronize])
 
+  const flushPending = useCallback(async () => {
+    await synchronize()
+    return (await storage.listPendingMutations()).length === 0
+  }, [storage, synchronize])
+
   const discardSyncIssue = useCallback(async (id: string) => {
     const queued = await storage.listPendingMutations()
     const discarded = new Set([id])
@@ -972,6 +1006,12 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     await refreshQueueStatus()
     await synchronize()
   }, [refreshQueueStatus, storage, synchronize])
+
+  const discardAllPending = useCallback(async () => {
+    const queued = await storage.listPendingMutations()
+    await Promise.all(queued.map(item => storage.removeMutation(item.id)))
+    await refreshQueueStatus()
+  }, [refreshQueueStatus, storage])
 
   const reset = useCallback(async () => {
     updateStorageStatus('loading')
@@ -1003,7 +1043,9 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     syncIssues,
     importConflicts,
     retrySync,
+    flushPending,
     discardSyncIssue,
+    discardAllPending,
     categoryName: id => state.categories.find(item => item.id === id)?.name ?? 'Other',
     ingredient: id => state.ingredients.find(item => item.id === id),
     ...actions,

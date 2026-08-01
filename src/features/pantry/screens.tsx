@@ -525,7 +525,7 @@ export function CreateIngredientScreen() {
             </div>
           </section>
           <aside className="workflow-summary-panel">
-            <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Saved to this local profile</small></span></div>
+            <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Saved to your account</small></span></div>
             <div className="summary-note"><Lightbulb aria-hidden="true" /><span>Custom ingredients remain editable until they appear in stock, recipes, or activity history.</span></div>
           </aside>
         </div>

@@ -5,6 +5,11 @@ export interface components {
 
 export interface schemas {
   "ActivityResponse": { "changes": Array<schemas["StockChangeResponse"]>; "detail": string; "id": string; "occurred_at": string; "recipe_id": string | null; "reversal_of": string | null; "reversed_at": string | null; "servings": number | null; "title": string; "type": "cooking" | "manual" | "reversal" }
+  "AuthAccountResponse": { "email": string; "id": string }
+  "AuthLoginRequest": { "email": string; "password": string }
+  "AuthPasswordChangeRequest": { "current_password": string; "new_password": string }
+  "AuthRegisterRequest": { "display_name": string; "email": string; "password": string }
+  "AuthSessionResponse": { "account": schemas["AuthAccountResponse"]; "csrf_token": string; "expires_at": string }
   "BasketItemResponse": { "base_servings": number; "error": string | null; "recipe_id": string; "recipe_name": string; "servings": number; "valid": boolean }
   "BasketItemUpsert": { "servings": number }
   "BasketResponse": { "items": Array<schemas["BasketItemResponse"]> }
@@ -27,6 +32,7 @@ export interface schemas {
   "GroceryListResponse": { "completed_at": string | null; "created_at": string; "id": string; "items": Array<schemas["GroceryListItemResponse"]>; "recipes": Array<schemas["GroceryListRecipeResponse"]>; "status": schemas["GroceryListStatus"]; "title": string; "updated_at": string }
   "GroceryListStatus": "active" | "completed"
   "GroceryListUpdate": { "title": string }
+  "HTTPValidationError": { "detail"?: Array<schemas["ValidationError"]> }
   "HealthResponse": { "status"?: "ok" }
   "ImportConflict": { "kind": string; "local_id": string; "message": string }
   "IngredientCreate": { "category_id": string; "id"?: string | null; "measurement_family": schemas["MeasurementFamily"]; "name": string; "track_in_pantry"?: boolean }
@@ -53,4 +59,5 @@ export interface schemas {
   "StockOperation": "add" | "set" | "remove"
   "StockOperationCreate": { "amount": number | string; "event_id": string; "operation": schemas["StockOperation"]; "reason"?: string }
   "Unit": "mg" | "g" | "kg" | "ml" | "L" | "item"
+  "ValidationError": { "ctx"?: Record<string, unknown>; "input"?: unknown; "loc": Array<string | number>; "msg": string; "type": string }
 }

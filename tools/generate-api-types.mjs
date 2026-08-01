@@ -22,7 +22,7 @@ function schemaType(schema) {
       return `${JSON.stringify(name)}${optional}: ${schemaType(value)}`
     })
     if (schema.additionalProperties) properties.push(`[key: string]: ${schemaType(schema.additionalProperties)}`)
-    return `{ ${properties.join('; ')} }`
+    return properties.length ? `{ ${properties.join('; ')} }` : 'Record<string, unknown>'
   }
   if (schema.type === 'integer' || schema.type === 'number') return 'number'
   if (schema.type === 'boolean') return 'boolean'

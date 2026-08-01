@@ -64,10 +64,10 @@ export default function WelcomePage() {
       <nav aria-label="Welcome page navigation">
         <a href="#how-it-works">How it works</a>
         <a href="#why-grocea">Why Grocea</a>
-        <Link to="/pantry">Open pantry</Link>
-        <Link className="welcome-nav-cta" to="/pantry">Open Grocea</Link>
+        <Link to="/login">Sign in</Link>
+        <Link className="welcome-nav-cta" to="/register">Create account</Link>
       </nav>
-      <Link className="welcome-mobile-cta" to="/pantry">Open pantry</Link>
+      <Link className="welcome-mobile-cta" to="/register">Create account</Link>
     </header>
 
     <main id="welcome-main">
@@ -78,12 +78,12 @@ export default function WelcomePage() {
             <h1 id="welcome-title">Your kitchen,<br />in rhythm with you.</h1>
             <p>Keep every ingredient in view, cook what you already have, and make fresh food feel beautifully effortless.</p>
             <div className="welcome-actions">
-              <Link className="welcome-primary-button" to="/pantry">Organise my kitchen <ArrowRight size={18} /></Link>
+              <Link className="welcome-primary-button" to="/register">Organise my kitchen <ArrowRight size={18} /></Link>
               <a className="welcome-text-link" href="#how-it-works"><span aria-hidden="true">↓</span> See how it works</a>
             </div>
             <div className="welcome-proof">
               <span className="welcome-avatars" aria-hidden="true"><i /><i /><i /></span>
-              <span>Offline-first · Local profile · Syncs when available</span>
+              <span>Private account · Offline-first · Syncs when available</span>
             </div>
           </div>
 
@@ -136,11 +136,11 @@ export default function WelcomePage() {
         <div className="recipe-showcase">
           {recipes.map(({ icon: Icon, title, meta, tone }) => <article key={title} className="showcase-card"><div className={tone}><Icon size={48} /></div><h3>{title}</h3><p>{meta}</p></article>)}
         </div>
-        <figure className="welcome-quote"><span aria-hidden="true"><Leaf /></span><blockquote>Offline-first pantry tracking, a local profile, and synchronization whenever the Grocea service is available.</blockquote><figcaption>How the local MVP works</figcaption></figure>
+          <figure className="welcome-quote"><span aria-hidden="true"><Leaf /></span><blockquote>Private pantry tracking, offline-first work, and synchronization whenever the Grocea service is available.</blockquote><figcaption>How Grocea keeps your kitchen yours</figcaption></figure>
       </section>
 
       <section className="welcome-final" aria-labelledby="final-title">
-        <div><h2 id="final-title">A more thoughtful kitchen<br />starts today.</h2><p>Bring calm to your groceries, confidence to your cooking, and a little more joy to every meal.</p><div className="final-actions"><Link to="/pantry">Open pantry <ArrowRight size={18} /></Link><span>Local profile · Works offline</span></div></div>
+        <div><h2 id="final-title">A more thoughtful kitchen<br />starts today.</h2><p>Bring calm to your groceries, confidence to your cooking, and a little more joy to every meal.</p><div className="final-actions"><Link to="/register">Create your account <ArrowRight size={18} /></Link><span>Your account · Works offline</span></div></div>
         <footer><Brand /><small>© 2026 Grocea. Better food, less waste.</small></footer>
       </section>
     </main>

@@ -2,16 +2,18 @@ import { ArrowClockwise, ArrowRight, Basket, CheckCircle, Clock, Database, Folde
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useGrocea } from '../../app/grocea-context'
+import { useAuth } from '../../app/auth-context'
 import { usePendingAction } from '../../shared/lib/usePendingAction'
 import { AppShell, BackHeader, BrandHeader, EmptyState, OwnershipMark, PageHeading } from '../../shared/ui/AppShell'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 
 export function MoreScreen() {
   const { profile, categories, ingredients, groceryLists, syncStatus, pendingMutationCount } = useGrocea()
+  const { account } = useAuth()
   const activeList = groceryLists.find(list => list.status === 'active')
   const SyncIcon = syncStatus === 'failed' ? WarningCircle : syncStatus === 'offline' ? WifiSlash : syncStatus === 'syncing' ? ArrowClockwise : pendingMutationCount ? Clock : CheckCircle
   const syncLabel = syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : syncStatus === 'syncing' ? 'Syncing' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Up to date'
-  return <AppShell navigation><BrandHeader /><main className="screen-content"><PageHeading title="More" subtitle="Preferences and catalog tools" /><Link className="profile-summary profile-summary-link" to="/profile"><span>{profile.displayName[0].toUpperCase()}</span><div><strong>{profile.displayName}</strong><small>Local profile · Metric</small></div><ArrowRight /></Link><section className="menu-list"><Link to="/groceries"><span className="menu-icon"><Basket /></span><span><strong>Groceries</strong><small>{activeList ? `${activeList.items.filter(item => item.checked).length}/${activeList.items.length} checked · active list` : `${groceryLists.length} saved lists`}</small></span><ArrowRight /></Link><Link to="/sync-issues"><span className="menu-icon"><SyncIcon weight={syncStatus === 'idle' && !pendingMutationCount ? 'fill' : 'regular'} /></span><span><strong>Synchronization</strong><small>{syncLabel}</small></span><ArrowRight /></Link><Link to="/ingredients"><span className="menu-icon"><Basket /></span><span><strong>Ingredient catalog</strong><small>{ingredients.length} ingredients</small></span><ArrowRight /></Link><Link to="/categories"><span className="menu-icon"><FolderSimple /></span><span><strong>Categories</strong><small>{categories.length} global and custom categories</small></span><ArrowRight /></Link>{import.meta.env.DEV && <Link to="/system-states"><span className="menu-icon"><Database /></span><span><strong>System states</strong><small>Reusable UI state reference</small></span><ArrowRight /></Link>}</section><div className="info-banner"><ShieldCheck /><span><strong>Available offline</strong><br />Changes save on this device, then sync with the Grocea service.</span></div></main></AppShell>
+  return <AppShell navigation><BrandHeader /><main className="screen-content"><PageHeading title="More" subtitle="Preferences and catalog tools" /><Link className="profile-summary profile-summary-link" to="/profile"><span>{profile.displayName[0].toUpperCase()}</span><div><strong>{profile.displayName}</strong><small>{account?.email ?? 'Account'} · Metric</small></div><ArrowRight /></Link><section className="menu-list"><Link to="/groceries"><span className="menu-icon"><Basket /></span><span><strong>Groceries</strong><small>{activeList ? `${activeList.items.filter(item => item.checked).length}/${activeList.items.length} checked · active list` : `${groceryLists.length} saved lists`}</small></span><ArrowRight /></Link><Link to="/sync-issues"><span className="menu-icon"><SyncIcon weight={syncStatus === 'idle' && !pendingMutationCount ? 'fill' : 'regular'} /></span><span><strong>Synchronization</strong><small>{syncLabel}</small></span><ArrowRight /></Link><Link to="/ingredients"><span className="menu-icon"><Basket /></span><span><strong>Ingredient catalog</strong><small>{ingredients.length} ingredients</small></span><ArrowRight /></Link><Link to="/categories"><span className="menu-icon"><FolderSimple /></span><span><strong>Categories</strong><small>{categories.length} global and custom categories</small></span><ArrowRight /></Link>{import.meta.env.DEV && <Link to="/system-states"><span className="menu-icon"><Database /></span><span><strong>System states</strong><small>Reusable UI state reference</small></span><ArrowRight /></Link>}</section><div className="info-banner"><ShieldCheck /><span><strong>Available offline</strong><br />Changes save in this account on this device, then sync with the Grocea service.</span></div></main></AppShell>
 }
 
 export function CategoriesScreen() {
@@ -41,21 +43,51 @@ export function CategoriesScreen() {
 }
 
 export function ProfileScreen() {
-  const { profile, updateProfile } = useGrocea()
+  const { profile, updateProfile, pendingMutationCount, flushPending, discardAllPending } = useGrocea()
+  const { account, changePassword, signOut } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState(profile.displayName)
   const [servings, setServings] = useState(profile.preferredServings)
   const [saved, setSaved] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [repeatPassword, setRepeatPassword] = useState('')
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const saveAction = usePendingAction(async () => {
     await updateProfile(name.trim(), servings)
     setSaved(true)
+  })
+  const passwordAction = usePendingAction(async () => {
+    setPasswordMessage(null)
+    setPasswordError(null)
+    if (newPassword.length < 15 || newPassword.length > 128) throw new Error('Use between 15 and 128 characters.')
+    if (newPassword !== repeatPassword) throw new Error('New passwords do not match.')
+    await changePassword(currentPassword, newPassword)
+    setCurrentPassword('')
+    setNewPassword('')
+    setRepeatPassword('')
+    setPasswordMessage('Password changed. Other sessions were signed out.')
   })
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (!name.trim()) return
     await saveAction.run().catch(() => undefined)
   }
-  return <AppShell><BackHeader title="Profile" fallbackTo="/more" eyebrow="Local preferences" /><form className="form-screen wide-form" onSubmit={submit} aria-busy={saveAction.pending}><section className="profile-summary large"><span>{name.trim()[0]?.toUpperCase() || '?'}</span><div><strong>{name.trim() || 'Your profile'}</strong><small>Local profile · Metric measurements</small></div></section>{saved && <div className="success-notice" role="status">Profile preferences saved.</div>}<section className="form-section"><h2>Profile</h2><label className="field-group"><span>Display name</span><input value={name} disabled={saveAction.pending} onChange={event => { setName(event.target.value); setSaved(false) }} maxLength={120} /></label><label className="field-group"><span>Measurement system</span><select value="metric" disabled><option>Metric</option></select></label></section><section className="form-section"><h2>Cooking defaults</h2><div className="stepper-row"><span><strong>Preferred servings</strong><small>Pre-fills recipe and cook flows</small></span><div className="stepper"><button type="button" disabled={saveAction.pending} aria-label="Decrease preferred servings" onClick={() => { setServings(Math.max(1, servings - 1)); setSaved(false) }}>−</button><strong>{servings}</strong><button type="button" disabled={saveAction.pending} aria-label="Increase preferred servings" onClick={() => { setServings(Math.min(12, servings + 1)); setSaved(false) }}>+</button></div></div></section><section className="data-card"><Database /><span><strong>Offline cache enabled</strong><small>Changes synchronize with the Grocea service</small></span></section><div className="info-banner"><ShieldCheck /><span>Your profile remains local-only and unauthenticated in Phase 0.</span></div><div className="form-actions"><button className="button secondary" disabled={saveAction.pending} type="button" onClick={() => navigate('/more')}>Cancel</button><button className="button primary" disabled={!name.trim() || saveAction.pending}><CheckCircle />{saveAction.pending ? 'Saving…' : 'Save changes'}</button></div></form></AppShell>
+  async function updatePassword(event: FormEvent) {
+    event.preventDefault()
+    setPasswordError(null)
+    try { await passwordAction.run() } catch (error) { setPasswordError(error instanceof Error ? error.message : 'Password could not be changed.') }
+  }
+  async function logout() {
+    if (pendingMutationCount > 0) {
+      const flushed = await flushPending()
+      if (!flushed && !window.confirm('Pending offline changes will be discarded. Sign out anyway?')) return
+      if (!flushed) await discardAllPending()
+    }
+    await signOut().catch(() => undefined)
+  }
+  return <AppShell><BackHeader title="Profile" fallbackTo="/more" eyebrow="Account and preferences" /><main className="form-screen wide-form"><section className="profile-summary large"><span>{name.trim()[0]?.toUpperCase() || '?'}</span><div><strong>{name.trim() || 'Your profile'}</strong><small>{account?.email ?? 'Account'} · Metric measurements</small></div></section>{saved && <div className="success-notice" role="status">Profile preferences saved.</div>}<form onSubmit={submit} aria-busy={saveAction.pending}><section className="form-section"><h2>Profile</h2><label className="field-group"><span>Display name</span><input value={name} disabled={saveAction.pending} onChange={event => { setName(event.target.value); setSaved(false) }} maxLength={120} /></label><label className="field-group"><span>Measurement system</span><select value="metric" disabled><option>Metric</option></select></label></section><section className="form-section"><h2>Cooking defaults</h2><div className="stepper-row"><span><strong>Preferred servings</strong><small>Pre-fills recipe and cook flows</small></span><div className="stepper"><button type="button" disabled={saveAction.pending} aria-label="Decrease preferred servings" onClick={() => { setServings(Math.max(1, servings - 1)); setSaved(false) }}>−</button><strong>{servings}</strong><button type="button" disabled={saveAction.pending} aria-label="Increase preferred servings" onClick={() => { setServings(Math.min(12, servings + 1)); setSaved(false) }}>+</button></div></div></section><section className="data-card"><Database /><span><strong>Private offline cache enabled</strong><small>Only this account’s changes synchronize with Grocea.</small></span></section><div className="form-actions"><button className="button secondary" disabled={saveAction.pending} type="button" onClick={() => navigate('/more')}>Cancel</button><button className="button primary" disabled={!name.trim() || saveAction.pending}><CheckCircle />{saveAction.pending ? 'Saving…' : 'Save changes'}</button></div></form><form className="form-section account-security" onSubmit={updatePassword} aria-busy={passwordAction.pending}><h2>Account security</h2><p className="form-help">Change your password. All other sessions will be revoked.</p>{passwordMessage && <div className="success-notice" role="status">{passwordMessage}</div>}{passwordError && <div className="warning-banner danger" role="alert"><WarningCircle /><span>{passwordError}</span></div>}<label className="field-group"><span>Current password</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} minLength={15} required /></label><label className="field-group"><span>New password</span><input type="password" autoComplete="new-password" value={newPassword} onChange={event => setNewPassword(event.target.value)} minLength={15} maxLength={128} required /></label><label className="field-group"><span>Repeat new password</span><input type="password" autoComplete="new-password" value={repeatPassword} onChange={event => setRepeatPassword(event.target.value)} minLength={15} maxLength={128} required /></label><button className="button secondary" disabled={passwordAction.pending}>{passwordAction.pending ? 'Changing…' : 'Change password'}</button></form><div className="info-banner"><ShieldCheck /><span>Your session is protected by an HttpOnly cookie and a per-session CSRF token.</span></div><button className="button danger" type="button" onClick={() => void logout()}>Sign out</button></main></AppShell>
 }
 
 export function SyncIssuesScreen() {

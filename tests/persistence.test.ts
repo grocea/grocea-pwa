@@ -2,7 +2,17 @@ import { openDB } from 'idb'
 import { describe, expect, it } from 'vitest'
 import type { PendingMutation } from '../src/domain/types'
 import { initialState } from '../src/app/fixtures'
-import { cloneState, DATABASE_VERSION, IndexedDbGroceaStorage, LEGACY_STORAGE_KEY } from '../src/app/persistence'
+import {
+  cloneState,
+  createGroceaStorage,
+  DATABASE_NAME,
+  DATABASE_VERSION,
+  deleteLegacyStorage,
+  IndexedDbGroceaStorage,
+  legacyStorageExists,
+  LEGACY_STORAGE_KEY,
+  migrateLegacyStorage,
+} from '../src/app/persistence'
 
 const databaseName = () => `grocea-test-${crypto.randomUUID()}`
 
@@ -55,6 +65,37 @@ describe('IndexedDbGroceaStorage', () => {
     expect(restored.balances.rice).toBe(9_876_543_210n)
     expect(restored.balances.kimchi).toBe(500_000n)
     expect(restored.activity[0].changes[0].delta).toBe(500_000n)
+  })
+
+  it('creates account-scoped metadata without fixture state', async () => {
+    const userId = crypto.randomUUID()
+    const storage = createGroceaStorage(userId)
+    await storage.open()
+    expect((await storage.getMetadata()).ownerUserId).toBe(userId)
+    await expect(storage.loadState()).rejects.toThrow('corrupt or incompatible')
+    await storage.destroy()
+  })
+
+  it('claims a legacy database before syncing and leaves a recovery copy', async () => {
+    await deleteLegacyStorage()
+    const legacy = new IndexedDbGroceaStorage(initialState, DATABASE_NAME)
+    await legacy.open()
+    const state = await legacy.loadState()
+    state.profile.displayName = 'Legacy kitchen'
+    await legacy.saveState(state)
+    legacy.close()
+
+    const userId = crypto.randomUUID()
+    await expect(legacyStorageExists()).resolves.toBe(true)
+    await migrateLegacyStorage(userId)
+    expect(await legacyStorageExists()).toBe(true)
+
+    const account = createGroceaStorage(userId)
+    await account.open()
+    expect((await account.loadState()).profile.displayName).toBe('Legacy kitchen')
+    expect((await account.getMetadata()).legacyClaimed).toBe(true)
+    await account.destroy()
+    await deleteLegacyStorage()
   })
 
   it('migrates valid legacy content once and removes its key after commit', async () => {

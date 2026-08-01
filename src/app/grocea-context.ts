@@ -45,7 +45,9 @@ export interface GroceaContextValue extends GroceaState {
   reuseGroceryList: (listId: string) => Promise<void>
   deleteGroceryList: (listId: string, restoreRecipes?: boolean) => Promise<void>
   retrySync: () => Promise<void>
+  flushPending: () => Promise<boolean>
   discardSyncIssue: (id: string) => Promise<void>
+  discardAllPending: () => Promise<void>
 }
 
 export const GroceaContext = createContext<GroceaContextValue | null>(null)
