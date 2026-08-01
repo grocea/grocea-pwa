@@ -30,6 +30,14 @@ function stageValid(draft: DraftRecipe, stage: Stage): boolean {
   return stages.slice(0, 4).every(item => stageValid(draft, item))
 }
 
+function copyDraft(draft: DraftRecipe): DraftRecipe {
+  return {
+    ...draft,
+    ingredients: draft.ingredients.map(item => ({ ...item })),
+    steps: [...draft.steps],
+  }
+}
+
 export function NewRecipeScreen() {
   const { createRecipeDraft } = useGrocea()
   const navigate = useNavigate()
@@ -52,12 +60,15 @@ export function RecipeEditorScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const heading = useRef<HTMLHeadingElement>(null)
+  // Provider autosave is asynchronous; local draft keeps controlled fields responsive while it runs.
+  const [editorDraft, setEditorDraft] = useState<DraftRecipe | null>(() => draft ? copyDraft(draft) : null)
   const [attemptedStage, setAttemptedStage] = useState<Stage | null>(null)
   const [query, setQuery] = useState('')
+  const editableDraft = editorDraft?.id === draft?.id ? editorDraft : draft
   const leaveAction = usePendingAction(async () => {
-    if (!draft) return
-    const isUntouched = untouched(draft)
-    if (isUntouched) await deleteRecipeDraft(draft.id)
+    if (!editableDraft) return
+    const isUntouched = untouched(editableDraft)
+    if (isUntouched) await deleteRecipeDraft(editableDraft.id)
     navigate('/recipes', { state: { message: isUntouched ? undefined : 'Draft saved.' } })
   })
   const publishAction = usePendingAction(async () => {
@@ -66,45 +77,56 @@ export function RecipeEditorScreen() {
 
   useEffect(() => { heading.current?.focus() }, [stage])
   useEffect(() => {
-    const discardUntouchedOnBrowserBack = () => { if (stage === 'basics' && draft && untouched(draft)) void deleteRecipeDraft(draft.id).catch(() => undefined) }
+    const discardUntouchedOnBrowserBack = () => { if (stage === 'basics' && editableDraft && untouched(editableDraft)) void deleteRecipeDraft(editableDraft.id).catch(() => undefined) }
     window.addEventListener('popstate', discardUntouchedOnBrowserBack)
     return () => window.removeEventListener('popstate', discardUntouchedOnBrowserBack)
-  }, [deleteRecipeDraft, draft, stage])
+  }, [deleteRecipeDraft, editableDraft, stage])
   if (!stage) return <Navigate to={`/recipes/${id}/edit/basics`} replace />
-  if (!draft) return <AppShell><BackHeader title="Recipe editor" fallbackTo="/recipes" /><EmptyState title="Draft not found" message="This draft may have been deleted or confirmed." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
+  if (!draft || !editableDraft) return <AppShell><BackHeader title="Recipe editor" fallbackTo="/recipes" /><EmptyState title="Draft not found" message="This draft may have been deleted or confirmed." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
 
   const index = stages.indexOf(stage)
-  const update = (patch: Parameters<typeof updateRecipeDraft>[1]) => { void updateRecipeDraft(draft.id, patch).catch(() => undefined) }
+  const update = (patch: Parameters<typeof updateRecipeDraft>[1]) => {
+    setEditorDraft(current => {
+      const base = current?.id === draft.id ? current : draft
+      return {
+        ...base,
+        ...patch,
+        ingredients: patch.ingredients ? patch.ingredients.map(item => ({ ...item })) : base.ingredients,
+        steps: patch.steps ? [...patch.steps] : base.steps,
+      }
+    })
+    void updateRecipeDraft(draft.id, patch).catch(() => undefined)
+  }
   const next = async (event: FormEvent) => {
     event.preventDefault(); setAttemptedStage(stage)
-    if (!stageValid(draft, stage)) return
+    if (!stageValid(editableDraft, stage)) return
     if (stage === 'review') {
       await publishAction.run().catch(() => undefined)
       return
     }
-    navigate(`/recipes/${draft.id}/edit/${stages[index + 1]}`)
+    navigate(`/recipes/${editableDraft.id}/edit/${stages[index + 1]}`)
   }
-  const previous = () => { if (index === 0) void leaveAction.run().catch(() => undefined); else navigate(`/recipes/${draft.id}/edit/${stages[index - 1]}`) }
+  const previous = () => { if (index === 0) void leaveAction.run().catch(() => undefined); else navigate(`/recipes/${editableDraft.id}/edit/${stages[index - 1]}`) }
   const attempted = attemptedStage === stage
 
   return <AppShell>
     <BackHeader title="Recipe draft" eyebrow="Autosaved locally" action={<span className="tag">Draft</span>} onBack={previous} />
     <form className="recipe-editor" onSubmit={next} noValidate aria-busy={leaveAction.pending || publishAction.pending}>
-      <nav className="editor-progress" aria-label="Recipe creation progress">{stages.map((item, itemIndex) => <Link key={item} to={`/recipes/${draft.id}/edit/${item}`} aria-current={item === stage ? 'step' : undefined} className={item === stage ? 'active' : itemIndex < index ? 'complete' : ''}><span>{itemIndex < index ? <Check /> : itemIndex + 1}</span><small>{labels[item]}</small></Link>)}</nav>
+      <nav className="editor-progress" aria-label="Recipe creation progress">{stages.map((item, itemIndex) => <Link key={item} to={`/recipes/${editableDraft.id}/edit/${item}`} aria-current={item === stage ? 'step' : undefined} className={item === stage ? 'active' : itemIndex < index ? 'complete' : ''}><span>{itemIndex < index ? <Check /> : itemIndex + 1}</span><small>{labels[item]}</small></Link>)}</nav>
       <header className="editor-heading"><p>Step {index + 1} of {stages.length}</p><h1 ref={heading} tabIndex={-1}>{labels[stage]}</h1></header>
       {(location.state as { message?: string } | null)?.message && <div className="success-notice" role="status">{(location.state as { message: string }).message}</div>}
 
       {stage === 'basics' && <section className="editor-card">
-        <label className="field-group"><span>Name</span><input autoFocus value={draft.name} maxLength={120} onChange={event => update({ name: event.target.value })} aria-invalid={attempted && !stageValid(draft, 'basics')} placeholder="Recipe name" /></label>
-        <label className="field-group"><span>Description <small>optional</small></span><textarea value={draft.description} onChange={event => update({ description: event.target.value })} placeholder="What makes this recipe useful?" /></label>
-        <label className="field-group"><span>Base servings</span><input type="number" min="1" max="99" value={draft.baseServings} onChange={event => update({ baseServings: Math.max(1, Number(event.target.value) || 1) })} /></label>
-        {attempted && !stageValid(draft, 'basics') && <p className="field-error" role="alert">Add a recipe name between 1 and 120 characters.</p>}
+        <label className="field-group"><span>Name</span><input autoFocus value={editableDraft.name} maxLength={120} onChange={event => update({ name: event.target.value })} aria-invalid={attempted && !stageValid(editableDraft, 'basics')} placeholder="Recipe name" /></label>
+        <label className="field-group"><span>Description <small>optional</small></span><textarea value={editableDraft.description} onChange={event => update({ description: event.target.value })} placeholder="What makes this recipe useful?" /></label>
+        <label className="field-group"><span>Base servings</span><input type="number" min="1" max="99" value={editableDraft.baseServings} onChange={event => update({ baseServings: Math.max(1, Number(event.target.value) || 1) })} /></label>
+        {attempted && !stageValid(editableDraft, 'basics') && <p className="field-error" role="alert">Add a recipe name between 1 and 120 characters.</p>}
       </section>}
 
-      {stage === 'ingredients' && <IngredientStage draft={draft} ingredients={ingredients} categoryName={categoryName} query={query} setQuery={setQuery} update={update} attempted={attempted} />}
-      {stage === 'measurements' && <MeasurementStage draft={draft} ingredients={ingredients} update={update} attempted={attempted} />}
-      {stage === 'steps' && <StepsStage draft={draft} update={update} attempted={attempted} />}
-      {stage === 'review' && <ReviewStage draft={draft} ingredients={ingredients} />}
+      {stage === 'ingredients' && <IngredientStage draft={editableDraft} ingredients={ingredients} categoryName={categoryName} query={query} setQuery={setQuery} update={update} attempted={attempted} />}
+      {stage === 'measurements' && <MeasurementStage draft={editableDraft} ingredients={ingredients} update={update} attempted={attempted} />}
+      {stage === 'steps' && <StepsStage draft={editableDraft} update={update} attempted={attempted} />}
+      {stage === 'review' && <ReviewStage draft={editableDraft} ingredients={ingredients} />}
 
       <div className="editor-actions"><button type="button" className="button secondary" disabled={leaveAction.pending || publishAction.pending} onClick={() => void leaveAction.run().catch(() => undefined)}>{leaveAction.pending ? 'Saving…' : 'Save & exit'}</button><button type="submit" className="button primary" disabled={leaveAction.pending || publishAction.pending}>{publishAction.pending ? 'Publishing…' : stage === 'review' ? 'Confirm recipe' : 'Next'}</button></div>
     </form>
