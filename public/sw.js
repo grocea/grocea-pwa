@@ -1,4 +1,4 @@
-const CACHE_NAME = 'grocea-pwa-v4-auth';
+const CACHE_NAME = 'grocea-pwa-v5-auth-proxy';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -31,7 +31,10 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  if (url.pathname.startsWith('/api/')) {
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname === '/api' || url.pathname.startsWith('/api/'))
+  ) {
     event.respondWith(fetch(request));
     return;
   }

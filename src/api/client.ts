@@ -13,7 +13,10 @@ import type {
 } from '../domain/types'
 import type { schemas } from './generated'
 
-const apiOrigin = (import.meta.env.VITE_API_ORIGIN as string | undefined)?.replace(/\/$/, '') ?? ''
+// Production always uses the same-origin Cloudflare Worker proxy.
+const apiOrigin = import.meta.env.PROD
+  ? ''
+  : ((import.meta.env.VITE_API_ORIGIN as string | undefined)?.replace(/\/$/, '') ?? '')
 let csrfToken: string | null = null
 
 export interface AuthAccount {

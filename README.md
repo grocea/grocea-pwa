@@ -16,8 +16,17 @@ npm run api:generate
 npm run dev
 ```
 
-Vite proxies `/api` to local backend. For another origin, copy `.env.example`
-and set `VITE_API_ORIGIN`.
+Vite proxies `/api` to local backend. For local development against another
+origin, set `VITE_API_ORIGIN`.
+
+Cloudflare Workers deployment serves the PWA and proxies `/api/*` to the
+production backend from the same origin. Production builds always use relative
+`/api` requests, even if a stale `VITE_API_ORIGIN` value remains configured.
+Leave that variable empty or unset in Cloudflare. Deploy with:
+
+```bash
+npm run deploy
+```
 
 ## Checks
 
@@ -48,4 +57,5 @@ screen for retry or discard.
 Migrated local state uploads once. Backend maps legacy global fixture IDs,
 safe-merges compatible custom data, preserves exact balances/history, and
 reports conflicts without overwriting existing server data. The service worker
-keeps `/api/*` network-only and the app-shell cache is versioned for auth rollout.
+keeps same-origin `/api/*` network-only and the app-shell cache is versioned for
+auth rollouts. Cross-origin API requests are not handled by the service worker.

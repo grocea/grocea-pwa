@@ -25,6 +25,11 @@ dist-ssr
 
 # docs
 docs
+
+# Wrangler
+.wrangler
+.dev.vars*
+!.dev.vars.example
 artifacts
 notes-to-improve.md
 context.md
