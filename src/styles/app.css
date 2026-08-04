@@ -2,6 +2,9 @@
 
 .app-shell { --mobile-bottom-inset: max(12px, env(safe-area-inset-bottom, 0px)); --mobile-header-height: calc(68px + env(safe-area-inset-top, 0px)); --mobile-navigation-height: calc(72px + var(--mobile-bottom-inset)); min-height: 100svh; width: 100%; display: grid; background: var(--warm); }
 .app-page { min-width: 0; min-height: 100svh; display: flex; flex-direction: column; }
+@media (display-mode: standalone) {
+  html, body, #root, .app-shell, .app-page { min-height: 100vh; }
+}
 .screen-content, .detail-screen, .result-screen { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) calc(var(--mobile-navigation-height) + 40px); }
 .screen-content > *, .detail-screen > *, .result-screen > *, .form-screen > * { width: 100%; margin-inline: auto; }
 .brand-header, .back-header { min-height: 68px; flex-basis: auto; padding: max(env(safe-area-inset-top), 12px) clamp(18px, 4vw, 56px) 12px; position: sticky; top: 0; }
