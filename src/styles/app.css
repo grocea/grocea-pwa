@@ -7,7 +7,8 @@
   html, body, #root, .app-shell, .app-page { min-height: 100vh; }
   .app-shell { height: 100vh; }
 }
-.screen-content, .detail-screen, .result-screen { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) calc(var(--mobile-navigation-height) + 40px); }
+.screen-content { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) 40px; }
+.detail-screen, .result-screen { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) calc(var(--mobile-navigation-height) + 40px); }
 .screen-content > *, .detail-screen > *, .result-screen > *, .form-screen > * { width: 100%; margin-inline: auto; }
 .brand-header, .back-header { min-height: 68px; flex-basis: auto; padding: max(env(safe-area-inset-top), 12px) clamp(18px, 4vw, 56px) 12px; position: sticky; top: 0; }
 .app-header-offset { display: none; }
@@ -153,7 +154,7 @@
 .success-notice { display: flex; align-items: center; gap: 8px; }
 
 .floating-action { position: fixed; }
-.pantry-content, .catalog-content { padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) calc(var(--mobile-navigation-height) + 40px); }
+.pantry-content, .catalog-content { padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) 40px; }
 .stock-list, .catalog-list { width: 100%; }
 .ingredient-field, .split-field { width: 100%; min-width: 0; }
 
@@ -221,6 +222,9 @@
 .editor-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(110px, .45fr) minmax(0, 1fr); gap: 10px; margin: auto calc(clamp(14px, 4vw, 56px) * -1) 0; padding: 14px clamp(14px, 4vw, 56px) calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(16px); z-index: 5; }
 
 @media (max-width: 979px) {
+  .app-shell { display: flex; flex-direction: column; }
+  .app-page { order: 1; height: auto; flex: 1 1 auto; min-height: 0; }
+  .primary-navigation { position: static; order: 2; flex: 0 0 var(--mobile-navigation-height); height: var(--mobile-navigation-height); }
   .brand-header, .back-header {
     position: fixed;
     inset: 0 0 auto;
@@ -1360,7 +1364,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 }
 
 @media (max-width: 700px) {
-  .pantry-content { padding-bottom: calc(var(--mobile-navigation-height) + 40px); }
+  .pantry-content { padding-bottom: 40px; }
   .pantry-tools {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
