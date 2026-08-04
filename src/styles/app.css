@@ -1,9 +1,11 @@
 @import './legacy.css';
 
-.app-shell { --mobile-bottom-inset: max(12px, env(safe-area-inset-bottom, 0px)); --mobile-header-height: calc(68px + env(safe-area-inset-top, 0px)); --mobile-navigation-height: calc(72px + var(--mobile-bottom-inset)); min-height: 100svh; width: 100%; display: grid; background: var(--warm); }
-.app-page { min-width: 0; min-height: 100svh; display: flex; flex-direction: column; }
+.app-shell { --mobile-bottom-inset: max(12px, env(safe-area-inset-bottom, 0px)); --mobile-header-height: calc(68px + env(safe-area-inset-top, 0px)); --mobile-navigation-height: calc(72px + var(--mobile-bottom-inset)); height: 100svh; min-height: 100svh; width: 100%; display: grid; overflow: hidden; background: var(--warm); }
+.app-page { min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.app-page::-webkit-scrollbar { display: none; width: 0; height: 0; }
 @media (display-mode: standalone) {
   html, body, #root, .app-shell, .app-page { min-height: 100vh; }
+  .app-shell { height: 100vh; }
 }
 .screen-content, .detail-screen, .result-screen { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) calc(var(--mobile-navigation-height) + 40px); }
 .screen-content > *, .detail-screen > *, .result-screen > *, .form-screen > * { width: 100%; margin-inline: auto; }
@@ -187,6 +189,13 @@
 .ingredient-grid > button small { color: var(--muted); font-size: 10px; text-align: center; }
 .ingredient-grid > button.selected { border: 2px solid var(--green); background: var(--green-soft); }
 .selection-check { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; padding: 3px; color: #fff; border-radius: 999px; background: var(--green); }
+.ingredient-sections { display: grid; gap: 20px; }
+.ingredient-section { display: grid; gap: 12px; }
+.ingredient-section + .ingredient-section { padding-top: 20px; border-top: 1px solid var(--line); }
+.ingredient-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ingredient-section-heading h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+.ingredient-section-heading span { color: var(--muted); font-size: 12px; }
+.ingredient-section-empty { margin: 0; padding: 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; background: var(--warm); line-height: 1.5; }
 .measurement-list { gap: 12px; }
 .measurement-row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(80px, .45fr) minmax(78px, .35fr); align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
 .measurement-row > span { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 2px 9px; }
