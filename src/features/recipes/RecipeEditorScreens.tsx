@@ -18,6 +18,10 @@ function ingredientIcon(ingredient: Ingredient) {
   return <Circle />
 }
 
+function ingredientCount(count: number) {
+  return `${count} ingredient${count === 1 ? '' : 's'}`
+}
+
 function untouched(draft: DraftRecipe) {
   return !draft.name && !draft.description && !draft.ingredients.length && draft.steps.every(step => !step)
 }
@@ -134,16 +138,35 @@ export function RecipeEditorScreen() {
 }
 
 function IngredientStage({ draft, ingredients, categoryName, query, setQuery, update, attempted }: { draft: DraftRecipe; ingredients: Ingredient[]; categoryName: (id: string) => string; query: string; setQuery: (value: string) => void; update: (patch: Partial<DraftRecipe>) => void; attempted: boolean }) {
-  const shown = useMemo(() => ingredients.filter(item => item.name.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name)), [ingredients, query])
+  const { selected, notSelected, selectedIds } = useMemo(() => {
+    const selectedIds = new Set(draft.ingredients.map(item => item.ingredientId))
+    const filtered = ingredients
+      .filter(item => item.name.toLowerCase().includes(query.trim().toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name))
+    return {
+      selected: filtered.filter(item => selectedIds.has(item.id)),
+      notSelected: filtered.filter(item => !selectedIds.has(item.id)),
+      selectedIds,
+    }
+  }, [draft.ingredients, ingredients, query])
   const toggle = (ingredient: Ingredient) => {
-    const selected = draft.ingredients.some(item => item.ingredientId === ingredient.id)
-    update({ ingredients: selected ? draft.ingredients.filter(item => item.ingredientId !== ingredient.id) : [...draft.ingredients, { ingredientId: ingredient.id, quantity: '', unit: defaultUnit(ingredient.family) }] })
+    const isSelected = selectedIds.has(ingredient.id)
+    update({ ingredients: isSelected ? draft.ingredients.filter(item => item.ingredientId !== ingredient.id) : [...draft.ingredients, { ingredientId: ingredient.id, quantity: '', unit: defaultUnit(ingredient.family) }] })
   }
+  const renderGrid = (items: Ingredient[], groupLabel: string) => <div className="ingredient-grid" role="group" aria-label={groupLabel}>{items.map(ingredient => { const isSelected = selectedIds.has(ingredient.id); return <button type="button" key={ingredient.id} className={isSelected ? 'selected' : ''} role="checkbox" aria-checked={isSelected} onClick={() => toggle(ingredient)}><span>{ingredientIcon(ingredient)}</span><strong>{ingredient.name}</strong><small>{categoryName(ingredient.categoryId)}</small>{isSelected && <Check className="selection-check" />}</button> })}</div>
   return <section className="editor-card ingredient-picker">
     <div className="picker-tools"><label className="search-field"><MagnifyingGlass /><span className="sr-only">Search ingredients</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search ingredients…" /></label><Link className="button secondary" to={`/recipes/${draft.id}/ingredients/new?name=${encodeURIComponent(query.trim())}`}><Plus />Create custom</Link></div>
     <p className="selection-count" aria-live="polite">{draft.ingredients.length} selected</p>
-    <div className="ingredient-grid" role="group" aria-label="Choose ingredients">{shown.map(ingredient => { const selected = draft.ingredients.some(item => item.ingredientId === ingredient.id); return <button type="button" key={ingredient.id} className={selected ? 'selected' : ''} role="checkbox" aria-checked={selected} onClick={() => toggle(ingredient)}><span>{ingredientIcon(ingredient)}</span><strong>{ingredient.name}</strong><small>{categoryName(ingredient.categoryId)}</small>{selected && <Check className="selection-check" />}</button> })}</div>
-    {!shown.length && <EmptyState title="No ingredients found" message="Try another search or create a Custom Ingredient." />}
+    <div className="ingredient-sections" aria-label="Ingredients by selection status">
+      <section className="ingredient-section" aria-labelledby="selected-ingredients-heading">
+        <div className="ingredient-section-heading"><h2 id="selected-ingredients-heading">Selected</h2><span>{ingredientCount(selected.length)}</span></div>
+        {selected.length ? renderGrid(selected, 'Selected ingredients') : <p className="ingredient-section-empty">{draft.ingredients.length > 0 && query.trim() ? 'No selected ingredients match your search.' : 'No ingredients selected yet.'}</p>}
+      </section>
+      <section className="ingredient-section" aria-labelledby="not-selected-ingredients-heading">
+        <div className="ingredient-section-heading"><h2 id="not-selected-ingredients-heading">Not selected</h2><span>{ingredientCount(notSelected.length)}</span></div>
+        {notSelected.length ? renderGrid(notSelected, 'Not selected ingredients') : <p className="ingredient-section-empty">{query.trim() ? 'All ingredients matching your search are selected.' : 'All ingredients are selected.'}</p>}
+      </section>
+    </div>
     {attempted && !draft.ingredients.length && <p className="field-error" role="alert">Select at least one ingredient.</p>}
   </section>
 }

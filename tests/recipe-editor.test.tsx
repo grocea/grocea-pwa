@@ -26,6 +26,31 @@ class DelayedStorage implements GroceaStorage {
 }
 
 describe('recipe editor', () => {
+  it('separates selected ingredients from the available catalog', async () => {
+    const storage = new DelayedStorage(0)
+    storage.state.recipes.push({
+      id: 'ingredient-draft',
+      status: 'draft',
+      scope: 'custom',
+      name: 'Test recipe',
+      description: '',
+      baseServings: 2,
+      ingredients: [{ ingredientId: 'rice', quantity: '', unit: 'g' }],
+      steps: [''],
+      createdAt: '2026-08-01T00:00:00Z',
+      updatedAt: '2026-08-01T00:00:00Z',
+    })
+
+    render(<GroceaProvider storage={storage}><MemoryRouter initialEntries={['/recipes/ingredient-draft/edit/ingredients']}><Routes><Route path="/recipes/:id/edit/:stage" element={<RecipeEditorScreen />} /></Routes></MemoryRouter></GroceaProvider>)
+
+    const selectedGroup = await screen.findByRole('group', { name: 'Selected ingredients' })
+    const notSelectedGroup = await screen.findByRole('group', { name: 'Not selected ingredients' })
+    expect(selectedGroup.textContent).toContain('Basmati rice')
+    expect(notSelectedGroup.textContent).toContain('Bananas')
+    expect(selectedGroup.textContent).not.toContain('Bananas')
+    expect(notSelectedGroup.textContent).not.toContain('Basmati rice')
+  })
+
   it('keeps rapid recipe name input while autosave is in flight', async () => {
     const storage = new DelayedStorage(10)
     storage.state.recipes.push({
