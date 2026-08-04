@@ -429,7 +429,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 .recipe-card-with-action { grid-template-columns: minmax(0, 1fr) auto; padding: 0 14px 0 0; }
 .recipe-card-main { min-width: 0; min-height: 114px; display: grid; grid-template-columns: 54px minmax(0, 1fr); align-items: center; gap: 14px; padding: 16px; color: inherit; text-decoration: none; }
 .basket-add.selected { color: var(--green-deep); border-color: var(--lime); background: var(--lime); }
-.grocery-screen { padding-bottom: 24px; }
+.grocery-screen { padding-bottom: calc(var(--mobile-navigation-height) + 40px); }
 .basket-list, .grocery-items, .grocery-history { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .basket-row { min-height: 92px; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto auto; align-items: center; gap: 13px; padding: 14px; border-bottom: 1px solid var(--line); }
 .basket-row:last-child { border-bottom: 0; }
@@ -1220,6 +1220,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 
 @media (max-width: 400px) {
   .grocery-flow-actions { grid-template-columns: 1fr; }
+  .grocery-screen { padding-bottom: calc(var(--mobile-navigation-height) + 72px); }
   .shopping-progress > div { grid-template-columns: 42px minmax(0, 1fr); }
   .shopping-progress b { grid-column: 2; }
 }
@@ -1359,7 +1360,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 }
 
 @media (max-width: 700px) {
-  .pantry-content { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+  .pantry-content { padding-bottom: calc(var(--mobile-navigation-height) + 40px); }
   .pantry-tools {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
