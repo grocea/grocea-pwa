@@ -181,6 +181,15 @@ describe('navigation and selection semantics', () => {
     expect(cooking.getAttribute('aria-pressed')).toBe('true')
   })
 
+  it('offers a recovery path when no recipes are fully stocked', async () => {
+    const storage = new MemoryStorage()
+    storage.state.balances = Object.fromEntries(Object.keys(storage.state.balances).map(id => [id, 0n]))
+    renderRoute(<RecipeListScreen />, '/recipes', storage)
+    await screen.findByRole('heading', { name: 'No recipes ready yet' })
+    fireEvent.click(screen.getByRole('button', { name: 'View all recipes' }))
+    expect(screen.getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true')
+  })
+
   it('shows readiness and ownership as independent recipe labels', async () => {
     renderRoute(<RecipeListScreen />, '/recipes')
     await screen.findByRole('heading', { name: 'Recipes' })

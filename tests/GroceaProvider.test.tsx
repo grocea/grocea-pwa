@@ -70,6 +70,7 @@ function GroceryProbe() {
     <span data-testid="list-count">{groceryLists.length}</span>
     <span data-testid="list-items">{groceryLists[0]?.items.length ?? 0}</span>
     <button onClick={() => void addRecipeToBasket('tomato-egg-rice', 4)}>Add recipe</button>
+    <button onClick={() => void addRecipeToBasket('tomato-egg-rice')}>Ensure recipe</button>
     <button onClick={() => void confirmBasket()}>Create groceries</button>
   </div>
 }
@@ -103,6 +104,18 @@ describe('GroceaProvider persistence', () => {
       'basket.recipe.upsert',
       'grocery-list.create',
     ])
+  })
+
+  it('does not reset planned servings when a recipe is already in Basket', async () => {
+    const storage = new MemoryStorage()
+    render(<GroceaProvider storage={storage}><GroceryProbe /></GroceaProvider>)
+    await screen.findByRole('button', { name: 'Add recipe' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add recipe' }))
+    await waitFor(() => expect(screen.getByTestId('basket-servings').textContent).toBe('4'))
+    fireEvent.click(screen.getByRole('button', { name: 'Ensure recipe' }))
+    await waitFor(() => expect(screen.getByTestId('basket-servings').textContent).toBe('4'))
+    expect(storage.mutations).toHaveLength(1)
   })
 
   it('aggregates duplicate catalog rows into one Pantry change while offline', async () => {

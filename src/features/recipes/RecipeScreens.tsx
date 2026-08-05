@@ -40,7 +40,7 @@ export function RecipeListScreen() {
   const [addingId, setAddingId] = useState<string | null>(null)
   const addToBasket = async (recipe: PublishedRecipe) => {
     setAddingId(recipe.id)
-    try { await addRecipeToBasket(recipe.id, recipe.baseServings) } finally { setAddingId(null) }
+    try { await addRecipeToBasket(recipe.id) } finally { setAddingId(null) }
   }
 
   const resultCount = tab === 'drafts' ? shownDrafts.length : shownPublished.length
@@ -124,13 +124,22 @@ export function RecipeListScreen() {
               </div>
               <span className="recipe-card-hint">View recipe <ArrowRight size={16} /></span>
             </Link>
-            <button className={`basket-add${inBasket ? ' selected' : ''}`} type="button" disabled={isAdding} aria-busy={isAdding} aria-label={inBasket ? `${recipe.name} is in Basket` : `Add ${recipe.name} to Basket`} onClick={() => void addToBasket(recipe)}>
+            <button className={`basket-add${inBasket ? ' selected' : ''}`} type="button" disabled={isAdding} aria-busy={isAdding} aria-label={inBasket ? `${recipe.name} is in Basket` : `Add ${recipe.name} to Basket`} onClick={() => inBasket ? navigate('/recipes/basket') : void addToBasket(recipe)}>
               {inBasket ? <Check size={18} weight="bold" /> : <Basket size={18} />}
-              <span>{isAdding ? 'Adding…' : inBasket ? 'In basket' : 'Add to basket'}</span>
+              <span>{isAdding ? 'Adding…' : inBasket ? 'View basket' : 'Add to basket'}</span>
             </button>
           </article>
         })}
-        {!shownPublished.length && <EmptyState icon={BookOpen} title="No recipes found" message={tab === 'ready' ? 'No recipes are fully stocked. View all recipes to cook with a shortage.' : 'Try another search.'} />}
+        {!shownPublished.length && <EmptyState
+          icon={BookOpen}
+          title={tab === 'ready' && !query.trim() ? 'No recipes ready yet' : 'No recipes found'}
+          message={tab === 'ready' && !query.trim() ? 'Nothing is fully stocked right now. You can still browse every recipe and cook with a shortage.' : 'Try another search or clear your filter.'}
+          action={query.trim()
+            ? <button className="button secondary" type="button" onClick={() => setQuery('')}>Clear search</button>
+            : tab === 'ready'
+              ? <button className="button primary" type="button" onClick={() => setTab('all')}>View all recipes</button>
+              : undefined}
+        />}
       </section>}
     </main>
     <ConfirmDialog open={Boolean(deleteTarget)} title="Delete draft?" description={`${deleteTarget?.name ?? 'This draft'} and its unsaved recipe details will be permanently removed.`} confirmLabel="Delete draft" pendingLabel="Deleting…" onDismiss={() => setDeleteTarget(null)} onConfirm={async () => { if (deleteTarget) await deleteRecipeDraft(deleteTarget.id) }} />
@@ -153,7 +162,7 @@ export function RecipeDetailScreen() {
     navigate(`/recipes/${draftId}/edit/basics`)
   })
   const basketAction = usePendingAction(async () => {
-    if (recipe) await addRecipeToBasket(recipe.id, recipe.baseServings)
+    if (recipe) await addRecipeToBasket(recipe.id)
   })
   if (!recipe) return <AppShell><BackHeader title="Recipe detail" fallbackTo="/recipes" /><EmptyState title="Recipe not found" message="This published recipe is not available." /></AppShell>
   const items = availability(recipe, recipe.baseServings, balances)
@@ -161,9 +170,9 @@ export function RecipeDetailScreen() {
   const message = (location.state as { message?: string } | null)?.message
   const returnTo = `/recipes/${recipe.id}`
   const inBasket = basket.some(item => item.recipeId === recipe.id)
-  return <AppShell><BackHeader title="Recipe detail" fallbackTo="/recipes" eyebrow="Published recipe" action={<button className="button secondary compact" type="button" disabled={basketAction.pending} onClick={() => void basketAction.run().catch(() => undefined)}>{inBasket ? <Check /> : <Basket />}{inBasket ? 'In Basket' : 'Add'}</button>} /><main className="detail-screen"><SuccessNotice message={message} /><section className="hero-card"><span className="hero-meta"><span className="eyebrow">PUBLISHED</span>{recipe.scope === 'custom' && <OwnershipMark label="Your recipe" />}</span><h1>{recipe.name}</h1><p>{recipe.description}</p><small>Base serves {recipe.baseServings}</small></section>{missing.length > 0 && <div className="warning-banner"><WarningCircle size={23} /><span><strong>{missing.length} ingredient{missing.length > 1 ? 's are' : ' is'} short</strong><small>Add the exact deficit now, or cook and record a negative balance.</small></span></div>}
+  return <AppShell><BackHeader title="Recipe detail" fallbackTo="/recipes" eyebrow="Published recipe" action={<button className="button secondary compact" type="button" disabled={basketAction.pending} onClick={() => inBasket ? navigate('/recipes/basket') : void basketAction.run().catch(() => undefined)}>{inBasket ? <Check /> : <Basket />}{inBasket ? 'View Basket' : 'Add to Basket'}</button>} /><main className="detail-screen"><SuccessNotice message={message} /><section className="hero-card"><span className="hero-meta"><span className="eyebrow">PUBLISHED</span>{recipe.scope === 'custom' && <OwnershipMark label="Your recipe" />}</span><h1>{recipe.name}</h1><p>{recipe.description}</p><small>Base serves {recipe.baseServings}</small></section>{missing.length > 0 && <div className="warning-banner"><WarningCircle size={23} /><span><strong>{missing.length} ingredient{missing.length > 1 ? 's are' : ' is'} short</strong><small>Add the exact deficit now, or cook and record a negative balance.</small></span></div>}
     <section className="detail-section"><div className="section-title"><h2>Ingredients</h2><span>{recipe.baseServings} servings</span></div><div className="data-list">{items.map(item => { const source = ingredient(item.ingredientId); const deficit = item.needed - item.balance; const addHref = `/pantry/stock/new?${new URLSearchParams({ ingredient: item.ingredientId, quantity: formatQuantityValue(deficit, item.unit), unit: item.unit, returnTo }).toString()}`; return <div className="data-row recipe-ingredient-row" key={item.ingredientId}><span><strong>{source?.name}</strong><small>{formatQuantity(item.balance, source?.family ?? 'mass')} in pantry</small></span><span className="ingredient-status"><span className={item.short ? 'status warning' : 'status'}>{item.short ? 'Short' : 'Available'} · {formatQuantityInUnit(item.needed, item.unit)}</span>{item.short && <Link className="stock-recovery-link" to={addHref}>Add {formatQuantityInUnit(deficit, item.unit)}</Link>}</span></div> })}</div></section>
-    <section className="detail-section"><h2>Steps</h2><ol className="steps-list">{recipe.steps.map((step, index) => <li key={index}>{step}</li>)}</ol></section></main><div className="form-actions sticky" aria-busy={customizeAction.pending}><button className="button secondary" type="button" disabled={customizeAction.pending} onClick={() => void customizeAction.run().catch(() => undefined)}>{customizeAction.pending ? 'Creating draft…' : 'Customize recipe'}</button><Link className="button primary" aria-disabled={customizeAction.pending || undefined} to={`/recipes/${recipe.id}/cook`}>{missing.length ? 'Cook anyway' : 'Cook recipe'}</Link></div></AppShell>
+    <section className="detail-section"><h2>Steps</h2><ol className="steps-list">{recipe.steps.map((step, index) => <li key={index}>{step}</li>)}</ol></section></main><div className="form-actions sticky" aria-busy={customizeAction.pending}><button className="button secondary" type="button" disabled={customizeAction.pending} onClick={() => void customizeAction.run().catch(() => undefined)}>{customizeAction.pending ? 'Creating draft…' : 'Customize recipe'}</button>{customizeAction.pending ? <button className="button primary" type="button" disabled>Creating…</button> : <Link className="button primary" to={`/recipes/${recipe.id}/cook`}>{missing.length ? 'Cook anyway' : 'Cook recipe'}</Link>}</div></AppShell>
 }
 
 export function CookPreviewScreen() {

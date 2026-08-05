@@ -284,7 +284,7 @@
   border: 1px dashed var(--line);
   border-radius: 10px;
 }
-.empty-state strong { color: var(--ink); }
+.empty-state h2 { margin: 0; color: var(--ink); font-size: 16px; }
 .empty-state span { font-size: 13px; line-height: 1.4; }
 
 .form-screen {

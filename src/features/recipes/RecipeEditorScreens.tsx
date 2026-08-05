@@ -46,14 +46,18 @@ export function NewRecipeScreen() {
   const { createRecipeDraft } = useGrocea()
   const navigate = useNavigate()
   const started = useRef(false)
+  const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     if (started.current) return
     started.current = true
+    setError('')
     void createRecipeDraft()
       .then(id => navigate(`/recipes/${id}/edit/basics`, { replace: true }))
-      .catch(() => { /* Global storage recovery remains visible. */ })
-  }, [createRecipeDraft, navigate])
-  return <AppShell><main className="editor-loading" role="status">Creating draft…</main></AppShell>
+      .catch(() => setError('Draft could not be created. Your existing recipes are safe.'))
+  }, [attempt, createRecipeDraft, navigate])
+  if (error) return <AppShell><BackHeader title="New recipe" fallbackTo="/recipes" /><main className="screen-content"><div className="warning-banner danger" role="alert"><WarningCircle /><span><strong>Couldn’t start a recipe</strong><small>{error}</small></span></div><div className="inline-actions"><button className="button secondary" type="button" onClick={() => navigate('/recipes')}>Back to recipes</button><button className="button primary" type="button" onClick={() => { started.current = false; setAttempt(value => value + 1) }}>Try again</button></div></main></AppShell>
+  return <AppShell><main className="editor-loading" role="status" aria-label="Creating new recipe">Creating draft…</main></AppShell>
 }
 
 export function RecipeEditorScreen() {

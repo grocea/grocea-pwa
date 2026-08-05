@@ -1,23 +1,27 @@
-import { ArrowClockwise, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useGrocea } from '../../app/grocea-context'
 
 const navItems = [
   { label: 'Pantry', path: '/pantry', icon: Package },
   { label: 'Recipes', path: '/recipes', icon: BookOpen },
+  { label: 'Groceries', path: '/groceries', icon: Basket },
   { label: 'History', path: '/activity', icon: ClockCounterClockwise },
   { label: 'More', path: '/more', icon: DotsThree },
 ]
+
+const morePaths = ['/more', '/profile', '/ingredients', '/categories', '/sync-issues', '/system-states']
 
 function Wordmark({ className }: { className: string }) {
   return <Link className={className} to="/pantry"><img className="brand-mark" src="/brand/grocea-icon.png" alt="" />grocea</Link>
 }
 
 function Navigation() {
+  const { pathname } = useLocation()
   return <nav className="primary-navigation" aria-label="Primary navigation">
     <Wordmark className="desktop-wordmark" />
-    <div className="nav-links">{navItems.map(({ label, path, icon: Icon }) => <NavLink key={path} to={path} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}><Icon size={24} /><span>{label}</span></NavLink>)}</div>
+    <div className="nav-links">{navItems.map(({ label, path, icon: Icon }) => <NavLink key={path} to={path} className={({ isActive }) => `nav-item${(isActive || (path === '/more' && morePaths.some(candidate => pathname === candidate || pathname.startsWith(`${candidate}/`)))) ? ' active' : ''}`}><Icon size={24} /><span>{label}</span></NavLink>)}</div>
   </nav>
 }
 
@@ -44,7 +48,7 @@ export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pant
     if (typeof index === 'number' && index > 0) navigate(-1)
     else navigate(fallbackTo, { replace: true })
   })
-  return <><header className="back-header"><button className="icon-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={24} /></button><div><strong data-page-title tabIndex={-1}>{title}</strong>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header><div className="app-header-offset" aria-hidden="true" /></>
+  return <><header className="back-header"><button className="icon-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={24} /></button><div><h1 data-page-title tabIndex={-1}>{title}</h1>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header><div className="app-header-offset" aria-hidden="true" /></>
 }
 
 export function PageHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
@@ -56,10 +60,14 @@ export function OwnershipMark({ label, className = '' }: { label: string; classN
 }
 
 export function EmptyState({ icon: Icon = UserCircle, title, message, action }: { icon?: typeof UserCircle; title: string; message: string; action?: ReactNode }) {
-  return <div className="empty-state"><span className="empty-icon"><Icon size={28} /></span><strong>{title}</strong><p>{message}</p>{action}</div>
+  return <div className="empty-state"><span className="empty-icon"><Icon size={28} /></span><h2>{title}</h2><p>{message}</p>{action}</div>
 }
 
 export function SuccessNotice({ message }: { message?: string }) { return message ? <div className="success-notice" role="status">{message}</div> : null }
+
+export function UndoNotice({ message, onUndo, onDismiss, pending = false }: { message: string; onUndo: () => void; onDismiss: () => void; pending?: boolean }) {
+  return <div className="undo-notice" role="status"><span>{message}</span><span className="undo-notice-actions"><button className="text-button" type="button" disabled={pending} onClick={onUndo}>{pending ? 'Restoring…' : 'Undo'}</button><button className="icon-button" type="button" aria-label="Dismiss notification" onClick={onDismiss}>×</button></span></div>
+}
 
 export function FormActions({ cancel, submit, disabled = false }: { cancel: () => void; submit: string; disabled?: boolean }) {
   return <div className="form-actions"><button type="button" className="button secondary" onClick={cancel}>Cancel</button><button type="submit" className="button primary" disabled={disabled}>{submit}</button></div>

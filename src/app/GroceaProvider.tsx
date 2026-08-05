@@ -715,6 +715,8 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     addRecipeToBasket: (recipeId: string, requestedServings?: number) => commit(current => {
       const recipe = current.recipes.find(item => item.id === recipeId && isPublishedRecipe(item))
       if (!recipe) throw new Error('Only published Recipes can be added to Basket.')
+      const existing = current.basket.find(item => item.recipeId === recipeId)
+      if (existing && requestedServings === undefined) return { state: current, result: undefined }
       const servings = Math.max(1, Math.min(12, requestedServings ?? recipe.baseServings))
       const item: BasketItem = {
         recipeId: recipe.id,

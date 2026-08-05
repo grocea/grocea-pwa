@@ -2,7 +2,6 @@ import {
   ArrowRight,
   ArrowsLeftRight,
   CaretRight,
-  CheckCircle,
   Circle,
   ClockCounterClockwise,
   Drop,
@@ -281,7 +280,7 @@ export function AddStockScreen() {
 
   return (
     <AppShell>
-      <BackHeader title="Add stock" eyebrow="Record an inventory increase" fallbackTo={returnTo ?? '/pantry'} action={<span className="history-status" role="status" aria-label="Saved to activity history"><CheckCircle weight="fill" aria-hidden="true" /><span>Saved to activity history</span></span>} />
+      <BackHeader title="Adjust stock" eyebrow={operation === 'add' ? 'Increase pantry stock' : operation === 'set' ? 'Set pantry balance' : 'Decrease pantry stock'} fallbackTo={returnTo ?? '/pantry'} action={<span className="history-status" role="status" aria-label="Creates an activity record after saving"><ClockCounterClockwise aria-hidden="true" /><span>Creates activity record</span></span>} />
       <form className="form-screen stock-adjustment-form" onSubmit={submit} noValidate aria-busy={pending}>
         {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Stock was not updated</strong><small>{formError}</small></span></div>}
         <div className="stock-adjustment-layout">

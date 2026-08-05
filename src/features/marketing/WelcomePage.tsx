@@ -67,7 +67,7 @@ export default function WelcomePage() {
         <Link to="/login">Sign in</Link>
         <Link className="welcome-nav-cta" to="/register">Create account</Link>
       </nav>
-      <Link className="welcome-mobile-cta" to="/register">Create account</Link>
+      <div className="welcome-mobile-actions"><Link className="welcome-mobile-signin" to="/login">Sign in</Link><Link className="welcome-mobile-cta" to="/register">Create account</Link></div>
     </header>
 
     <main id="welcome-main">

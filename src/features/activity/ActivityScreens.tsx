@@ -9,12 +9,22 @@ import { InfoDialog } from '../../shared/ui/InfoDialog'
 
 const eventIcon = { cooking: CookingPot, manual: PencilSimple, reversal: ArrowCounterClockwise }
 
+function activityTimestamp(value: string) {
+  const date = new Date(value)
+  const now = new Date()
+  const sameDay = date.toDateString() === now.toDateString()
+  const dateLabel = sameDay
+    ? 'Today'
+    : date.toLocaleDateString([], { month: 'short', day: 'numeric', year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric' })
+  return `${dateLabel} · ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+}
+
 export function ActivityListScreen() {
   const { activity } = useGrocea()
   const [filter, setFilter] = useState<'all' | 'cooking' | 'manual'>('all')
   const [showHistoryInfo, setShowHistoryInfo] = useState(false)
   const shown = useMemo(() => activity.filter(event => filter === 'all' || event.type === filter || (filter === 'cooking' && event.type === 'reversal')), [activity, filter])
-  return <AppShell navigation><BrandHeader /><main className="screen-content"><PageHeading title="Activity history" subtitle="Every stock change, kept as a clear audit trail." action={<button className="icon-button info-trigger" type="button" aria-label="About activity history" onClick={() => setShowHistoryInfo(true)}><Info size={22} /></button>} /><div className="chip-row" aria-label="Filter activity">{(['all', 'cooking', 'manual'] as const).map(item => <button type="button" className={filter === item ? 'selected' : ''} aria-pressed={filter === item} onClick={() => setFilter(item)} key={item}>{item[0].toUpperCase() + item.slice(1)}</button>)}</div><section className="activity-list"><div className="section-label"><strong>RECENT</strong><span>{shown.length} events</span></div>{shown.map(event => { const Icon = eventIcon[event.type]; return <Link className={`activity-row ${event.type}`} to={`/activity/${event.id}`} key={event.id}><span className="activity-icon"><Icon size={22} /></span><span><strong>{event.title}</strong><small>{event.detail}</small></span><span className="activity-time">{event.reversedAt ? 'REVERSED' : new Date(event.occurredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<ArrowRight size={16} /></span></Link> })}{!shown.length && <EmptyState icon={ClockCounterClockwise} title="No activity yet" message="Cooking and manual stock changes will appear here." />}</section></main><InfoDialog open={showHistoryInfo} title="Why records stay unchanged" description="Original events stay intact. Corrections create linked reversal events, keeping every pantry balance traceable." onDismiss={() => setShowHistoryInfo(false)} /></AppShell>
+  return <AppShell navigation><BrandHeader /><main className="screen-content"><PageHeading title="Activity history" subtitle="Every stock change, kept as a clear audit trail." action={<button className="icon-button info-trigger" type="button" aria-label="About activity history" onClick={() => setShowHistoryInfo(true)}><Info size={22} /></button>} /><div className="chip-row" aria-label="Filter activity">{(['all', 'cooking', 'manual'] as const).map(item => <button type="button" className={filter === item ? 'selected' : ''} aria-pressed={filter === item} onClick={() => setFilter(item)} key={item}>{item[0].toUpperCase() + item.slice(1)}</button>)}</div><section className="activity-list"><div className="section-label"><strong>RECENT</strong><span>{shown.length} events</span></div>{shown.map(event => { const Icon = eventIcon[event.type]; return <Link className={`activity-row ${event.type}`} to={`/activity/${event.id}`} key={event.id}><span className="activity-icon"><Icon size={22} /></span><span><strong>{event.title}</strong><small>{event.detail}</small></span><span className="activity-time">{event.reversedAt ? 'REVERSED' : activityTimestamp(event.occurredAt)}<ArrowRight size={16} /></span></Link> })}{!shown.length && <EmptyState icon={ClockCounterClockwise} title="No activity yet" message="Cooking and manual stock changes will appear here." />}</section></main><InfoDialog open={showHistoryInfo} title="Why records stay unchanged" description="Original events stay intact. Corrections create linked reversal events, keeping every pantry balance traceable." onDismiss={() => setShowHistoryInfo(false)} /></AppShell>
 }
 
 export function ActivityDetailScreen() {

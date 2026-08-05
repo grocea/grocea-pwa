@@ -13,10 +13,10 @@ import {
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useGrocea } from '../../app/grocea-context'
-import type { GroceryListItem, Ingredient, Unit } from '../../domain/types'
+import type { BasketItem, GroceryListItem, Ingredient, Unit } from '../../domain/types'
 import { familyUnits, formatQuantity, formatQuantityValue, parseQuantity } from '../../shared/lib/quantity'
 import { usePendingAction } from '../../shared/lib/usePendingAction'
-import { AppShell, BackHeader, BrandHeader, EmptyState, PageHeading, SuccessNotice } from '../../shared/ui/AppShell'
+import { AppShell, BackHeader, BrandHeader, EmptyState, PageHeading, SuccessNotice, UndoNotice } from '../../shared/ui/AppShell'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
 
 function Stepper({ value, label, disabled, onChange }: { value: number; label: string; disabled: boolean; onChange: (value: number) => void }) {
@@ -32,6 +32,47 @@ export function BasketScreen() {
   const navigate = useNavigate()
   const [clearOpen, setClearOpen] = useState(false)
   const [error, setError] = useState('')
+  const [undoItem, setUndoItem] = useState<BasketItem | null>(null)
+  const [undoPending, setUndoPending] = useState(false)
+  const [updatingRecipeId, setUpdatingRecipeId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!undoItem) return
+    const timer = window.setTimeout(() => setUndoItem(null), 8000)
+    return () => window.clearTimeout(timer)
+  }, [undoItem])
+  const removeItem = async (item: BasketItem) => {
+    setError('')
+    try {
+      await removeRecipeFromBasket(item.recipeId)
+      setUndoItem(item)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Recipe could not be removed from Basket.')
+    }
+  }
+  const undoRemove = async () => {
+    if (!undoItem) return
+    setUndoPending(true)
+    setError('')
+    try {
+      await addRecipeToBasket(undoItem.recipeId, undoItem.servings)
+      setUndoItem(null)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Recipe could not be restored.')
+    } finally {
+      setUndoPending(false)
+    }
+  }
+  const updateServings = async (recipeId: string, servings: number) => {
+    setUpdatingRecipeId(recipeId)
+    setError('')
+    try {
+      await addRecipeToBasket(recipeId, servings)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Servings could not be saved.')
+    } finally {
+      setUpdatingRecipeId(null)
+    }
+  }
   const confirmAction = usePendingAction(async () => {
     setError('')
     try {
@@ -49,7 +90,8 @@ export function BasketScreen() {
     <main className="detail-screen grocery-screen basket-screen">
       <PageHeading title="Plan your groceries" subtitle="Choose how many servings you’ll cook. Grocea then subtracts Pantry stock and lists only what you need to buy." />
       {error && <div className="warning-banner danger" role="alert"><WarningCircle /><span><strong>Couldn’t create Grocery List</strong><small>{error}</small></span></div>}
-      {active && <div className="warning-banner"><ListChecks /><span><strong>Active Grocery List in progress</strong><small>Complete or delete {active.title} before confirming this Basket.</small></span></div>}
+      {undoItem && <UndoNotice message={`${undoItem.recipeName} removed from Basket.`} pending={undoPending} onUndo={() => void undoRemove()} onDismiss={() => setUndoItem(null)} />}
+      {active && <div className="warning-banner"><ListChecks /><span><strong>Active Grocery List in progress</strong><small>Complete or delete {active.title} before confirming this Basket.</small></span><Link className="button secondary compact" to={`/groceries/${active.id}`}>Open active list</Link></div>}
       {staleCalculation && <div className="warning-banner danger"><WarningCircle /><span><strong>Groceries need fresh review</strong><small>Recipe or Pantry data changed during sync. Discard the rejected confirmation in Synchronization, then confirm this restored Basket again.</small></span><Link className="button secondary compact" to="/sync-issues">Review sync issue</Link></div>}
       {basket.length > 0 && <section className="basket-plan-summary" aria-label="Grocery plan summary">
         <span><ListChecks size={24} /></span>
@@ -58,8 +100,8 @@ export function BasketScreen() {
       {!basket.length ? <EmptyState icon={Basket} title="Basket is empty" message="Add published Recipes, then return here to review servings." action={<Link className="button primary" to="/recipes">Browse recipes</Link>} /> : <section className="basket-list" aria-label="Selected recipes">{basket.map(item => <article className={`basket-row${item.valid ? '' : ' invalid'}`} key={item.recipeId}>
         <span className="recipe-art"><Receipt size={25} /></span>
         <span className="basket-recipe-copy"><strong>{item.recipeName}</strong><small>{item.valid ? `Recipe default · ${item.baseServings} serving${item.baseServings === 1 ? '' : 's'}` : item.error}</small></span>
-        <div className="basket-serving-control"><span>Planned servings</span><Stepper value={item.servings} label={item.recipeName} disabled={confirmAction.pending || !item.valid} onChange={servings => void addRecipeToBasket(item.recipeId, servings)} /></div>
-        <button className="icon-button danger-text" type="button" aria-label={`Remove ${item.recipeName} from Basket`} disabled={confirmAction.pending} onClick={() => void removeRecipeFromBasket(item.recipeId)}><Trash size={19} /></button>
+        <div className="basket-serving-control"><span>Planned servings</span><Stepper value={item.servings} label={item.recipeName} disabled={confirmAction.pending || undoPending || !item.valid || updatingRecipeId === item.recipeId} onChange={servings => void updateServings(item.recipeId, servings)} />{updatingRecipeId === item.recipeId && <small className="muted-copy" role="status">Saving servings…</small>}</div>
+        <button className="icon-button danger-text" type="button" aria-label={`Remove ${item.recipeName} from Basket`} disabled={confirmAction.pending || undoPending} onClick={() => void removeItem(item)}><Trash size={19} /></button>
       </article>)}</section>}
       {basket.length > 0 && <div className="basket-management"><span>Want to start over?</span><button className="text-button danger-text basket-clear" type="button" onClick={() => setClearOpen(true)}><Trash size={17} />Clear Basket</button></div>}
     </main>
@@ -165,6 +207,8 @@ export function GroceryListScreen() {
   const completionTriggerRef = useRef<HTMLElement | null>(null)
   const [selectedPantryIds, setSelectedPantryIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
+  const [titleState, setTitleState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [deleteItemTarget, setDeleteItemTarget] = useState<GroceryListItem | null>(null)
   const message = (location.state as { message?: string } | null)?.message
   const eligible = list?.items.filter(item => item.checked && item.ingredientId && item.quantity !== undefined) ?? []
   const pantryPreviewTotals = new Map<string, bigint>()
@@ -178,6 +222,11 @@ export function GroceryListScreen() {
     await completeGroceryList(list.id, [...selectedPantryIds])
     setCompletionOpen(false)
     navigate('/groceries', { state: { message: 'Grocery List completed.' } })
+  })
+  const reuseAction = usePendingAction(async () => {
+    if (!list) return
+    await reuseGroceryList(list.id)
+    navigate('/recipes/basket')
   })
   useEffect(() => {
     const dialog = completionRef.current
@@ -196,6 +245,20 @@ export function GroceryListScreen() {
     }
   }, [completionOpen])
   if (!list) return <AppShell><BackHeader title="Grocery List" fallbackTo="/groceries" /><EmptyState icon={ListChecks} title="Grocery List not found" message="This list may have been deleted." /></AppShell>
+  const saveTitle = async (event: FormEvent) => {
+    event.preventDefault()
+    const nextTitle = title.trim()
+    if (!nextTitle || nextTitle === list.title || titleState === 'saving') return
+    setTitleState('saving')
+    setError('')
+    try {
+      await renameGroceryList(list.id, nextTitle)
+      setTitleState('saved')
+    } catch (cause) {
+      setTitleState('error')
+      setError(cause instanceof Error ? cause.message : 'List title could not be saved.')
+    }
+  }
   const active = list.status === 'active'
   const groups = [...new Set(list.items.map(item => item.categoryName))].sort().map(category => ({
     category,
@@ -210,9 +273,10 @@ export function GroceryListScreen() {
   return <AppShell><BackHeader title={active ? 'Active Grocery List' : 'Completed Grocery List'} fallbackTo="/groceries" eyebrow={active ? `${checkedCount} of ${list.items.length} purchased` : new Date(list.completedAt ?? list.createdAt).toLocaleDateString()} />
     <main className="detail-screen grocery-screen grocery-list-screen"><SuccessNotice message={message} />{error && <div className="warning-banner danger" role="alert"><WarningCircle /><span>{error}</span></div>}
       {active ? <section className="active-list-overview">
-        <form className="grocery-title-form" onSubmit={event => { event.preventDefault(); void renameGroceryList(list.id, title) }}>
-          <label className="grocery-title-field"><span>List name</span><input value={title} maxLength={120} onChange={event => setTitle(event.target.value)} /></label>
-          <button className="button secondary compact" disabled={!title.trim() || title.trim() === list.title}><Check />Save title</button>
+        <form className="grocery-title-form" onSubmit={saveTitle}>
+          <label className="grocery-title-field"><span>List name</span><input value={title} maxLength={120} onChange={event => { setTitle(event.target.value); setTitleState('idle') }} aria-describedby="grocery-title-status" /></label>
+          <button className="button secondary compact" disabled={!title.trim() || title.trim() === list.title || titleState === 'saving'} aria-busy={titleState === 'saving'}><Check />{titleState === 'saving' ? 'Saving…' : titleState === 'saved' ? 'Saved' : 'Save title'}</button>
+          <small id="grocery-title-status" className="grocery-title-status" aria-live="polite">{titleState === 'error' ? 'Could not save. Try again.' : titleState === 'saved' ? 'List name saved.' : 'Changes are not saved until you select Save title.'}</small>
         </form>
         <div className="shopping-progress">
           <div><span className="shopping-progress-icon"><ListChecks size={21} /></span><span><strong>{checkedCount} of {list.items.length} items picked up</strong><small>{remainingCount ? `${remainingCount} remaining` : 'Ready to complete'}</small></span><b>{checkedCount}/{list.items.length}</b></div>
@@ -221,9 +285,9 @@ export function GroceryListScreen() {
       </section> : <section className="hero-card compact"><span className="eyebrow">COMPLETED</span><h1>{list.title}</h1><p>{list.recipes.length} source recipe{list.recipes.length === 1 ? '' : 's'} · {list.items.length} grocery item{list.items.length === 1 ? '' : 's'}</p></section>}
       {active && <button className="button secondary add-grocery-item-button" type="button" onClick={() => setEditing('new')}><Plus />Add grocery item</button>}
       {editing && <ItemEditor initial={editing === 'new' ? undefined : editing} ingredients={[...ingredients].sort((a, b) => a.name.localeCompare(b.name))} onCancel={() => setEditing(null)} onSave={async input => { if (editing === 'new') await addGroceryItem(list.id, input); else await updateGroceryItem(list.id, { ...editing, ...input }); setEditing(null) }} />}
-      {!list.items.length ? <EmptyState icon={CheckCircle} title="Nothing to buy" message="Your Pantry already covered every calculated Ingredient." /> : groups.map(group => <section className="grocery-group" key={group.category}><div className="section-label"><strong>{group.category}</strong><span>{group.items.length} item{group.items.length === 1 ? '' : 's'}</span></div><div className="grocery-items">{group.items.map(item => <article className={`grocery-item${item.checked ? ' checked' : ''}`} key={item.id}>{active ? <label className="grocery-check"><input type="checkbox" checked={item.checked} aria-label={`Mark ${item.label} ${item.checked ? 'not purchased' : 'purchased'}`} onChange={() => void updateGroceryItem(list.id, { ...item, checked: !item.checked })} /></label> : <span className="completion-mark"><Check /></span>}<span className="grocery-item-copy"><strong>{item.label}{item.edited && <small className="edited-badge">Edited</small>}</strong><small className="grocery-amount">Buy {amountLabel(item)}</small>{item.sources.length > 0 && <details><summary>Why this amount</summary><div>{item.sources.map(source => <span key={source.recipeId}>{source.recipeName} · {formatQuantity(source.quantity, item.family ?? 'count')} for {source.servings} serving{source.servings === 1 ? '' : 's'}</span>)}{item.originalPantry !== undefined && <span>Pantry when created · {formatQuantity(item.originalPantry, item.family ?? 'count')}</span>}</div></details>}</span>{active && <span className="grocery-item-actions"><button className="icon-button" type="button" aria-label={`Edit ${item.label}`} onClick={() => setEditing(item)}><PencilSimple size={19} /></button><button className="icon-button danger-text" type="button" aria-label={`Delete ${item.label}`} onClick={() => void removeGroceryItem(list.id, item.id)}><Trash size={19} /></button></span>}</article>)}</div></section>)}
+      {!list.items.length ? <EmptyState icon={CheckCircle} title="Nothing to buy" message="Your Pantry already covered every calculated Ingredient." /> : groups.map(group => <section className="grocery-group" key={group.category}><div className="section-label"><strong>{group.category}</strong><span>{group.items.length} item{group.items.length === 1 ? '' : 's'}</span></div><div className="grocery-items">{group.items.map(item => <article className={`grocery-item${item.checked ? ' checked' : ''}`} key={item.id}>{active ? <label className="grocery-check"><input type="checkbox" checked={item.checked} aria-label={`Mark ${item.label} ${item.checked ? 'not purchased' : 'purchased'}`} onChange={() => void updateGroceryItem(list.id, { ...item, checked: !item.checked })} /></label> : <span className="completion-mark"><Check /></span>}<span className="grocery-item-copy"><strong>{item.label}{item.edited && <small className="edited-badge">Edited</small>}</strong><small className="grocery-amount">Buy {amountLabel(item)}</small>{item.sources.length > 0 && <details><summary>Why this amount</summary><div>{item.sources.map(source => <span key={source.recipeId}>{source.recipeName} · {formatQuantity(source.quantity, item.family ?? 'count')} for {source.servings} serving{source.servings === 1 ? '' : 's'}</span>)}{item.originalPantry !== undefined && <span>Pantry when created · {formatQuantity(item.originalPantry, item.family ?? 'count')}</span>}</div></details>}</span>{active && <span className="grocery-item-actions"><button className="icon-button" type="button" aria-label={`Edit ${item.label}`} onClick={() => setEditing(item)}><PencilSimple size={19} /></button><button className="icon-button danger-text" type="button" aria-label={`Delete ${item.label}`} onClick={() => setDeleteItemTarget(item)}><Trash size={19} /></button></span>}</article>)}</div></section>)}
       <section className="source-recipes"><div className="section-label"><strong>Recipes used for this list</strong><span>{list.recipes.length} recipe{list.recipes.length === 1 ? '' : 's'}</span></div>{list.recipes.map(recipe => <div key={recipe.recipeId}><span>{recipe.recipeName}</span><small>{recipe.servings} serving{recipe.servings === 1 ? '' : 's'}</small></div>)}</section>
-      <section className="list-management"><div><strong>List options</strong><small>{active ? 'Return recipes to Basket or permanently delete this list.' : 'Reuse these recipes or remove this saved history.'}</small></div>{active ? <div className="destructive-actions"><button className="button secondary compact" type="button" onClick={() => setDeleteMode('restore')}><Basket />Return recipes to Basket</button><button className="button danger compact" type="button" onClick={() => setDeleteMode('delete')}><Trash />Delete list</button></div> : <div className="inline-actions"><button className="button secondary" type="button" onClick={() => void reuseGroceryList(list.id).then(() => navigate('/recipes/basket')).catch(cause => setError(cause instanceof Error ? cause.message : 'Recipes could not be reused.'))}><Basket />Reuse recipes</button><button className="button danger" type="button" onClick={() => setDeleteMode('delete')}><Trash />Delete history</button></div>}</section>
+      <section className="list-management"><div><strong>List options</strong><small>{active ? 'Return recipes to Basket or permanently delete this list.' : 'Reuse these recipes or remove this saved history.'}</small></div>{active ? <div className="destructive-actions"><button className="button secondary compact" type="button" onClick={() => setDeleteMode('restore')}><Basket />Return recipes to Basket</button><button className="button danger compact" type="button" onClick={() => setDeleteMode('delete')}><Trash />Delete list</button></div> : <div className="inline-actions"><button className="button secondary" type="button" disabled={reuseAction.pending} aria-busy={reuseAction.pending} onClick={() => void reuseAction.run().catch(cause => setError(cause instanceof Error ? cause.message : 'Recipes could not be reused.'))}><Basket />{reuseAction.pending ? 'Reusing…' : 'Reuse recipes'}</button><button className="button danger" type="button" onClick={() => setDeleteMode('delete')}><Trash />Delete history</button></div>}</section>
     </main>
     {active && <div className="form-actions sticky grocery-flow-actions"><Link className="button secondary" to="/groceries">Back to Groceries</Link><button className="button primary grocery-primary-action" type="button" onClick={openCompletion}><CheckCircle />Complete list</button></div>}
     <dialog ref={completionRef} className="pantry-completion-dialog" aria-labelledby="complete-list-title" onCancel={event => { event.preventDefault(); if (!completeAction.pending) setCompletionOpen(false) }}><section className="pantry-completion">
@@ -238,6 +302,7 @@ export function GroceryListScreen() {
       })}</div> : <p className="muted-copy completion-empty">No checked catalog items with saved amounts will update Pantry.</p>}
       <div className="inline-actions completion-actions"><button ref={completionCancelRef} className="button secondary" disabled={completeAction.pending} onClick={() => setCompletionOpen(false)}>Cancel</button><button className="button primary grocery-primary-action" disabled={completeAction.pending} onClick={() => void completeAction.run().catch(cause => setError(cause instanceof Error ? cause.message : 'List could not be completed.'))}>{completeAction.pending ? 'Completing…' : selectedPantryIds.size ? 'Update Pantry & complete' : 'Complete without Pantry update'}</button></div>
     </section></dialog>
+    <ConfirmDialog open={Boolean(deleteItemTarget)} title="Delete grocery item?" description={`${deleteItemTarget?.label ?? 'This item'} will be removed from the active list. If you need it again, add it as a new item.`} confirmLabel="Delete item" pendingLabel="Deleting…" onDismiss={() => setDeleteItemTarget(null)} onConfirm={async () => { if (deleteItemTarget) await removeGroceryItem(list.id, deleteItemTarget.id) }} />
     <ConfirmDialog open={deleteMode !== null} title={deleteMode === 'restore' ? 'Restore Recipes and delete list?' : 'Delete Grocery List?'} description={deleteMode === 'restore' ? 'Source Recipes will merge into Basket. Existing Basket servings stay unchanged.' : 'This Grocery List and its frozen history will be permanently removed.'} confirmLabel={deleteMode === 'restore' ? 'Restore and delete' : 'Delete list'} onDismiss={() => setDeleteMode(null)} onConfirm={async () => { await deleteGroceryList(list.id, deleteMode === 'restore'); navigate('/groceries', { state: { message: 'Grocery List deleted.' } }) }} />
   </AppShell>
 }
