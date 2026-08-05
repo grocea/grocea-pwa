@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -12,7 +12,7 @@ import { AddStockScreen, PantryScreen } from '../src/features/pantry/screens'
 import { RecipeListScreen } from '../src/features/recipes/RecipeScreens'
 import { BasketScreen, GroceriesScreen, GroceryListScreen } from '../src/features/groceries/GroceryScreens'
 import { usePendingAction } from '../src/shared/lib/usePendingAction'
-import { BackHeader, PageHeading } from '../src/shared/ui/AppShell'
+import { BackHeader, PageHeading, ToastNotice } from '../src/shared/ui/AppShell'
 import { ConfirmDialog } from '../src/shared/ui/ConfirmDialog'
 import { RouteTransitionManager } from '../src/shared/ui/RouteTransitionManager'
 
@@ -141,6 +141,37 @@ describe('pending and destructive actions', () => {
 })
 
 describe('navigation and selection semantics', () => {
+  it('keeps the empty Groceries hub to one recovery action', async () => {
+    renderRoute(<GroceriesScreen />, '/groceries')
+
+    expect(await screen.findByRole('heading', { name: 'Groceries' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'No grocery list yet' })).toBeTruthy()
+    expect(screen.getByText(/Choose recipes to plan your next shop\./)).toBeTruthy()
+    expect(screen.getAllByRole('link', { name: 'Choose recipes' })).toHaveLength(1)
+    expect(screen.queryByText('Past lists')).toBeNull()
+    expect(screen.queryByText('Completed Grocery Lists appear here.')).toBeNull()
+  })
+
+  it('auto-dismisses transient route feedback without moving focus', async () => {
+    vi.useFakeTimers()
+    try {
+      const onDismiss = vi.fn()
+      render(<ToastNotice message="Grocery list deleted." onDismiss={onDismiss} />)
+      const notice = screen.getByRole('status')
+      expect(notice.textContent).toContain('Grocery list deleted.')
+      expect(document.activeElement).not.toBe(notice)
+
+      await act(async () => {
+        vi.advanceTimersByTime(4000)
+      })
+
+      expect(screen.queryByRole('status')).toBeNull()
+      expect(onDismiss).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('moves a Recipe through Basket into an active Grocery List and completes it with Pantry preview', async () => {
     const storage = new MemoryStorage()
     render(<GroceaProvider storage={storage}><MemoryRouter initialEntries={['/recipes']}><Routes>
@@ -155,17 +186,99 @@ describe('navigation and selection semantics', () => {
     await screen.findByRole('button', { name: 'Chickpea bowl is in Basket' })
     fireEvent.click(screen.getByRole('link', { name: 'Basket, 1 recipe' }))
 
-    expect(await screen.findByRole('heading', { name: 'Plan your groceries' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Create Grocery List' }))
-    expect(await screen.findByText('Grocery List created from your Basket.')).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Review basket' })).toBeTruthy()
+    expect(screen.getByText('Only what you need to buy gets added.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Create list' })).toBeTruthy()
+    expect(screen.queryByText('Plan your groceries')).toBeNull()
+    const basketActions = screen.getByRole('group', { name: 'Basket actions' })
+    expect(within(basketActions).getByRole('link', { name: 'Add more recipes' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Add more recipes' })).toBeNull()
+
+    const stepper = screen.getByRole('group', { name: 'Servings for Chickpea bowl' })
+    fireEvent.click(within(stepper).getByRole('button', { name: 'Increase servings for Chickpea bowl' }))
+    await waitFor(() => expect(within(stepper).getByText('3')).toBeTruthy())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Chickpea bowl from Basket' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    expect(await screen.findByText('Chickpea bowl')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear basket' }))
+    expect(await screen.findByRole('heading', { name: 'Clear Basket?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Clear Basket?' })).toBeNull())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create list' }))
+    expect(await screen.findByText('Grocery list created.')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Back to Groceries' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit list name' }))
+    const titleInput = await screen.findByLabelText('List name')
+    fireEvent.change(titleInput, { target: { value: 'Weekly shop' } })
+    fireEvent.blur(titleInput)
+    expect(await screen.findByText('Name saved.')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Weekly shop' })).toBeTruthy()
+    expect(document.querySelector('.shopping-progress')?.textContent).toContain('0 of 1 purchased')
+    expect(screen.getByText('Items to buy')).toBeTruthy()
+    expect(screen.queryByText('SHOPPING LIST')).toBeNull()
+    expect(screen.queryByText('0/1')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add grocery item' }))
+    expect(await screen.findByRole('button', { name: 'Catalog' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
     const purchase = screen.getAllByRole('checkbox')[0]
+    expect(screen.getByText('Why these amounts')).toBeTruthy()
+    expect(screen.queryByText('Why this amount')).toBeNull()
     fireEvent.click(purchase)
     await waitFor(() => expect((purchase as HTMLInputElement).checked).toBe(true))
     fireEvent.click(screen.getByRole('button', { name: 'Complete list' }))
-    expect(await screen.findByRole('heading', { name: 'Complete Grocery List?' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Complete shopping list?' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Update Pantry & complete/ }))
     expect(await screen.findByRole('heading', { name: 'Groceries' })).toBeTruthy()
-    expect(screen.getByText('Grocery List completed.')).toBeTruthy()
+    expect(await screen.findByText('Grocery list completed.')).toBeTruthy()
+    expect(screen.getByText('Past lists')).toBeTruthy()
+    const history = screen.getByText('Past lists').closest('details')
+    expect(history?.open).toBe(false)
+    fireEvent.click(screen.getByText('Past lists'))
+    expect(history?.open).toBe(true)
+    expect(screen.getByText('Weekly shop')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('link', { name: /Weekly shop/ }))
+    expect(await screen.findByRole('heading', { name: 'Weekly shop' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reuse recipes' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Delete history' })).toBeTruthy()
+    expect(screen.queryByText('COMPLETED')).toBeNull()
+    expect(screen.queryByText(/0 grocery items/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete history' }))
+    expect(await screen.findByRole('heading', { name: 'Delete grocery list?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete list' }))
+    expect(await screen.findByRole('heading', { name: 'Groceries' })).toBeTruthy()
+    expect(await screen.findByText('Grocery list deleted.')).toBeTruthy()
+    expect(screen.queryByText('Past lists')).toBeNull()
+  })
+
+  it('shows a compact completed no-buy list and keeps recipes behind disclosure', async () => {
+    const storage = new MemoryStorage()
+    render(<GroceaProvider storage={storage}><MemoryRouter initialEntries={['/recipes']}><Routes>
+      <Route path="/recipes" element={<RecipeListScreen />} />
+      <Route path="/recipes/basket" element={<BasketScreen />} />
+      <Route path="/groceries/:id" element={<GroceryListScreen />} />
+    </Routes></MemoryRouter></GroceaProvider>)
+
+    expect(await screen.findByRole('button', { name: 'Add Oat porridge to Basket' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Oat porridge to Basket' }))
+    fireEvent.click(await screen.findByRole('link', { name: 'Basket, 1 recipe' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Create list' }))
+
+    expect(await screen.findByRole('heading', { name: 'Oat porridge' })).toBeTruthy()
+    expect(screen.getByText('Nothing to buy')).toBeTruthy()
+    expect(screen.getByText('Your Pantry already covered every calculated ingredient.')).toBeTruthy()
+    expect(screen.getByText('Recipes used for this list')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reuse recipes' })).toBeTruthy()
+    expect(screen.queryByText('COMPLETED')).toBeNull()
+    expect(screen.queryByText(/Groceries —/)).toBeNull()
+    expect(screen.queryByText(/0 grocery items/)).toBeNull()
   })
 
   it('exposes pressed state for recipe and activity filters', async () => {
