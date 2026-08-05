@@ -1,14 +1,14 @@
 @import './legacy.css';
 
-.app-shell { --mobile-bottom-inset: max(12px, env(safe-area-inset-bottom, 0px)); --mobile-header-height: calc(68px + env(safe-area-inset-top, 0px)); --mobile-navigation-height: calc(72px + var(--mobile-bottom-inset)); height: 100svh; min-height: 100svh; width: 100%; display: grid; overflow: hidden; background: var(--warm); }
-.app-page { min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.app-shell { --mobile-bottom-inset: max(12px, env(safe-area-inset-bottom, 0px)); --mobile-header-height: calc(68px + env(safe-area-inset-top, 0px)); --mobile-navigation-height: calc(72px + var(--mobile-bottom-inset)); --mobile-content-padding: clamp(18px, 4vw, 56px); height: 100svh; min-height: 100svh; width: 100%; display: grid; overflow: hidden; overscroll-behavior: none; background: var(--warm); }
+.app-page { min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior-y: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .app-page::-webkit-scrollbar { display: none; width: 0; height: 0; }
 @media (display-mode: standalone) {
   html, body, #root, .app-shell, .app-page { min-height: 100vh; }
   .app-shell { height: 100vh; }
 }
-.screen-content { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) 40px; }
-.detail-screen, .result-screen { width: 100%; flex: 1; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) calc(var(--mobile-navigation-height) + 40px); }
+.screen-content { width: 100%; flex: 1 0 auto; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) var(--mobile-content-padding); }
+.detail-screen, .result-screen { width: 100%; flex: 1 0 auto; overflow: visible; padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) var(--mobile-content-padding); }
 .screen-content > *, .detail-screen > *, .result-screen > *, .form-screen > * { width: 100%; margin-inline: auto; }
 .brand-header, .back-header { min-height: 68px; flex-basis: auto; padding: max(env(safe-area-inset-top), 12px) clamp(18px, 4vw, 56px) 12px; position: sticky; top: 0; }
 .app-header-offset { display: none; }
@@ -24,7 +24,7 @@
 .page-heading h1 { font-size: clamp(28px, 4vw, 42px); }
 .page-heading p { font-size: 14px; }
 
-.primary-navigation { position: fixed; left: 0; right: 0; bottom: 0; height: var(--mobile-navigation-height); display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px max(12px, env(safe-area-inset-right, 0px)) var(--mobile-bottom-inset) max(12px, env(safe-area-inset-left, 0px)); border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(18px); z-index: 20; }
+.primary-navigation { position: fixed; left: 0; right: 0; bottom: 0; height: var(--mobile-navigation-height); display: grid; grid-template-columns: repeat(4, 1fr); padding: 6px max(12px, env(safe-area-inset-right, 0px)) var(--mobile-bottom-inset) max(12px, env(safe-area-inset-left, 0px)); touch-action: none; overscroll-behavior: none; border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(18px); z-index: 20; }
 .desktop-wordmark { display: none; }
 .nav-links { display: contents; }
 .nav-item { min-height: 56px; }
@@ -154,7 +154,7 @@
 .success-notice { display: flex; align-items: center; gap: 8px; }
 
 .floating-action { position: fixed; }
-.pantry-content, .catalog-content { padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) 40px; }
+.pantry-content, .catalog-content { padding: clamp(20px, 4vw, 48px) clamp(18px, 4vw, 56px) var(--mobile-content-padding); }
 .stock-list, .catalog-list { width: 100%; }
 .ingredient-field, .split-field { width: 100%; min-width: 0; }
 
@@ -222,9 +222,14 @@
 .editor-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(110px, .45fr) minmax(0, 1fr); gap: 10px; margin: auto calc(clamp(14px, 4vw, 56px) * -1) 0; padding: 14px clamp(14px, 4vw, 56px) calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(16px); z-index: 5; }
 
 @media (max-width: 979px) {
-  .app-shell { display: flex; flex-direction: column; }
-  .app-page { order: 1; height: auto; flex: 1 1 auto; min-height: 0; }
-  .primary-navigation { position: static; order: 2; flex: 0 0 var(--mobile-navigation-height); height: var(--mobile-navigation-height); }
+  .app-shell.with-navigation .app-page { scroll-padding-bottom: calc(var(--mobile-navigation-height) + var(--mobile-content-padding)); }
+  .app-shell.with-navigation .screen-content,
+  .app-shell.with-navigation .detail-screen,
+  .app-shell.with-navigation .result-screen,
+  .app-shell.with-navigation .form-screen,
+  .app-shell.with-navigation .pantry-content,
+  .app-shell.with-navigation .catalog-content,
+  .app-shell.with-navigation .grocery-screen { padding-bottom: calc(var(--mobile-navigation-height) + var(--mobile-content-padding)); }
   .brand-header, .back-header {
     position: fixed;
     inset: 0 0 auto;
@@ -433,7 +438,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 .recipe-card-with-action { grid-template-columns: minmax(0, 1fr) auto; padding: 0 14px 0 0; }
 .recipe-card-main { min-width: 0; min-height: 114px; display: grid; grid-template-columns: 54px minmax(0, 1fr); align-items: center; gap: 14px; padding: 16px; color: inherit; text-decoration: none; }
 .basket-add.selected { color: var(--green-deep); border-color: var(--lime); background: var(--lime); }
-.grocery-screen { padding-bottom: calc(var(--mobile-navigation-height) + 40px); }
+.grocery-screen { padding-bottom: var(--mobile-content-padding); }
 .basket-list, .grocery-items, .grocery-history { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .basket-row { min-height: 92px; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto auto; align-items: center; gap: 13px; padding: 14px; border-bottom: 1px solid var(--line); }
 .basket-row:last-child { border-bottom: 0; }
@@ -1364,7 +1369,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 }
 
 @media (max-width: 700px) {
-  .pantry-content { padding-bottom: 40px; }
+  .pantry-content { padding-bottom: var(--mobile-content-padding); }
   .pantry-tools {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
