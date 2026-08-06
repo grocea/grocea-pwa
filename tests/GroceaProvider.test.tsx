@@ -175,7 +175,7 @@ describe('GroceaProvider persistence', () => {
   it('hydrates before rendering children and serializes rapid durable writes', async () => {
     const storage = new MemoryStorage()
     render(<GroceaProvider storage={storage}><Probe /></GroceaProvider>)
-    expect(screen.getByText('Opening Grocea…')).toBeTruthy()
+    expect(screen.getByText('Your pantry is almost ready.')).toBeTruthy()
     await waitFor(() => expect(screen.getByTestId('profile-name').textContent).toBe('Grocie Crumbsworth'))
 
     fireEvent.click(screen.getByRole('button', { name: 'First' }))
