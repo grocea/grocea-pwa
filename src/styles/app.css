@@ -171,7 +171,7 @@
 .storage-opening-message { max-width: 326px; margin: 0; color: #d9e9dc; font-size: 17px; line-height: 1.45; }
 .storage-opening-dots { min-height: 20px; display: flex; align-items: center; gap: 12px; margin-top: 14px; }
 .storage-opening-dot { width: 8px; height: 8px; flex: none; border-radius: 999px; background: var(--lime); opacity: .42; animation: storage-opening-dot-pulse 1200ms ease-in-out infinite; }
-.storage-opening-dot:nth-child(2) { width: 14px; height: 14px; opacity: 1; animation-delay: 180ms; }
+.storage-opening-dot:nth-child(2) { animation-delay: 180ms; }
 .storage-opening-dot:nth-child(3) { animation-delay: 360ms; }
 @keyframes storage-opening-logo-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
 @keyframes storage-opening-dot-pulse { 0%, 100% { opacity: .42; transform: translateY(0) scale(.9); } 35% { opacity: 1; transform: translateY(-2px) scale(1.15); } 60% { opacity: .42; transform: translateY(0) scale(.9); } }
