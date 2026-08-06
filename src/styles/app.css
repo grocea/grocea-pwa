@@ -560,6 +560,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
   border-radius: 10px;
 }
 .field-group textarea { line-height: 1.45; }
+.field-group input::placeholder, .field-group textarea::placeholder { color: var(--muted); opacity: 1; }
 .field-group > small, .field-help { color: var(--muted); font-size: 11px; line-height: 1.45; }
 .field-help { display: flex; align-items: center; gap: 6px; }
 .field-help svg { width: 14px; height: 14px; flex: none; }
@@ -743,15 +744,29 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 .workflow-summary-panel .summary-note { background: var(--surface); }
 
 @media (max-width: 620px) {
-  .history-status { width: 44px; height: 44px; justify-content: center; padding: 0; }
+  .history-status { width: 44px; height: 44px; justify-content: center; padding: 0; visibility: hidden; }
   .history-status > span { display: none; }
   .workflow-card { border: 0; border-radius: 0; background: transparent; }
   .workflow-section { padding: 0 0 16px; }
   .workflow-section + .workflow-section { padding-top: 0; border-top: 0; }
-  .workflow-section-heading { display: none; }
+  .stock-adjustment-form { display: flex; flex-direction: column; }
+  .stock-adjustment-layout { display: flex; flex: 1 0 auto; flex-direction: column; min-height: 100%; }
+  .stock-form-card { display: flex; flex-direction: column; min-height: 100%; }
+  .stock-form-card .workflow-section-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
   .stock-form-card > .form-actions {
     width: calc(100% + 36px);
     margin-inline: -18px;
+    margin-top: auto;
     border-radius: 0;
   }
 }

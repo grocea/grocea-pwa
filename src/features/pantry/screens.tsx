@@ -220,6 +220,7 @@ export function AddStockScreen() {
   const [quantityTouched, setQuantityTouched] = useState(false)
   const [reasonTouched, setReasonTouched] = useState(false)
   const [formError, setFormError] = useState('')
+  const [projectionAnnouncement, setProjectionAnnouncement] = useState('')
   const quantityRef = useRef<HTMLInputElement>(null)
   const reasonRef = useRef<HTMLSelectElement>(null)
 
@@ -254,14 +255,39 @@ export function AddStockScreen() {
     : operation === 'set'
       ? 'Set balance'
       : `${operation === 'add' ? 'Add' : 'Remove'} ${quantity || 'quantity'} ${unit}`
+  const quantityInvalid = (submitted || quantityTouched) && !amountIsValid
+  const reasonInvalid = (submitted || reasonTouched) && !reason
+  const noteInvalid = note.length > 500
 
   if (!ingredient) return null
+
+  function announceProjectedBalance(overrides: { ingredient?: Ingredient; operation?: StockOperation; unit?: Unit } = {}) {
+    const nextIngredient = overrides.ingredient ?? ingredient
+    const nextOperation = overrides.operation ?? operation
+    const nextUnit = overrides.unit ?? unit
+    const nextParsed = parseQuantity(quantity, nextUnit)
+    if (nextParsed === null || (nextOperation !== 'set' && nextParsed <= 0n)) {
+      setProjectionAnnouncement('')
+      return
+    }
+    const nextCurrent = balances[nextIngredient.id] ?? 0n
+    const nextProjected = nextOperation === 'set'
+      ? nextParsed
+      : nextOperation === 'add'
+        ? nextCurrent + nextParsed
+        : nextCurrent - nextParsed
+    const amount = formatQuantity(nextParsed, nextIngredient.family)
+    const action = nextOperation === 'set' ? `Set balance to ${amount}` : `${nextOperation === 'add' ? 'Add' : 'Remove'} ${amount}`
+    setProjectionAnnouncement(`${action}. New balance ${formatQuantity(nextProjected, nextIngredient.family)}.`)
+  }
 
   function changeIngredient(id: string) {
     const next = sortedIngredients.find((item) => item.id === id)
     if (!next) return
+    const nextUnit = defaultUnit(next.family)
     setIngredientId(id)
-    setUnit(defaultUnit(next.family))
+    setUnit(nextUnit)
+    announceProjectedBalance({ ingredient: next, unit: nextUnit })
   }
 
   async function submit(event: FormEvent) {
@@ -283,10 +309,11 @@ export function AddStockScreen() {
       <BackHeader title="Adjust stock" eyebrow={operation === 'add' ? 'Increase pantry stock' : operation === 'set' ? 'Set pantry balance' : 'Decrease pantry stock'} fallbackTo={returnTo ?? '/pantry'} action={<span className="history-status" role="status" aria-label="Creates an activity record after saving"><ClockCounterClockwise aria-hidden="true" /><span>Creates activity record</span></span>} />
       <form className="form-screen stock-adjustment-form" onSubmit={submit} noValidate aria-busy={pending}>
         {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Stock was not updated</strong><small>{formError}</small></span></div>}
+        <p className="sr-only" data-testid="stock-projection-announcement" role="status" aria-live="polite" aria-atomic="true">{projectionAnnouncement}</p>
         <div className="stock-adjustment-layout">
           <section className="workflow-card stock-form-card">
-            <section className="workflow-section">
-              <header className="workflow-section-heading"><span><Package aria-hidden="true" /></span><h2>1. Stock item</h2></header>
+            <section className="workflow-section" aria-labelledby="stock-item-heading">
+              <header className="workflow-section-heading"><span><Package aria-hidden="true" /></span><h2 id="stock-item-heading">1. Stock item</h2></header>
               <div className="field-group ingredient-field">
                 <label htmlFor="ingredient">Ingredient</label>
                 <div className="ingredient-select-control">
@@ -294,19 +321,18 @@ export function AddStockScreen() {
                   <select id="ingredient" value={ingredient.id} disabled={pending} onChange={(event) => changeIngredient(event.target.value)}>
                     {sortedIngredients.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
-                  <small>Current balance {formatQuantity(current, ingredient.family)}</small>
                 </div>
               </div>
             </section>
 
-            <section className="workflow-section">
-              <header className="workflow-section-heading"><span><ArrowsLeftRight aria-hidden="true" /></span><h2>2. Adjustment</h2></header>
+            <section className="workflow-section" aria-labelledby="adjustment-heading">
+              <header className="workflow-section-heading"><span><ArrowsLeftRight aria-hidden="true" /></span><h2 id="adjustment-heading">2. Adjustment</h2></header>
               <fieldset className="field-group">
                 <legend>Operation</legend>
                 <div className="segmented-control three operation-control">
                   {(['add', 'set', 'remove'] as StockOperation[]).map((item) => {
                     const Icon = item === 'add' ? Plus : item === 'set' ? Equals : Minus
-                    return <button key={item} type="button" disabled={pending} className={operation === item ? 'selected' : ''} onClick={() => setOperation(item)} aria-pressed={operation === item}><Icon aria-hidden="true" />{item[0].toUpperCase() + item.slice(1)}</button>
+                    return <button key={item} type="button" disabled={pending} className={operation === item ? 'selected' : ''} onClick={() => { setOperation(item); announceProjectedBalance({ operation: item }) }} aria-pressed={operation === item}><Icon aria-hidden="true" />{item[0].toUpperCase() + item.slice(1)}</button>
                   })}
                 </div>
               </fieldset>
@@ -314,41 +340,41 @@ export function AddStockScreen() {
               <div className="stock-quantity-row">
                 <div className="field-group quantity-field">
                   <label htmlFor="quantity">Quantity</label>
-                  <input ref={quantityRef} id="quantity" inputMode="decimal" value={quantity} disabled={pending} onBlur={() => setQuantityTouched(true)} onChange={(event) => setQuantity(event.target.value)} aria-describedby="quantity-help quantity-error" aria-invalid={(submitted || quantityTouched) && !amountIsValid} />
+                  <input ref={quantityRef} id="quantity" inputMode="decimal" value={quantity} disabled={pending} onBlur={() => { setQuantityTouched(true); announceProjectedBalance() }} onChange={(event) => setQuantity(event.target.value)} aria-describedby={`quantity-help${quantityInvalid ? ' quantity-error' : ''}`} aria-invalid={quantityInvalid} />
                 </div>
                 <div className="field-group unit-field">
                   <label htmlFor="unit">Unit</label>
-                  <select id="unit" value={unit} disabled={pending} onChange={(event) => setUnit(event.target.value as Unit)}>
+                  <select id="unit" value={unit} disabled={pending} onChange={(event) => { const nextUnit = event.target.value as Unit; setUnit(nextUnit); announceProjectedBalance({ unit: nextUnit }) }}>
                     {familyUnits[ingredient.family].map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </div>
               </div>
               <small className="field-help" id="quantity-help"><Info aria-hidden="true" />{ingredient.family[0].toUpperCase() + ingredient.family.slice(1)} units only for {ingredient.name}.</small>
-              {(submitted || quantityTouched) && !amountIsValid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
+              {quantityInvalid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
 
-              <div className={`balance-preview mobile-balance-preview${projected <= 0n ? ' warning' : ''}`} aria-live="polite">
+              <div className={`balance-preview mobile-balance-preview${projected <= 0n ? ' warning' : ''}`}>
                 <span><small>Current</small><strong>{formatQuantity(current, ingredient.family)}</strong></span>
                 <span className="balance-delta"><small>{deltaLabel}</small><ArrowRight aria-hidden="true" /></span>
                 <span><small>New balance</small><strong>{formatQuantity(projected, ingredient.family)}</strong></span>
               </div>
             </section>
 
-            <section className="workflow-section">
-              <header className="workflow-section-heading"><span><NotePencil aria-hidden="true" /></span><h2>3. Record details</h2></header>
+            <section className="workflow-section" aria-labelledby="record-details-heading">
+              <header className="workflow-section-heading"><span><NotePencil aria-hidden="true" /></span><h2 id="record-details-heading">3. Record details</h2></header>
               <div className="record-detail-fields">
                 <div className="field-group split-field">
                   <label htmlFor="reason">Reason</label>
-                  <select ref={reasonRef} id="reason" value={reason} disabled={pending} onBlur={() => setReasonTouched(true)} onChange={(event) => setReason(event.target.value)} aria-invalid={(submitted || reasonTouched) && !reason} aria-describedby="reason-help reason-error">
+                  <select ref={reasonRef} id="reason" value={reason} disabled={pending} onBlur={() => setReasonTouched(true)} onChange={(event) => setReason(event.target.value)} aria-invalid={reasonInvalid} aria-describedby={`reason-help${reasonInvalid ? ' reason-error' : ''}`}>
                     <option value="Manual adjustment">Manual</option><option>Groceries</option><option>Correction</option><option>Waste</option><option>Other</option>
                   </select>
                   <small id="reason-help">Shown in activity history.</small>
-                  {(submitted || reasonTouched) && !reason && <span className="field-error" id="reason-error" role="alert">Select a reason for this stock change.</span>}
+                  {reasonInvalid && <span className="field-error" id="reason-error" role="alert">Select a reason for this stock change.</span>}
                 </div>
 
                 <div className="field-group grow-field">
                   <label htmlFor="note">Note <span>· optional</span></label>
-                  <textarea id="note" value={note} disabled={pending} onChange={(event) => setNote(event.target.value)} placeholder="Invoice or supplier note" maxLength={501} aria-describedby="note-error" />
-                  {note.length > 500 && <span className="field-error" id="note-error" role="alert">Note must be 500 characters or fewer.</span>}
+                  <textarea id="note" value={note} disabled={pending} onChange={(event) => setNote(event.target.value)} placeholder="Add a note" maxLength={501} aria-invalid={noteInvalid} aria-describedby={noteInvalid ? 'note-error' : undefined} />
+                  {noteInvalid && <span className="field-error" id="note-error" role="alert">Note must be 500 characters or fewer.</span>}
                 </div>
               </div>
             </section>
@@ -360,7 +386,7 @@ export function AddStockScreen() {
           </section>
 
           <aside className="stock-summary-panel" aria-label="Stock adjustment summary">
-            <section className={`stock-balance-card${projected <= 0n ? ' warning' : ''}`} aria-live="polite">
+            <section className={`stock-balance-card${projected <= 0n ? ' warning' : ''}`}>
               <header><span>After adjustment</span><strong>{deltaLabel}</strong></header>
               <p>{formatQuantity(projected, ingredient.family)}</p>
               <small>New {ingredient.name} balance</small>

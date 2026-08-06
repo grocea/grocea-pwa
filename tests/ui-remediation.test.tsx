@@ -54,12 +54,64 @@ describe('stock and catalog recovery', () => {
   it('validates quantity on blur and submit, then focuses the invalid quantity', async () => {
     renderRoute(<AddStockScreen />, '/pantry/stock/new?ingredient=rice')
     const quantity = await screen.findByLabelText('Quantity')
+    expect(quantity.getAttribute('aria-describedby')).toBe('quantity-help')
     fireEvent.change(quantity, { target: { value: 'abc' } })
     fireEvent.blur(quantity)
     expect((await screen.findByRole('alert')).textContent).toContain('greater than zero')
     expect(quantity.getAttribute('aria-invalid')).toBe('true')
+    expect(quantity.getAttribute('aria-describedby')).toBe('quantity-help quantity-error')
     fireEvent.click(screen.getByRole('button', { name: /^Add abc kg$/ }))
     expect(document.activeElement).toBe(quantity)
+  })
+
+  it('keeps stock adjustment sections accessible and removes duplicate balance copy', async () => {
+    renderRoute(<AddStockScreen />, '/pantry/stock/new?ingredient=rice')
+
+    await screen.findByLabelText('Quantity')
+    expect(screen.getByRole('heading', { name: '1. Stock item' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '2. Adjustment' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '3. Record details' })).toBeTruthy()
+    expect(screen.queryByText('Current balance 2.4 kg')).toBeNull()
+    expect(screen.getByLabelText('Quantity').getAttribute('aria-describedby')).toBe('quantity-help')
+    expect(screen.getByLabelText('Reason').getAttribute('aria-describedby')).toBe('reason-help')
+  })
+
+  it('updates projected balance visually but announces completed edits only', async () => {
+    renderRoute(<AddStockScreen />, '/pantry/stock/new?ingredient=rice')
+
+    const quantity = await screen.findByLabelText('Quantity')
+    const announcement = screen.getByTestId('stock-projection-announcement')
+    fireEvent.change(quantity, { target: { value: '2' } })
+    expect(screen.getAllByText('4.4 kg').length).toBeGreaterThan(0)
+    expect(announcement.textContent).toBe('')
+
+    fireEvent.blur(quantity)
+    expect(announcement.textContent).toBe('Add 2 kg. New balance 4.4 kg.')
+
+    fireEvent.change(quantity, { target: { value: '3' } })
+    expect(announcement.textContent).toBe('Add 2 kg. New balance 4.4 kg.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Set' }))
+    expect(announcement.textContent).toBe('Set balance to 3 kg. New balance 3 kg.')
+
+    fireEvent.change(screen.getByLabelText('Unit'), { target: { value: 'g' } })
+    expect(announcement.textContent).toBe('Set balance to 3 g. New balance 3 g.')
+
+    fireEvent.change(screen.getByLabelText('Ingredient'), { target: { value: 'bananas' } })
+    expect(announcement.textContent).toBe('Set balance to 3 items. New balance 3 items.')
+  })
+
+  it('associates note overflow with its invalid state and error message', async () => {
+    renderRoute(<AddStockScreen />, '/pantry/stock/new?ingredient=rice')
+
+    const note = await screen.findByLabelText(/Note/)
+    expect(note.getAttribute('aria-invalid')).toBe('false')
+    expect(note.getAttribute('aria-describedby')).toBeNull()
+
+    fireEvent.change(note, { target: { value: 'x'.repeat(501) } })
+    expect(note.getAttribute('aria-invalid')).toBe('true')
+    expect(note.getAttribute('aria-describedby')).toBe('note-error')
+    expect(screen.getByRole('alert').textContent).toContain('500 characters or fewer')
   })
 
   it('defaults stock reason to Manual and returns a prefilled recovery to its recipe', async () => {
