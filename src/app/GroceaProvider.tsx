@@ -19,6 +19,7 @@ import { familyUnits, formatQuantityValue, parseQuantity, scaleQuantity } from '
 import { GroceaContext, type GroceaContextValue, type StorageStatus } from './grocea-context'
 import { deleteLegacyStorage, groceaStorage, type GroceaStorage } from './persistence'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
+import { GroceaLoadingSplash } from '../shared/ui/GroceaLoadingSplash'
 
 type Action =
   | { type: 'stock'; eventId: string; ingredientId: string; operation: StockOperation; amount: bigint; reason: string }
@@ -1031,19 +1032,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     if (storageStatus === 'error') {
       return <><StorageFailure message={storageError} retry={boot} reset={() => setResetRequested(true)} /><ConfirmDialog open={resetRequested} title="Reset all local data?" description="Every pantry balance, recipe, activity event, profile preference, and queued change stored on this device will be permanently removed. This cannot be undone." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} /></>
     }
-    return <main className="storage-state storage-opening" aria-busy="true">
-      <div className="storage-opening-content" role="status" aria-live="polite">
-        <div className="storage-opening-logo" aria-hidden="true">
-          <img src="/brand/grocea-icon.png" alt="" />
-        </div>
-        <p className="storage-opening-message">Your pantry is almost ready.</p>
-        <span className="storage-opening-dots" aria-hidden="true">
-          <span className="storage-opening-dot" />
-          <span className="storage-opening-dot" />
-          <span className="storage-opening-dot" />
-        </span>
-      </div>
-    </main>
+    return <GroceaLoadingSplash />
   }
 
   const value: GroceaContextValue = {

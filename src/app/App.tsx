@@ -8,6 +8,7 @@ import { AddStockScreen, CatalogScreen, CreateIngredientScreen, PantryScreen } f
 import WelcomePage from '../features/marketing/WelcomePage'
 import { BasketScreen, GroceriesScreen, GroceryListScreen } from '../features/groceries/GroceryScreens'
 import { RouteTransitionManager } from '../shared/ui/RouteTransitionManager'
+import { GroceaLoadingSplash } from '../shared/ui/GroceaLoadingSplash'
 import { GroceaProvider } from './GroceaProvider'
 import { AuthProvider, useAuth } from './auth-context'
 import { createGroceaStorage, deleteLegacyStorage, legacyStorageExists, migrateLegacyStorage } from './persistence'
@@ -55,7 +56,7 @@ function safeReturnTo(value: string | null): string {
 }
 
 function AuthLoading() {
-  return <main className="storage-state" aria-busy="true"><div className="storage-state-card"><span className="eyebrow">ACCOUNT</span><h1>Checking your session…</h1><p>Preparing a secure Grocea workspace.</p></div></main>
+  return <GroceaLoadingSplash />
 }
 
 function GroceaApp() {
