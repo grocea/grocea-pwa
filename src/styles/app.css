@@ -175,6 +175,14 @@
 .storage-opening-dot:nth-child(3) { animation-delay: 360ms; }
 @keyframes storage-opening-logo-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.015); } }
 @keyframes storage-opening-dot-pulse { 0%, 100% { opacity: .42; transform: translateY(0) scale(.9); } 35% { opacity: 1; transform: translateY(-2px) scale(1.15); } 60% { opacity: .42; transform: translateY(0) scale(.9); } }
+.storage-error-dialog { width: min(calc(100% - 32px), 520px); max-width: none; padding: 0; color: var(--ink); border: 0; border-radius: 22px; background: transparent; box-shadow: 0 24px 70px rgb(16 34 24 / 28%); }
+.storage-error-dialog::backdrop { background: rgb(16 27 21 / 58%); backdrop-filter: blur(3px); }
+.storage-error-dialog-card { display: grid; gap: 14px; padding: clamp(22px, 5vw, 32px); border: 1px solid var(--line); border-radius: 22px; background: var(--surface); }
+.storage-error-dialog-card h2, .storage-error-dialog-card p { margin: 0; }
+.storage-error-dialog-card h2 { font-size: clamp(30px, 7vw, 48px); line-height: 1.04; letter-spacing: -.035em; }
+.storage-error-dialog-card p { color: var(--muted); line-height: 1.5; }
+.storage-error-dialog-actions { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1fr); gap: 10px; margin-top: 8px; }
+.storage-error-dialog-actions .button { min-height: 56px; }
 .storage-error-banner { position: fixed; inset: auto 16px calc(16px + env(safe-area-inset-bottom)); z-index: 50; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; max-width: 760px; margin-inline: auto; padding: 14px; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 35%, white); border-radius: 16px; background: #fff8f6; box-shadow: 0 12px 38px rgb(50 20 16 / 18%); }
 .storage-error-banner > div { min-width: 0; display: grid; gap: 3px; }
 .storage-error-banner small { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }

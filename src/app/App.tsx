@@ -11,23 +11,42 @@ import { RouteTransitionManager } from '../shared/ui/RouteTransitionManager'
 import { GroceaLoadingSplash } from '../shared/ui/GroceaLoadingSplash'
 import { GroceaProvider } from './GroceaProvider'
 import { AuthProvider, useAuth } from './auth-context'
+import { BootSplashProvider, useBootSplash } from './boot-context'
 import { createGroceaStorage, deleteLegacyStorage, legacyStorageExists, migrateLegacyStorage } from './persistence'
 import { AuthScreen } from '../features/auth/AuthScreens'
 import '../styles/app.css'
 
 export default function App() {
-  return <AuthProvider><RouteTransitionManager /><Routes>
+  return <AuthProvider><AppContent /></AuthProvider>
+}
+
+function AppContent() {
+  const { status, account } = useAuth()
+  const bootKey = `${status}:${account?.id ?? 'none'}`
+  return <BootSplashProvider key={bootKey}><AppRoutes /></BootSplashProvider>
+}
+
+function AppRoutes() {
+  const { status } = useAuth()
+  const { phase, failure } = useBootSplash()
+  const location = useLocation()
+  const accountSession = status === 'authenticated' || status === 'offline-authenticated'
+  const showSplash = location.pathname !== '/welcome' && (status === 'loading' || (accountSession && (phase === 'pending' || phase === 'failure')))
+  return <>
+    <RouteTransitionManager /><Routes>
     <Route path="/welcome" element={<WelcomePage />} />
     <Route path="/login" element={<PublicAuthRoute mode="login" />} />
     <Route path="/register" element={<PublicAuthRoute mode="register" />} />
     <Route path="*" element={<ProtectedRoutes />} />
-  </Routes></AuthProvider>
+    </Routes>
+    {showSplash && <GroceaLoadingSplash failure={accountSession && phase === 'failure' ? failure : null} />}
+  </>
 }
 
 function PublicAuthRoute({ mode }: { mode: 'login' | 'register' }) {
   const { status } = useAuth()
   const location = useLocation()
-  if (status === 'loading') return <AuthLoading />
+  if (status === 'loading') return null
   if (status === 'authenticated' || status === 'offline-authenticated') {
     const returnTo = safeReturnTo(new URLSearchParams(location.search).get('returnTo'))
     return <Navigate to={returnTo} replace />
@@ -38,7 +57,7 @@ function PublicAuthRoute({ mode }: { mode: 'login' | 'register' }) {
 function ProtectedRoutes() {
   const { status } = useAuth()
   const location = useLocation()
-  if (status === 'loading') return <AuthLoading />
+  if (status === 'loading') return null
   if (status === 'unavailable') {
     return <main className="storage-state"><div className="storage-state-card"><span className="eyebrow">CONNECTION REQUIRED</span><h1>Sign in to open Grocea</h1><p>Grocea needs one server-confirmed sign-in before it can create an account cache.</p><a className="button primary" href="/login">Go to sign in</a></div></main>
   }
@@ -55,13 +74,9 @@ function safeReturnTo(value: string | null): string {
   return value
 }
 
-function AuthLoading() {
-  return <GroceaLoadingSplash />
-}
-
 function GroceaApp() {
   const { account } = useAuth()
-  if (!account) return <AuthLoading />
+  if (!account) return null
   return <AccountGroceaApp userId={account.id} />
 }
 
@@ -70,6 +85,7 @@ function AccountGroceaApp({ userId }: { userId: string }) {
   const [legacyStatus, setLegacyStatus] = useState<'checking' | 'none' | 'needs-choice' | 'error'>('checking')
   const [legacyError, setLegacyError] = useState<string | null>(null)
   const [migrationPending, setMigrationPending] = useState(false)
+  const { markChoice } = useBootSplash()
   useEffect(() => {
     let active = true
     void legacyStorageExists().then(exists => { if (active) setLegacyStatus(exists ? 'needs-choice' : 'none') }).catch(error => {
@@ -88,7 +104,10 @@ function AccountGroceaApp({ userId }: { userId: string }) {
       storage.close?.()
     }
   }, [storage, userId])
-  if (legacyStatus === 'checking') return <main className="storage-state" aria-busy="true"><div className="storage-state-card"><span className="eyebrow">LOCAL DATA</span><h1>Checking for existing data…</h1><p>Grocea will never attach old local data to an account without your choice.</p></div></main>
+  useEffect(() => {
+    if (legacyStatus === 'needs-choice' || legacyStatus === 'error') markChoice()
+  }, [legacyStatus, markChoice])
+  if (legacyStatus === 'checking') return null
   if (legacyStatus === 'error') return <main className="storage-state"><div className="storage-state-card"><span className="eyebrow">LOCAL DATA ERROR</span><h1>Existing local data needs attention</h1><p>{legacyError}</p><button className="button primary" type="button" onClick={() => window.location.reload()}>Try again</button></div></main>
   if (legacyStatus === 'needs-choice') return <LegacyMigrationGate pending={migrationPending} onMove={async () => { setMigrationPending(true); try { await migrateLegacyStorage(userId); setLegacyStatus('none') } catch (error) { setLegacyError(error instanceof Error ? error.message : 'Local data could not be moved.'); setLegacyStatus('error') } finally { setMigrationPending(false) } }} onDelete={async () => { setMigrationPending(true); try { await deleteLegacyStorage(userId); setLegacyStatus('none') } catch (error) { setLegacyError(error instanceof Error ? error.message : 'Local data could not be deleted.'); setLegacyStatus('error') } finally { setMigrationPending(false) } }} />
   return <GroceaProvider storage={storage}><Routes>

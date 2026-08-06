@@ -3,8 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GroceaProvider } from '../src/app/GroceaProvider'
 import { initialState } from '../src/app/fixtures'
 import { useGrocea } from '../src/app/grocea-context'
+import { BootSplashProvider, useBootSplash } from '../src/app/boot-context'
 import { cloneState, type DatabaseMetadata, type GroceaStorage } from '../src/app/persistence'
 import type { GroceaState, PendingMutation } from '../src/domain/types'
+import { GroceaLoadingSplash } from '../src/shared/ui/GroceaLoadingSplash'
 
 class MemoryStorage implements GroceaStorage {
   state = cloneState(initialState)
@@ -24,6 +26,10 @@ class MemoryStorage implements GroceaStorage {
   async listPendingMutations() { return this.mutations }
   async removeMutation(id: string) { this.mutations = this.mutations.filter(item => item.id !== id) }
   async reset() { this.state = cloneState(initialState); return cloneState(this.state) }
+}
+
+class FailingStorage extends MemoryStorage {
+  async open() { throw new Error('Stored Grocea data could not be reconciled.') }
 }
 
 afterEach(() => vi.unstubAllGlobals())
@@ -75,6 +81,11 @@ function GroceryProbe() {
   </div>
 }
 
+function BootFailureProbe() {
+  const { failure } = useBootSplash()
+  return <GroceaLoadingSplash failure={failure} />
+}
+
 function DuplicatePantryProbe() {
   const { balances, activity, completeGroceryList } = useGrocea()
   const latest = activity[0]
@@ -87,6 +98,14 @@ function DuplicatePantryProbe() {
 }
 
 describe('GroceaProvider persistence', () => {
+  it('reports boot failures through the shared splash recovery dialog', async () => {
+    render(<BootSplashProvider><GroceaProvider storage={new FailingStorage()} /><BootFailureProbe /></BootSplashProvider>)
+
+    expect(await screen.findByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeTruthy()
+    expect(screen.getByText('Stored Grocea data could not be reconciled.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
+  })
+
   it('plans groceries optimistically while offline and queues Basket then confirmation mutations', async () => {
     const storage = new MemoryStorage()
     render(<GroceaProvider storage={storage}><GroceryProbe /></GroceaProvider>)
@@ -175,7 +194,7 @@ describe('GroceaProvider persistence', () => {
   it('hydrates before rendering children and serializes rapid durable writes', async () => {
     const storage = new MemoryStorage()
     render(<GroceaProvider storage={storage}><Probe /></GroceaProvider>)
-    expect(screen.getByText('Your pantry is almost ready.')).toBeTruthy()
+    expect(screen.queryByText('Your pantry is almost ready.')).toBeNull()
     await waitFor(() => expect(screen.getByTestId('profile-name').textContent).toBe('Grocie Crumbsworth'))
 
     fireEvent.click(screen.getByRole('button', { name: 'First' }))
