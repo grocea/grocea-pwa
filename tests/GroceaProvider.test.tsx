@@ -248,6 +248,48 @@ describe('GroceaProvider persistence', () => {
     await storage.destroy()
   })
 
+  it('reopens an existing account from its canonical snapshot when working state is corrupt', async () => {
+    const userId = crypto.randomUUID()
+    const storage = createGroceaStorage(userId)
+    await storage.open()
+    const existing = await storage.loadState()
+    existing.profile.displayName = 'Existing account'
+    await storage.saveCanonicalState(existing)
+    await storage.saveMetadata({ ...(await storage.getMetadata()), syncCursor: '8', remoteImportStatus: 'complete' })
+    storage.close()
+    const database = await openDB(`${DATABASE_NAME}:${userId}`, DATABASE_VERSION)
+    await database.put('state', { key: 'current', value: { invalid: true } })
+    database.close()
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    const view = render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider><BootFailureProbe /></BootSplashProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('profile-name').textContent).toBe('Existing account'))
+    expect(screen.getByTestId('boot-phase').textContent).toBe('ready')
+    expect(screen.queryByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeNull()
+    view.unmount()
+    await storage.destroy()
+  })
+
+  it('keeps a valid existing account usable when remote sync is unavailable', async () => {
+    const userId = crypto.randomUUID()
+    const storage = createGroceaStorage(userId)
+    await storage.open()
+    const existing = await storage.loadState()
+    existing.profile.displayName = 'Existing account'
+    await storage.saveState(existing)
+    await storage.saveMetadata({ ...(await storage.getMetadata()), syncCursor: '8', remoteImportStatus: 'complete' })
+    storage.close()
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    const view = render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider><BootFailureProbe /></BootSplashProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('profile-name').textContent).toBe('Existing account'))
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('offline'))
+    expect(screen.getByTestId('boot-phase').textContent).toBe('ready')
+    expect(screen.queryByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeNull()
+    view.unmount()
+    await storage.destroy()
+  })
+
   it('reports boot failures through the shared splash recovery dialog', async () => {
     render(<BootSplashProvider><GroceaProvider storage={new FailingStorage()} /><BootFailureProbe /></BootSplashProvider>)
 

@@ -405,18 +405,23 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
     })
     this.database = database
 
-    const existing = await database.get('state', CURRENT_STATE_KEY)
-    const existingMetadata = await database.get('metadata', DATABASE_METADATA_KEY)
+    const [existing, existingMetadata, existingCanonical] = await Promise.all([
+      database.get('state', CURRENT_STATE_KEY),
+      database.get('metadata', DATABASE_METADATA_KEY),
+      database.get('canonical', CURRENT_STATE_KEY),
+    ])
     if (!existing) {
       const accountScoped = Boolean(this.ownerUserId)
       const legacyRaw = accountScoped || typeof localStorage === 'undefined' ? null : localStorage.getItem(LEGACY_STORAGE_KEY)
       const imported = accountScoped
         ? { state: cloneState(this.seed), status: 'none' as const }
         : importLegacy(this.seed, legacyRaw)
+      const normalizedCanonical = existingCanonical ? normalizeStateShape(existingCanonical.value) : null
+      const backfill = normalizedCanonical && isGroceaState(normalizedCanonical) ? normalizedCanonical : imported.state
       if (!existing || !existingMetadata) {
         const transaction = database.transaction(['state', 'metadata'], 'readwrite')
         await Promise.all([
-          ...(!existing ? [transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: imported.state })] : []),
+          ...(!existing ? [transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: backfill })] : []),
           ...(!existingMetadata ? [transaction.objectStore('metadata').put({
             key: DATABASE_METADATA_KEY,
             schemaVersion: DATABASE_VERSION,
@@ -444,14 +449,22 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
 
   async loadState(): Promise<GroceaState> {
     const database = this.requireDatabase()
-    const [record, metadata] = await Promise.all([
+    const [record, metadata, canonical] = await Promise.all([
       database.get('state', CURRENT_STATE_KEY),
       database.get('metadata', DATABASE_METADATA_KEY),
+      database.get('canonical', CURRENT_STATE_KEY),
     ])
-    const normalized = record ? normalizeStateShape(record.value) : null
-    if (!normalized || !isGroceaState(normalized)) throw new Error('Stored Grocea data is corrupt or incompatible.')
-    const reconciled = reconcileGlobalFixtures(normalized, this.seed)
-    if (!isGroceaState(reconciled)) throw new Error('Stored Grocea data could not be reconciled.')
+    let reconciled: GroceaState | null = null
+    for (const candidate of [record?.value, canonical?.value]) {
+      const normalized = candidate === undefined ? null : normalizeStateShape(candidate)
+      if (!normalized || !isGroceaState(normalized)) continue
+      const next = reconcileGlobalFixtures(normalized, this.seed)
+      if (isGroceaState(next)) {
+        reconciled = next
+        break
+      }
+    }
+    if (!reconciled) throw new Error('Stored Grocea data is corrupt or incompatible.')
     const transaction = database.transaction(['state', 'metadata'], 'readwrite')
     await Promise.all([
       transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: reconciled }),

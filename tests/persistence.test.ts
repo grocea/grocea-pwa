@@ -177,5 +177,41 @@ describe('IndexedDbGroceaStorage', () => {
     const database = await openDB(name, DATABASE_VERSION)
     await database.put('state', { key: 'current', value: { invalid: true } })
     await expect(storage.loadState()).rejects.toThrow('corrupt or incompatible')
+    database.close()
+    storage.close()
+  })
+
+  it('restores a corrupt working state from the canonical snapshot', async () => {
+    const name = databaseName()
+    const storage = new IndexedDbGroceaStorage(initialState, name)
+    await storage.open()
+    const canonical = await storage.loadState()
+    canonical.profile.displayName = 'Existing account'
+    await storage.saveCanonicalState(canonical)
+    const metadata = await storage.getMetadata()
+    await storage.saveMetadata({ ...metadata, syncCursor: '8', remoteImportStatus: 'complete' })
+    const mutation: PendingMutation = {
+      id: crypto.randomUUID(),
+      deviceId: metadata.deviceId,
+      type: 'profile.update',
+      createdAt: '2026-08-07T00:00:00Z',
+      payload: { displayName: 'Pending account' },
+      attempts: 0,
+      status: 'pending',
+      dependsOn: [],
+    }
+    await storage.enqueueMutation(mutation)
+    const database = await openDB(name, DATABASE_VERSION)
+    await database.put('state', { key: 'current', value: { invalid: true } })
+    database.close()
+    storage.close()
+
+    const reopened = new IndexedDbGroceaStorage(initialState, name)
+    await reopened.open()
+    await expect(reopened.loadState()).resolves.toMatchObject({ profile: { displayName: 'Existing account' } })
+    expect((await reopened.getMetadata()).deviceId).toBe(metadata.deviceId)
+    expect((await reopened.getMetadata()).syncCursor).toBe('8')
+    expect(await reopened.listPendingMutations()).toEqual([mutation])
+    await reopened.destroy()
   })
 })
