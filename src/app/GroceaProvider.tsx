@@ -527,7 +527,24 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           setSyncError(null)
         }
       } else {
-        loaded = await storage.loadState()
+        try {
+          loaded = await storage.loadState()
+        } catch (localError) {
+          try {
+            const remote = await fetchState()
+            loaded = remote.state
+            if (storage.saveCanonicalState) await storage.saveCanonicalState(remote.state)
+            else await storage.saveState(remote.state)
+            if (metadata && storage.saveMetadata) {
+              metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
+              await storage.saveMetadata(metadata)
+            }
+            setSyncError(null)
+          } catch (remoteError) {
+            if (remoteError instanceof ApiError && remoteError.authRequired) throw remoteError
+            throw localError
+          }
+        }
       }
       if (!loaded) throw new Error('Stored Grocea data could not be loaded.')
       stateRef.current = loaded

@@ -290,6 +290,32 @@ describe('GroceaProvider persistence', () => {
     await storage.destroy()
   })
 
+  it('recovers an existing account from the server when local snapshots are invalid', async () => {
+    const userId = crypto.randomUUID()
+    const storage = createGroceaStorage(userId)
+    await storage.open()
+    await storage.saveMetadata({ ...(await storage.getMetadata()), syncCursor: '8', remoteImportStatus: 'complete' })
+    storage.close()
+
+    const database = await openDB(`${DATABASE_NAME}:${userId}`, DATABASE_VERSION)
+    await database.put('state', { key: 'current', value: { invalid: true } })
+    await database.delete('canonical', 'current')
+    database.close()
+
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
+      expect(String(input)).toBe('/api/state')
+      return remoteStateResponse()
+    }))
+
+    const view = render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider><BootFailureProbe /></BootSplashProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('profile-name').textContent).toBe('Remote Grocie'))
+    await waitFor(() => expect(screen.getByTestId('boot-phase').textContent).toBe('ready'))
+    expect(screen.queryByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeNull()
+    view.unmount()
+    await storage.destroy()
+  })
+
   it('reports boot failures through the shared splash recovery dialog', async () => {
     render(<BootSplashProvider><GroceaProvider storage={new FailingStorage()} /><BootFailureProbe /></BootSplashProvider>)
 
