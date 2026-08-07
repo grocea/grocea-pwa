@@ -12,6 +12,7 @@ import type {
   PendingMutation,
   PublishedRecipe,
   StockOperation,
+  SyncError,
   SyncStatus,
 } from '../domain/types'
 import { isPublishedRecipe } from '../domain/types'
@@ -290,11 +291,27 @@ const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, strin
   }
 }
 
+function toSyncError(error: unknown): { apiError: ApiError; syncError: SyncError } {
+  const apiError = error instanceof ApiError
+    ? error
+    : new ApiError(0, 'SYNC_FAILED', error instanceof Error ? error.message : 'Synchronization failed.')
+  return {
+    apiError,
+    syncError: {
+      code: apiError.code,
+      status: apiError.status,
+      message: apiError.message,
+      retryable: apiError.retryable,
+    },
+  }
+}
+
 export function GroceaProvider({ children, storage = groceaStorage }: { children: ReactNode; storage?: GroceaStorage }) {
   const [state, setState] = useState<GroceaState | null>(null)
   const [storageStatus, setStorageStatus] = useState<StorageStatus>('loading')
   const [storageError, setStorageError] = useState<string | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('offline')
+  const [syncError, setSyncError] = useState<SyncError | null>(null)
   const [pendingMutationCount, setPendingMutationCount] = useState(0)
   const [syncIssues, setSyncIssues] = useState<PendingMutation[]>([])
   const [importConflicts, setImportConflicts] = useState<ImportConflict[]>([])
@@ -306,6 +323,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   const deviceIdRef = useRef<string>(crypto.randomUUID())
   const retryTimerRef = useRef<number | null>(null)
   const bootReportRef = useRef<string | null>(null)
+  const initialSyncPendingRef = useRef(false)
   const { markReady, markFailure } = useBootSplash()
 
   const updateStorageStatus = useCallback((next: StorageStatus, error: string | null = null) => {
@@ -321,6 +339,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     setSyncIssues(failed)
     if (failed.length) setSyncStatus('failed')
     else if (queued.length) setSyncStatus('pending')
+    else if (initialSyncPendingRef.current) setSyncStatus('initial-sync')
     else setSyncStatus('idle')
     return queued
   }, [storage])
@@ -335,11 +354,14 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }, [])
 
   const synchronize = useCallback(async (importCandidate?: GroceaState) => {
-    if (!storage.getMetadata || !storage.saveMetadata || syncingRef.current) return
+    if (!storage.getMetadata || !storage.saveMetadata || statusRef.current !== 'ready' || syncingRef.current) return
     syncingRef.current = true
     setSyncStatus('syncing')
+    let initialSyncPending = initialSyncPendingRef.current
     try {
       let metadata = await storage.getMetadata()
+      initialSyncPending = Boolean(metadata.ownerUserId && metadata.syncCursor === null)
+      initialSyncPendingRef.current = initialSyncPending
       let idMap: Record<string, string> = {}
       deviceIdRef.current = metadata.deviceId
       setImportConflicts(metadata.importConflicts)
@@ -386,18 +408,17 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         if (storage.updateMutation) await storage.updateMutation(mutation)
         try {
           await sendMutation(mutation)
-          await storage.removeMutation(mutation.id)
         } catch (error) {
-          const apiError = error instanceof ApiError
-            ? error
-            : new ApiError(0, 'SYNC_FAILED', error instanceof Error ? error.message : 'Sync failed.')
+          const { apiError, syncError: nextSyncError } = toSyncError(error)
           if (apiError.authRequired) {
             if (storage.updateMutation) {
               await storage.updateMutation({ ...mutation, status: 'pending', error: undefined })
             }
+            setSyncError(null)
             setSyncStatus('offline')
             break
           }
+          setSyncError(nextSyncError)
           const failed: PendingMutation = {
             ...mutation,
             status: apiError.retryable ? 'pending' : 'failed',
@@ -436,6 +457,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           if (apiError.retryable) scheduleRetry(failed.attempts)
           break
         }
+        await storage.removeMutation(mutation.id)
       }
 
       const remaining = await storage.listPendingMutations()
@@ -446,30 +468,54 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
         await storage.saveMetadata(metadata)
         if (metadata.legacyClaimed) await deleteLegacyStorage()
+        initialSyncPendingRef.current = false
+        setSyncError(null)
         stateRef.current = remote.state
         setState(remote.state)
       }
       await refreshQueueStatus()
     } catch (error) {
-      setSyncStatus('offline')
-      if (error instanceof ApiError && error.retryable) scheduleRetry(1)
+      const { apiError, syncError: nextSyncError } = toSyncError(error)
+      if (apiError.authRequired) {
+        setSyncError(null)
+        setSyncStatus('offline')
+        return
+      }
+      if (!(error instanceof ApiError)) {
+        updateStorageStatus('error', error instanceof Error ? error.message : 'Local storage could not be updated.')
+        return
+      }
+      setSyncError(nextSyncError)
+      setSyncStatus(initialSyncPendingRef.current || initialSyncPending ? 'initial-sync' : 'offline')
+      if (apiError.retryable) scheduleRetry(1)
     } finally {
       syncingRef.current = false
     }
-  }, [refreshQueueStatus, scheduleRetry, storage])
+  }, [refreshQueueStatus, scheduleRetry, storage, updateStorageStatus])
 
   const boot = useCallback(async () => {
     bootReportRef.current = null
     updateStorageStatus('loading')
     try {
       await storage.open()
-      let loaded: GroceaState
+      let loaded: GroceaState | undefined
       let metadata = storage.getMetadata ? await storage.getMetadata() : null
       if (metadata) deviceIdRef.current = metadata.deviceId
-      const freshAccount = Boolean(metadata?.ownerUserId && metadata.syncCursor === null && metadata.remoteImportStatus === 'complete')
+      const freshAccount = Boolean(metadata?.ownerUserId && metadata.syncCursor === null)
+      initialSyncPendingRef.current = Boolean(metadata?.ownerUserId && metadata.syncCursor === null)
       if (freshAccount) {
+        let remote: Awaited<ReturnType<typeof fetchState>> | null = null
         try {
-          const remote = await fetchState()
+          remote = await fetchState()
+        } catch (error) {
+          const { apiError, syncError: nextSyncError } = toSyncError(error)
+          if (apiError.authRequired) throw error
+          loaded = await storage.loadState()
+          setSyncError(nextSyncError)
+          setSyncStatus('initial-sync')
+          if (apiError.retryable) scheduleRetry(1)
+        }
+        if (remote) {
           loaded = remote.state
           if (storage.saveCanonicalState) await storage.saveCanonicalState(remote.state)
           else await storage.saveState(remote.state)
@@ -477,33 +523,36 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
             await storage.saveMetadata(metadata)
           }
-        } catch (error) {
-          if (error instanceof ApiError && error.authRequired) throw error
-          loaded = await storage.loadState()
+          initialSyncPendingRef.current = false
+          setSyncError(null)
         }
       } else {
         loaded = await storage.loadState()
       }
+      if (!loaded) throw new Error('Stored Grocea data could not be loaded.')
       stateRef.current = loaded
       setState(loaded)
       updateStorageStatus('ready')
       await refreshQueueStatus()
       if (storage.getMetadata && !freshAccount) void synchronize(loaded)
     } catch (error) {
+      if (error instanceof ApiError && error.authRequired) return
       updateStorageStatus('error', error instanceof Error ? error.message : 'Local storage could not be opened.')
     }
-  }, [refreshQueueStatus, storage, synchronize, updateStorageStatus])
+  }, [refreshQueueStatus, scheduleRetry, storage, synchronize, updateStorageStatus])
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void boot() }, 0)
     const sync = () => { void synchronize() }
     window.addEventListener('focus', sync)
+    window.addEventListener('online', sync)
     window.addEventListener('grocea:sync', sync)
     window.addEventListener('grocea:auth-validated', sync)
     return () => {
       window.clearTimeout(timer)
       if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current)
       window.removeEventListener('focus', sync)
+      window.removeEventListener('online', sync)
       window.removeEventListener('grocea:sync', sync)
       window.removeEventListener('grocea:auth-validated', sync)
       storage.close?.()
@@ -1041,13 +1090,20 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     updateStorageStatus('loading')
     try {
       const resetState = await storage.reset()
+      const metadata = storage.getMetadata ? await storage.getMetadata() : null
+      initialSyncPendingRef.current = Boolean(metadata?.ownerUserId && metadata.syncCursor === null)
+      setSyncError(null)
       stateRef.current = resetState
       setState(resetState)
       updateStorageStatus('ready')
+      if (metadata) {
+        setSyncStatus('initial-sync')
+        void synchronize(resetState)
+      }
     } catch (error) {
       updateStorageStatus('error', error instanceof Error ? error.message : 'Local data could not be reset.')
     }
-  }, [storage, updateStorageStatus])
+  }, [storage, synchronize, updateStorageStatus])
 
   if (!state) {
     if (storageStatus === 'error') {
@@ -1061,6 +1117,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     storageStatus,
     storageError,
     syncStatus,
+    syncError,
     pendingMutationCount,
     syncIssues,
     importConflicts,

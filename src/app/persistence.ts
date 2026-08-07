@@ -413,11 +413,11 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
       const imported = accountScoped
         ? { state: cloneState(this.seed), status: 'none' as const }
         : importLegacy(this.seed, legacyRaw)
-      if (!accountScoped || !existingMetadata) {
+      if (!existing || !existingMetadata) {
         const transaction = database.transaction(['state', 'metadata'], 'readwrite')
         await Promise.all([
-          ...(accountScoped ? [] : [transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: imported.state })]),
-          transaction.objectStore('metadata').put({
+          ...(!existing ? [transaction.objectStore('state').put({ key: CURRENT_STATE_KEY, value: imported.state })] : []),
+          ...(!existingMetadata ? [transaction.objectStore('metadata').put({
             key: DATABASE_METADATA_KEY,
             schemaVersion: DATABASE_VERSION,
             seedVersion: SEED_VERSION,
@@ -429,7 +429,7 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
             importConflicts: [],
             ownerUserId: this.ownerUserId,
             legacyClaimed: false,
-          }),
+          })] : []),
           transaction.done,
         ])
       }

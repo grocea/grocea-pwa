@@ -67,13 +67,32 @@ describe('IndexedDbGroceaStorage', () => {
     expect(restored.activity[0].changes[0].delta).toBe(500_000n)
   })
 
-  it('creates account-scoped metadata without fixture state', async () => {
+  it('creates account-scoped metadata with provisional fixture state', async () => {
     const userId = crypto.randomUUID()
     const storage = createGroceaStorage(userId)
     await storage.open()
     expect((await storage.getMetadata()).ownerUserId).toBe(userId)
-    await expect(storage.loadState()).rejects.toThrow('corrupt or incompatible')
+    const state = await storage.loadState()
+    expect(state.balances.rice).toBe(2_400_000n)
+    expect(state.profile.displayName).toBe(initialState.profile.displayName)
     await storage.destroy()
+  })
+
+  it('repairs an account database whose state row is missing', async () => {
+    const userId = crypto.randomUUID()
+    const databaseName = `${DATABASE_NAME}:${userId}`
+    const storage = createGroceaStorage(userId)
+    await storage.open()
+    storage.close()
+    const database = await openDB(databaseName, DATABASE_VERSION)
+    await database.delete('state', 'current')
+    database.close()
+
+    const reopened = createGroceaStorage(userId)
+    await reopened.open()
+    expect((await reopened.loadState()).balances.rice).toBe(2_400_000n)
+    expect((await reopened.getMetadata()).ownerUserId).toBe(userId)
+    await reopened.destroy()
   })
 
   it('claims a legacy database before syncing and leaves a recovery copy', async () => {

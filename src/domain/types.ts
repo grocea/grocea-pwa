@@ -123,6 +123,13 @@ export interface ImportConflict {
   message: string
 }
 
-export type SyncStatus = 'offline' | 'idle' | 'syncing' | 'pending' | 'failed'
+export interface SyncError {
+  code: string
+  status: number
+  message: string
+  retryable: boolean
+}
+
+export type SyncStatus = 'offline' | 'idle' | 'syncing' | 'pending' | 'failed' | 'initial-sync'
 
 export const isPublishedRecipe = (recipe: Recipe): recipe is PublishedRecipe => recipe.status === 'published'

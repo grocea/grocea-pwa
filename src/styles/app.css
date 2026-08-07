@@ -304,9 +304,15 @@
 }
 .sync-indicator { position: relative; width: 44px; height: 44px; display: grid; place-items: center; flex: none; color: var(--green); border: 1px solid transparent; border-radius: 13px; background: var(--green-soft); text-decoration: none; }
 .sync-indicator.failed { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 28%, transparent); background: #fbe9e4; }
-.sync-indicator.offline, .sync-indicator.pending { color: var(--warning); border-color: #efd6ae; background: var(--warning-bg); }
+.sync-indicator.offline, .sync-indicator.pending, .sync-indicator.initial-sync { color: var(--warning); border-color: #efd6ae; background: var(--warning-bg); }
 .sync-count { position: absolute; top: -5px; right: -5px; min-width: 19px; height: 19px; display: grid; place-items: center; padding: 0 5px; color: #fff; border: 2px solid var(--warm); border-radius: 999px; background: var(--warning); font-size: 9px; font-weight: 800; line-height: 1; }
 .sync-indicator.syncing svg { animation: sync-rotate 1s linear infinite; }
+.sync-indicator.initial-sync svg { animation: sync-rotate 2.2s linear infinite; }
+.initial-sync-card > span { width: 100%; }
+.initial-sync-card .button { justify-self: start; margin-top: 7px; }
+.sync-error-details { margin-top: 7px; }
+.sync-error-details summary { color: var(--green); cursor: pointer; font-size: 12px; font-weight: 700; }
+.sync-error-details small { display: block; margin-top: 5px; overflow-wrap: anywhere; }
 @keyframes sync-rotate { to { transform: rotate(360deg); } }
 
 /* Kitchen Ledger redesign — shared language for every MVP 0 flow. */

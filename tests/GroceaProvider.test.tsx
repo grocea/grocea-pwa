@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { openDB } from 'idb'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GroceaProvider } from '../src/app/GroceaProvider'
 import { initialState } from '../src/app/fixtures'
 import { useGrocea } from '../src/app/grocea-context'
 import { BootSplashProvider, useBootSplash } from '../src/app/boot-context'
-import { cloneState, type DatabaseMetadata, type GroceaStorage } from '../src/app/persistence'
+import { cloneState, createGroceaStorage, DATABASE_NAME, DATABASE_VERSION, type DatabaseMetadata, type GroceaStorage } from '../src/app/persistence'
 import type { GroceaState, PendingMutation } from '../src/domain/types'
 import { GroceaLoadingSplash } from '../src/shared/ui/GroceaLoadingSplash'
 
@@ -68,6 +69,64 @@ function SyncProbe() {
   </div>
 }
 
+function InitialSyncProbe() {
+  const { profile, ingredients, syncStatus, syncError, retrySync } = useGrocea()
+  const { phase } = useBootSplash()
+  return <div>
+    <span data-testid="boot-phase">{phase}</span>
+    <span data-testid="sync-status">{syncStatus}</span>
+    <span data-testid="sync-error">{syncError ? `${syncError.code}:${syncError.status}:${syncError.message}` : ''}</span>
+    <span data-testid="profile-name">{profile.displayName}</span>
+    <span data-testid="ingredient-count">{ingredients.length}</span>
+    <button onClick={() => void retrySync()}>Retry initial sync</button>
+  </div>
+}
+
+function remoteStateResponse() {
+  const timestamp = '2026-08-07T00:00:00Z'
+  return new Response(JSON.stringify({
+    revision: 9,
+    profile: {
+      id: crypto.randomUUID(),
+      display_name: 'Remote Grocie',
+      preferred_servings: 4,
+      measurement_system: 'metric',
+      created_at: timestamp,
+      updated_at: timestamp,
+    },
+    categories: [{
+      id: 'pantry',
+      name: 'Pantry staples',
+      scope: 'global',
+      archived_at: null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }],
+    ingredients: [{
+      id: 'rice',
+      name: 'Remote rice',
+      category_id: 'pantry',
+      measurement_family: 'mass',
+      scope: 'global',
+      tracked_in_pantry: true,
+      archived_at: null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }],
+    pantry_stocks: [{
+      id: crypto.randomUUID(),
+      ingredient_id: 'rice',
+      quantity: '1.000',
+      created_at: timestamp,
+      updated_at: timestamp,
+    }],
+    recipes: [],
+    activity: [],
+    basket: { items: [] },
+    grocery_lists: [],
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+}
+
 function GroceryProbe() {
   const { basket, groceryLists, addRecipeToBasket, confirmBasket } = useGrocea()
   return <div>
@@ -98,6 +157,97 @@ function DuplicatePantryProbe() {
 }
 
 describe('GroceaProvider persistence', () => {
+  it('opens provisional seed state while initial server state is unavailable', async () => {
+    const storage = createGroceaStorage(crypto.randomUUID())
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+
+    render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider></BootSplashProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('initial-sync'))
+    await waitFor(() => expect(screen.getByTestId('boot-phase').textContent).toBe('ready'))
+    expect(screen.getByTestId('profile-name').textContent).toBe(initialState.profile.displayName)
+    expect(screen.getByTestId('ingredient-count').textContent).toBe(String(initialState.ingredients.length))
+    expect(screen.getByTestId('sync-error').textContent).toBe('NETWORK_UNAVAILABLE:0:Backend API is unavailable.')
+    await storage.destroy()
+  })
+
+  it('replaces provisional seed state after initial sync retry succeeds', async () => {
+    const storage = createGroceaStorage(crypto.randomUUID())
+    let attempts = 0
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      attempts += 1
+      if (attempts === 1) throw new TypeError('Failed to fetch')
+      return remoteStateResponse()
+    }))
+
+    render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider></BootSplashProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('initial-sync'))
+    fireEvent.click(screen.getByRole('button', { name: 'Retry initial sync' }))
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('idle'))
+    expect(screen.getByTestId('profile-name').textContent).toBe('Remote Grocie')
+    expect(screen.getByTestId('sync-error').textContent).toBe('')
+    expect((await storage.getMetadata()).syncCursor).toBe('9')
+    await storage.destroy()
+  })
+
+  it('keeps provisional seed state usable after reopening the account database offline', async () => {
+    const userId = crypto.randomUUID()
+    const firstStorage = createGroceaStorage(userId)
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    const firstView = render(<BootSplashProvider><GroceaProvider storage={firstStorage}><InitialSyncProbe /></GroceaProvider></BootSplashProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('initial-sync'))
+    expect(screen.getByTestId('profile-name').textContent).toBe(initialState.profile.displayName)
+    firstView.unmount()
+
+    const reopenedStorage = createGroceaStorage(userId)
+    const reopenedView = render(<BootSplashProvider><GroceaProvider storage={reopenedStorage}><InitialSyncProbe /></GroceaProvider></BootSplashProvider>)
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('initial-sync'))
+    expect(screen.getByTestId('profile-name').textContent).toBe(initialState.profile.displayName)
+    reopenedView.unmount()
+    await reopenedStorage.destroy()
+  })
+
+  it('keeps an initial authentication failure out of local-storage recovery', async () => {
+    const storage = createGroceaStorage(crypto.randomUUID())
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ code: 'AUTHENTICATION_REQUIRED', message: 'Authentication is required.' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })))
+    const view = render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider><BootFailureProbe /></BootSplashProvider>)
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    expect(screen.queryByTestId('profile-name')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeNull()
+    view.unmount()
+    await storage.destroy()
+  })
+
+  it('resets corrupt account data to seed and starts the initial sync again', async () => {
+    const userId = crypto.randomUUID()
+    const storage = createGroceaStorage(userId)
+    await storage.open()
+    storage.close()
+    const database = await openDB(`${DATABASE_NAME}:${userId}`, DATABASE_VERSION)
+    await database.put('state', { key: 'current', value: { invalid: true } })
+    database.close()
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    const view = render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider><BootFailureProbe /></BootSplashProvider>)
+
+    expect(await screen.findByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset local data' }))
+    expect(await screen.findByRole('heading', { name: 'Reset all local data?' })).toBeTruthy()
+    const resetButtons = screen.getAllByRole('button', { name: 'Reset local data' })
+    fireEvent.click(resetButtons[0])
+    await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('initial-sync'))
+    expect(screen.getByTestId('profile-name').textContent).toBe(initialState.profile.displayName)
+    expect((await storage.getMetadata()).syncCursor).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Grocea couldn’t open your data' })).toBeNull())
+    view.unmount()
+    await storage.destroy()
+  })
+
   it('reports boot failures through the shared splash recovery dialog', async () => {
     render(<BootSplashProvider><GroceaProvider storage={new FailingStorage()} /><BootFailureProbe /></BootSplashProvider>)
 

@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GroceaProvider } from '../src/app/GroceaProvider'
 import { initialState } from '../src/app/fixtures'
-import { cloneState, type GroceaStorage } from '../src/app/persistence'
+import { cloneState, createGroceaStorage, type GroceaStorage } from '../src/app/persistence'
 import type { GroceaState, PendingMutation } from '../src/domain/types'
 import { ActivityListScreen } from '../src/features/activity/ActivityScreens'
 import { CategoriesScreen, SyncIssuesScreen } from '../src/features/more/MoreScreens'
@@ -12,9 +12,11 @@ import { AddStockScreen, PantryScreen } from '../src/features/pantry/screens'
 import { RecipeListScreen } from '../src/features/recipes/RecipeScreens'
 import { BasketScreen, GroceriesScreen, GroceryListScreen } from '../src/features/groceries/GroceryScreens'
 import { usePendingAction } from '../src/shared/lib/usePendingAction'
-import { BackHeader, PageHeading, ToastNotice } from '../src/shared/ui/AppShell'
+import { BackHeader, BrandHeader, PageHeading, ToastNotice } from '../src/shared/ui/AppShell'
 import { ConfirmDialog } from '../src/shared/ui/ConfirmDialog'
 import { RouteTransitionManager } from '../src/shared/ui/RouteTransitionManager'
+
+afterEach(() => vi.unstubAllGlobals())
 
 class MemoryStorage implements GroceaStorage {
   state = cloneState(initialState)
@@ -135,6 +137,25 @@ describe('stock and catalog recovery', () => {
 })
 
 describe('pending and destructive actions', () => {
+  it('shows a recoverable first-sync diagnostic without exposing request details', async () => {
+    const storage = createGroceaStorage(crypto.randomUUID())
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    const view = renderRoute(<><BrandHeader /><SyncIssuesScreen /></>, '/sync-issues', storage)
+
+    expect(await screen.findByRole('button', { name: 'Retry first sync' })).toBeTruthy()
+    expect(screen.getByText(/service is unavailable right now/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Retry first sync' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Synchronization status: First sync pending' })).toBeTruthy()
+    expect(screen.queryByText(/cookie|request body|credentials/i)).toBeNull()
+    fireEvent.click(screen.getByText('Show technical details'))
+    expect(screen.getByRole('group').textContent).toContain('Code: NETWORK_UNAVAILABLE')
+    expect(screen.getByRole('group').textContent).toContain('HTTP status: 0')
+    expect(screen.getByRole('group').textContent).toContain('Message: Backend API is unavailable.')
+
+    view.unmount()
+    await storage.destroy()
+  })
+
   it('runs a rapid double click only once', async () => {
     let resolve!: () => void
     const action = vi.fn(() => new Promise<void>(done => { resolve = done }))

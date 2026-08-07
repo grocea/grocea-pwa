@@ -35,9 +35,9 @@ export function AppShell({ children, navigation = false, action }: { children: R
 
 export function BrandHeader({ action }: { action?: ReactNode }) {
   const { profile, syncStatus, pendingMutationCount } = useGrocea()
-  const syncLabel = syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Synced'
-  const status = syncStatus === 'syncing' ? 'syncing' : syncStatus === 'failed' ? 'failed' : syncStatus === 'offline' ? 'offline' : pendingMutationCount ? 'pending' : 'synced'
-  const StatusIcon = status === 'syncing' ? ArrowClockwise : status === 'failed' ? WarningCircle : status === 'offline' ? WifiSlash : status === 'pending' ? Clock : CheckCircle
+  const syncLabel = syncStatus === 'initial-sync' ? 'First sync pending' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Synced'
+  const status = syncStatus === 'initial-sync' ? 'initial-sync' : syncStatus === 'syncing' ? 'syncing' : syncStatus === 'failed' ? 'failed' : syncStatus === 'offline' ? 'offline' : pendingMutationCount ? 'pending' : 'synced'
+  const StatusIcon = status === 'initial-sync' || status === 'syncing' ? ArrowClockwise : status === 'failed' ? WarningCircle : status === 'offline' ? WifiSlash : status === 'pending' ? Clock : CheckCircle
   return <><header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-indicator ${status}`} aria-label={`Synchronization status: ${syncLabel}`} title={syncLabel}><StatusIcon size={21} weight={status === 'synced' ? 'fill' : 'bold'} aria-hidden="true" />{pendingMutationCount > 0 && <span className="sync-count" aria-hidden="true">{pendingMutationCount > 99 ? '99+' : pendingMutationCount}</span>}<span className="sr-only">{syncLabel}</span></Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header><div className="app-header-offset" aria-hidden="true" /></>
 }
 

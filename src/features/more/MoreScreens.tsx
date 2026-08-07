@@ -3,6 +3,7 @@ import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useGrocea } from '../../app/grocea-context'
 import { useAuth } from '../../app/auth-context'
+import type { SyncError, SyncStatus } from '../../domain/types'
 import { usePendingAction } from '../../shared/lib/usePendingAction'
 import { AppShell, BackHeader, BrandHeader, EmptyState, OwnershipMark, PageHeading } from '../../shared/ui/AppShell'
 import { ConfirmDialog } from '../../shared/ui/ConfirmDialog'
@@ -11,8 +12,8 @@ export function MoreScreen() {
   const { profile, categories, ingredients, groceryLists, syncStatus, pendingMutationCount } = useGrocea()
   const { account } = useAuth()
   const activeList = groceryLists.find(list => list.status === 'active')
-  const SyncIcon = syncStatus === 'failed' ? WarningCircle : syncStatus === 'offline' ? WifiSlash : syncStatus === 'syncing' ? ArrowClockwise : pendingMutationCount ? Clock : CheckCircle
-  const syncLabel = syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : syncStatus === 'syncing' ? 'Syncing' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Up to date'
+  const SyncIcon = syncStatus === 'initial-sync' || syncStatus === 'syncing' ? ArrowClockwise : syncStatus === 'failed' ? WarningCircle : syncStatus === 'offline' ? WifiSlash : pendingMutationCount ? Clock : CheckCircle
+  const syncLabel = syncStatus === 'initial-sync' ? 'First sync pending' : syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : syncStatus === 'syncing' ? 'Syncing' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Up to date'
   return <AppShell navigation><BrandHeader /><main className="screen-content"><PageHeading title="More" subtitle="Preferences and catalog tools" /><Link className="profile-summary profile-summary-link" to="/profile"><span>{profile.displayName[0].toUpperCase()}</span><div><strong>{profile.displayName}</strong><small>{account?.email ?? 'Account'} · Metric</small></div><ArrowRight /></Link><section className="menu-list"><Link to="/groceries"><span className="menu-icon"><Basket /></span><span><strong>Groceries</strong><small>{activeList ? `${activeList.items.filter(item => item.checked).length}/${activeList.items.length} checked · active list` : `${groceryLists.length} saved lists`}</small></span><ArrowRight /></Link><Link to="/sync-issues"><span className="menu-icon"><SyncIcon weight={syncStatus === 'idle' && !pendingMutationCount ? 'fill' : 'regular'} /></span><span><strong>Synchronization</strong><small>{syncLabel}</small></span><ArrowRight /></Link><Link to="/ingredients"><span className="menu-icon"><Basket /></span><span><strong>Ingredient catalog</strong><small>{ingredients.length} ingredients</small></span><ArrowRight /></Link><Link to="/categories"><span className="menu-icon"><FolderSimple /></span><span><strong>Categories</strong><small>{categories.length} global and custom categories</small></span><ArrowRight /></Link>{import.meta.env.DEV && <Link to="/system-states"><span className="menu-icon"><Database /></span><span><strong>System states</strong><small>Reusable UI state reference</small></span><ArrowRight /></Link>}</section><div className="info-banner"><ShieldCheck /><span><strong>Available offline</strong><br />Changes save in this account on this device, then sync with the Grocea service.</span></div></main></AppShell>
 }
 
@@ -52,10 +53,22 @@ function describeSyncIssue(issue: { type: string; error?: { code: string; messag
   return { title: 'Change needs attention', message: 'This change is safe on this device. Retry sync or discard it if you no longer want to send it.' }
 }
 
-function syncStatusNotice(syncStatus: string, pendingMutationCount: number, hasFailures: boolean, hasConflicts: boolean) {
+function initialSyncCause(syncError: SyncError | null) {
+  if (syncError?.code === 'NETWORK_UNAVAILABLE' || syncError?.status === 0) return 'The Grocea service is unavailable right now. Starter data is available on this device and we will retry when the connection returns.'
+  if (syncError && syncError.status >= 500) return 'The Grocea service is having trouble right now. Starter data is available on this device while we retry.'
+  return 'Your account has not completed its first sync yet. Starter data is available on this device and will be replaced by your account data after a successful sync.'
+}
+
+function syncErrorDetails(syncError: SyncError | null) {
+  if (!syncError) return null
+  return <details className="sync-error-details"><summary>Show technical details</summary><small>Code: {syncError.code}<br />HTTP status: {syncError.status}<br />Message: {syncError.message}</small></details>
+}
+
+function syncStatusNotice(syncStatus: SyncStatus, pendingMutationCount: number, hasFailures: boolean, hasConflicts: boolean, syncError: SyncError | null, onRetry: () => void, retrying: boolean) {
   if (hasConflicts) return <div className="warning-banner"><WarningCircle /><span><strong>Imported data needs review</strong><small>Resolve the conflicts below before treating synchronization as complete.</small></span></div>
   if (hasFailures) return <div className="warning-banner danger"><WarningCircle /><span><strong>{pendingMutationCount} change{pendingMutationCount === 1 ? '' : 's'} need attention</strong><small>Local changes remain available. Retry them or discard them deliberately.</small></span></div>
   if (syncStatus === 'failed') return <div className="warning-banner danger"><WarningCircle /><span><strong>Synchronization needs attention</strong><small>Retry now, then contact support if this message keeps returning.</small></span></div>
+  if (syncStatus === 'initial-sync') return <div className="warning-banner initial-sync-card"><ArrowClockwise /><span><strong>First sync pending</strong><small>{initialSyncCause(syncError)}</small><button className="button secondary compact" type="button" disabled={retrying} aria-busy={retrying} onClick={onRetry}><ArrowClockwise />{retrying ? 'Retrying…' : 'Retry first sync'}</button>{syncErrorDetails(syncError)}</span></div>
   if (syncStatus === 'offline') return <div className="info-banner"><WifiSlash /><span><strong>Offline</strong><br />{pendingMutationCount ? `${pendingMutationCount} change${pendingMutationCount === 1 ? '' : 's'} saved on this device and queued for later.` : 'Changes will stay on this device until the service is reachable.'}</span></div>
   if (syncStatus === 'syncing') return <div className="info-banner"><ArrowClockwise /><span><strong>Syncing changes</strong><br />Keep working. Local updates remain available while synchronization runs.</span></div>
   if (syncStatus === 'pending') return <div className="info-banner"><Clock /><span><strong>Changes saved on this device</strong><br />{pendingMutationCount} change{pendingMutationCount === 1 ? '' : 's'} queued for synchronization.</span></div>
@@ -111,12 +124,13 @@ export function ProfileScreen() {
 }
 
 export function SyncIssuesScreen() {
-  const { syncStatus, pendingMutationCount, syncIssues, importConflicts, retrySync, discardSyncIssue } = useGrocea()
+  const { syncStatus, syncError, pendingMutationCount, syncIssues, importConflicts, retrySync, discardSyncIssue } = useGrocea()
   const [discardTarget, setDiscardTarget] = useState<string | null>(null)
   const retryAction = usePendingAction(retrySync)
   const retryButton = pendingMutationCount || syncStatus !== 'idle' ? <button className="button secondary" disabled={retryAction.pending} aria-busy={retryAction.pending} onClick={() => void retryAction.run().catch(() => undefined)}><ArrowClockwise />{retryAction.pending ? 'Retrying…' : 'Retry now'}</button> : undefined
   const hasFailures = syncIssues.length > 0
-  return <AppShell navigation><BackHeader title="Synchronization" fallbackTo="/more" eyebrow={syncStatus.toUpperCase()} /><main className="screen-content sync-content"><PageHeading title="Sync status" subtitle={`${pendingMutationCount} queued change${pendingMutationCount === 1 ? '' : 's'}`} action={retryButton} />{syncStatusNotice(syncStatus, pendingMutationCount, hasFailures, importConflicts.length > 0)}{syncIssues.map(issue => { const description = describeSyncIssue(issue); return <article className="sync-issue" key={issue.id}><div><strong>{description.title}</strong><p>{description.message}</p><small>{new Date(issue.createdAt).toLocaleString()}</small></div><div className="sync-issue-actions"><button className="button secondary compact" disabled={retryAction.pending} onClick={() => void retryAction.run().catch(() => undefined)}><ArrowClockwise />{retryAction.pending ? 'Retrying…' : 'Retry'}</button><button className="button danger compact" onClick={() => setDiscardTarget(issue.id)}><Trash />Discard local change</button></div></article> })}{importConflicts.map(conflict => <article className="sync-issue" key={`${conflict.kind}:${conflict.localId}`}><div><strong>Imported data conflict</strong><p>{conflict.message}</p><details><summary>Show import details</summary><small>{conflict.kind} · Legacy item {conflict.localId}</small></details></div></article>)}</main><ConfirmDialog open={Boolean(discardTarget)} title="Discard local change?" description="This queued change and every dependent queued change will be permanently removed. This cannot be undone." confirmLabel="Discard changes" pendingLabel="Discarding…" onDismiss={() => setDiscardTarget(null)} onConfirm={async () => { if (discardTarget) await discardSyncIssue(discardTarget) }} /></AppShell>
+  const runRetry = () => { void retryAction.run().catch(() => undefined) }
+  return <AppShell navigation><BackHeader title="Synchronization" fallbackTo="/more" eyebrow={syncStatus.toUpperCase()} /><main className="screen-content sync-content"><PageHeading title="Sync status" subtitle={`${pendingMutationCount} queued change${pendingMutationCount === 1 ? '' : 's'}`} action={syncStatus === 'initial-sync' ? undefined : retryButton} />{syncStatusNotice(syncStatus, pendingMutationCount, hasFailures, importConflicts.length > 0, syncError, runRetry, retryAction.pending)}{syncIssues.map(issue => { const description = describeSyncIssue(issue); return <article className="sync-issue" key={issue.id}><div><strong>{description.title}</strong><p>{description.message}</p><small>{new Date(issue.createdAt).toLocaleString()}</small></div><div className="sync-issue-actions"><button className="button secondary compact" disabled={retryAction.pending} onClick={runRetry}><ArrowClockwise />{retryAction.pending ? 'Retrying…' : 'Retry'}</button><button className="button danger compact" onClick={() => setDiscardTarget(issue.id)}><Trash />Discard local change</button></div></article> })}{importConflicts.map(conflict => <article className="sync-issue" key={`${conflict.kind}:${conflict.localId}`}><div><strong>Imported data conflict</strong><p>{conflict.message}</p><details><summary>Show import details</summary><small>{conflict.kind} · Legacy item {conflict.localId}</small></details></div></article>)}</main><ConfirmDialog open={Boolean(discardTarget)} title="Discard local change?" description="This queued change and every dependent queued change will be permanently removed. This cannot be undone." confirmLabel="Discard changes" pendingLabel="Discarding…" onDismiss={() => setDiscardTarget(null)} onConfirm={async () => { if (discardTarget) await discardSyncIssue(discardTarget) }} /></AppShell>
 }
 
 export function SystemStatesScreen() {

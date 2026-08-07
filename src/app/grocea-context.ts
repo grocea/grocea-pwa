@@ -9,6 +9,7 @@ import type {
   MeasurementFamily,
   PendingMutation,
   StockOperation,
+  SyncError,
   SyncStatus,
 } from '../domain/types'
 
@@ -18,6 +19,7 @@ export interface GroceaContextValue extends GroceaState {
   storageStatus: StorageStatus
   storageError: string | null
   syncStatus: SyncStatus
+  syncError: SyncError | null
   pendingMutationCount: number
   syncIssues: PendingMutation[]
   importConflicts: ImportConflict[]
