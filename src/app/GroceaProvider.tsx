@@ -140,6 +140,13 @@ interface Transition<T> {
   mutation?: MutationDraft
 }
 
+class MutationBlockedError extends Error {
+  constructor() {
+    super('Connect once before making changes to this account.')
+    this.name = 'MutationBlockedError'
+  }
+}
+
 function canonicalUnit(ingredient: Ingredient) {
   return ingredient.family === 'mass' ? 'g' : ingredient.family === 'volume' ? 'ml' : 'item'
 }
@@ -705,7 +712,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         throw new Error('Local storage is unavailable. Retry before making changes.')
       }
       if (!canMutateRef.current) {
-        throw new Error('Connect once before making changes to this account.')
+        throw new MutationBlockedError()
       }
       const next = transition(stateRef.current)
       if (next.state !== stateRef.current) {
@@ -738,7 +745,9 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     })
     writeQueue.current = operation.then(() => undefined, () => undefined)
     return operation.catch(error => {
-      updateStorageStatus('error', error instanceof Error ? error.message : 'Your change could not be saved locally.')
+      if (!(error instanceof MutationBlockedError)) {
+        updateStorageStatus('error', error instanceof Error ? error.message : 'Your change could not be saved locally.')
+      }
       throw error
     })
   }, [refreshQueueStatus, storage, updateStorageStatus])

@@ -173,6 +173,7 @@ describe('GroceaProvider persistence', () => {
     expect(screen.getByTestId('can-mutate').textContent).toBe('false')
     fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }))
     await waitFor(() => expect(storage.listPendingMutations()).resolves.toHaveLength(0))
+    expect(screen.queryByText('Changes are paused')).toBeNull()
     await waitFor(() => expect(screen.getByTestId('boot-phase').textContent).toBe('ready'))
     expect(screen.getByTestId('profile-name').textContent).toBe(initialState.profile.displayName)
     expect(screen.getByTestId('ingredient-count').textContent).toBe(String(initialState.ingredients.length))
