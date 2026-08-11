@@ -114,6 +114,7 @@ export interface PendingMutation {
   status: 'pending' | 'syncing' | 'failed'
   error?: { code: string; message: string; retryable: boolean }
   dependsOn: string[]
+  expectedRevision?: number
   serverRevision?: number
 }
 

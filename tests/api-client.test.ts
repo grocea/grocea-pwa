@@ -111,6 +111,28 @@ describe('API contract mapping', () => {
     })
   })
 
+  it('sends the expected state revision and returns the committed revision', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => new Response('{}', {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'X-State-Revision': '12' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const mutation: PendingMutation = {
+      id: crypto.randomUUID(),
+      deviceId: crypto.randomUUID(),
+      type: 'profile.update',
+      createdAt: new Date().toISOString(),
+      payload: { displayName: 'Updated', preferredServings: 2 },
+      attempts: 0,
+      status: 'pending',
+      dependsOn: [],
+      expectedRevision: 11,
+    }
+
+    await expect(sendMutation(mutation)).resolves.toBe(12)
+    expect(new Headers(fetchMock.mock.calls[0][1].headers).get('X-Expected-State-Revision')).toBe('11')
+  })
+
   it('quarantines fixture aliases before they reach UUID-only API routes', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

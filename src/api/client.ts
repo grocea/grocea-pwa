@@ -211,7 +211,12 @@ export function setCsrfToken(token: string | null) {
   csrfToken = token
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+interface RequestResult<T> {
+  value: T
+  stateRevision?: number
+}
+
+async function requestWithMeta<T>(path: string, init: RequestInit = {}): Promise<RequestResult<T>> {
   let response: Response
   try {
     const headers = new Headers(init.headers)
@@ -244,8 +249,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw error
   }
-  if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
+  const rawStateRevision = response.headers.get('X-State-Revision')
+  const stateRevision = rawStateRevision === null ? undefined : Number(rawStateRevision)
+  const result = response.status === 204 ? undefined as T : await response.json() as T
+  return { value: result, stateRevision: Number.isFinite(stateRevision) ? stateRevision : undefined }
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await requestWithMeta<T>(path, init)).value
 }
 
 export async function registerAccount(email: string, password: string, displayName: string): Promise<AuthSession> {
@@ -302,6 +313,9 @@ export async function fetchState() {
 const mutationHeaders = (mutation: PendingMutation) => ({
   'Idempotency-Key': mutation.id,
   'X-Device-ID': mutation.deviceId,
+  ...(mutation.expectedRevision === undefined && mutation.serverRevision === undefined
+    ? {}
+    : { 'X-Expected-State-Revision': String(mutation.expectedRevision ?? mutation.serverRevision) }),
 })
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -436,7 +450,7 @@ const recipePayload = (recipe: DraftRecipe, includeId = true) => ({
   steps: recipe.steps,
 })
 
-export async function sendMutation(mutation: PendingMutation): Promise<void> {
+export async function sendMutation(mutation: PendingMutation): Promise<number | undefined> {
   assertMutationEntityIds(mutation)
   const headers = mutationHeaders(mutation)
   const payload = mutation.payload as Record<string, unknown>
@@ -579,7 +593,8 @@ export async function sendMutation(mutation: PendingMutation): Promise<void> {
     default:
       throw new ApiError(400, 'UNKNOWN_MUTATION', `Unsupported mutation type: ${mutation.type}`)
   }
-  await request(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+  const result = await requestWithMeta(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+  return result.stateRevision
 }
 
 function groceryItemPayload(item: GroceryListItem, includeId: boolean) {

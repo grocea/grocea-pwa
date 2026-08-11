@@ -368,6 +368,10 @@ function freshAccountNeedsRemote(metadata: DatabaseMetadata | null): boolean {
   )
 }
 
+function mutationRevision(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined
+}
+
 export function GroceaProvider({ children, storage = groceaStorage }: { children: ReactNode; storage?: GroceaStorage }) {
   const [state, setState] = useState<GroceaState | null>(null)
   const [storageStatus, setStorageStatus] = useState<StorageStatus>('loading')
@@ -435,6 +439,8 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       initialSyncPendingRef.current = initialSyncPending
       updateMutationAvailability(metadata)
       let idMap: Record<string, string> = {}
+      let remoteRevision = metadata.syncCursor === null ? undefined : Number(metadata.syncCursor)
+      if (!Number.isFinite(remoteRevision)) remoteRevision = undefined
       deviceIdRef.current = metadata.deviceId
       setImportConflicts(metadata.importConflicts)
       const localCandidate = importCandidate ?? stateRef.current
@@ -447,6 +453,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           remoteImportStatus: imported.conflicts.length ? 'conflicts' : 'complete',
           importConflicts: imported.conflicts,
         }
+        remoteRevision = imported.revision
         await storage.saveMetadata(metadata)
         setImportConflicts(imported.conflicts)
         updateMutationAvailability(metadata)
@@ -477,10 +484,18 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           failedIds.add(failed.id)
           continue
         }
-        const mutation = { ...current, status: 'syncing' as const, lastAttemptAt: new Date().toISOString() }
+        const expectedRevision = remoteRevision
+        const mutation = {
+          ...current,
+          expectedRevision,
+          serverRevision: expectedRevision,
+          status: 'syncing' as const,
+          lastAttemptAt: new Date().toISOString(),
+        }
         if (storage.updateMutation) await storage.updateMutation(mutation)
         try {
-          await sendMutation(mutation)
+          const nextRevision = await sendMutation(mutation)
+          if (nextRevision !== undefined) remoteRevision = nextRevision
         } catch (error) {
           const { apiError, syncError: nextSyncError } = toSyncError(error)
           if (apiError.authRequired) {
@@ -526,6 +541,15 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
               stateRef.current = recovered
               setState(recovered)
             }
+          }
+          if (apiError.code === 'STATE_REVISION_CONFLICT') {
+            const currentRevision = mutationRevision(apiError.details.current_revision)
+            if (currentRevision !== undefined) {
+              remoteRevision = currentRevision
+              metadata = { ...metadata, syncCursor: String(currentRevision) }
+              await storage.saveMetadata(metadata)
+            }
+            break
           }
           if (apiError.retryable) {
             scheduleRetry(failed.attempts)
