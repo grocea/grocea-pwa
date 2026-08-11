@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { openDB } from 'idb'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GroceaProvider } from '../src/app/GroceaProvider'
+import { setCsrfToken } from '../src/api/client'
 import { initialState } from '../src/app/fixtures'
 import { useGrocea } from '../src/app/grocea-context'
 import { BootSplashProvider, useBootSplash } from '../src/app/boot-context'
@@ -33,7 +34,10 @@ class FailingStorage extends MemoryStorage {
   async open() { throw new Error('Stored Grocea data could not be reconciled.') }
 }
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  setCsrfToken(null)
+  vi.unstubAllGlobals()
+})
 
 function Probe() {
   const { profile, updateProfile } = useGrocea()
@@ -238,6 +242,60 @@ describe('GroceaProvider persistence', () => {
     expect(screen.getByTestId('sync-error').textContent).toBe('')
     expect((await storage.getMetadata()).syncCursor).toBe('9')
     await storage.destroy()
+  })
+
+  it('waits for authenticated reconnect before synchronizing queued mutations', async () => {
+    const storage = new MemoryStorage()
+    const metadata: DatabaseMetadata = {
+      key: 'database',
+      schemaVersion: 4,
+      seedVersion: 1,
+      migrationStatus: 'none',
+      deviceId: crypto.randomUUID(),
+      syncCursor: '8',
+      remoteImportStatus: 'complete',
+      importId: crypto.randomUUID(),
+      importConflicts: [],
+      ownerUserId: crypto.randomUUID(),
+    }
+    let metadataAvailable = false
+    Object.assign(storage, {
+      getMetadata: async () => metadataAvailable ? ({ ...metadata }) : null,
+      saveMetadata: async () => undefined,
+      updateMutation: async (next: PendingMutation) => {
+        storage.mutations = storage.mutations.map(item => item.id === next.id ? next : item)
+      },
+    })
+    const mutation: PendingMutation = {
+      id: crypto.randomUUID(),
+      deviceId: metadata.deviceId,
+      type: 'profile.update',
+      createdAt: new Date().toISOString(),
+      payload: { displayName: 'Reconnected', preferredServings: 2 },
+      attempts: 0,
+      status: 'pending',
+      dependsOn: [],
+    }
+    const fetchMock = vi.fn(async (input: string | URL) => {
+      const url = String(input)
+      if (url === '/api/profile') return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json', 'X-State-Revision': '9' } })
+      if (url === '/api/state') return remoteStateResponse()
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider>)
+    await waitFor(() => expect(screen.getByTestId('boot-phase').textContent).toBe('ready'))
+    metadataAvailable = true
+    storage.mutations = [mutation]
+
+    window.dispatchEvent(new Event('online'))
+    await new Promise(resolve => setTimeout(resolve, 10))
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    setCsrfToken('csrf-token')
+    window.dispatchEvent(new Event('grocea:auth-validated'))
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/profile')).toBe(true))
   })
 
   it('keeps provisional seed state usable after reopening the account database offline', async () => {

@@ -211,6 +211,10 @@ export function setCsrfToken(token: string | null) {
   csrfToken = token
 }
 
+export function hasCsrfToken(): boolean {
+  return csrfToken !== null
+}
+
 interface RequestResult<T> {
   value: T
   stateRevision?: number

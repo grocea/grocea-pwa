@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ApiError, fetchState, importLocalState, sendMutation } from '../api/client'
+import { ApiError, fetchState, hasCsrfToken, importLocalState, sendMutation } from '../api/client'
 import type {
   ActivityEvent,
   BasketItem,
@@ -666,18 +666,17 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
 
   useEffect(() => {
     const timer = window.setTimeout(() => { void boot() }, 0)
-    const sync = () => { void synchronize() }
+    const sync = () => { if (hasCsrfToken()) void synchronize() }
+    const syncAfterAuth = () => { void synchronize() }
     window.addEventListener('focus', sync)
-    window.addEventListener('online', sync)
     window.addEventListener('grocea:sync', sync)
-    window.addEventListener('grocea:auth-validated', sync)
+    window.addEventListener('grocea:auth-validated', syncAfterAuth)
     return () => {
       window.clearTimeout(timer)
       if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current)
       window.removeEventListener('focus', sync)
-      window.removeEventListener('online', sync)
       window.removeEventListener('grocea:sync', sync)
-      window.removeEventListener('grocea:auth-validated', sync)
+      window.removeEventListener('grocea:auth-validated', syncAfterAuth)
       storage.close?.()
     }
   }, [boot, storage, synchronize])
