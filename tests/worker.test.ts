@@ -26,7 +26,10 @@ describe('Cloudflare Worker API proxy', () => {
       body: JSON.stringify({ email: 'user@example.com', password: 'long-enough-password' }),
     })
 
-    const response = await handleRequest(request, { ASSETS: assets })
+    const response = await handleRequest(request, {
+      ASSETS: assets,
+      BACKEND_ORIGIN: 'https://grocea-backend.vercel.app',
+    })
     const forwarded = fetchMock.mock.calls[0][0] as Request
 
     expect(fetchMock).toHaveBeenCalledOnce()
@@ -37,6 +40,19 @@ describe('Cloudflare Worker API proxy', () => {
     expect(await forwarded.json()).toEqual({ email: 'user@example.com', password: 'long-enough-password' })
     expect(response).toBe(upstream)
     expect(response.headers.get('Set-Cookie')).toContain('grocea_session=token')
+  })
+
+  it('fails API requests clearly when the backend origin is not configured', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const response = await handleRequest(
+      new Request('https://grocea-pwa.ammar-jmldn.workers.dev/api/state'),
+      { ASSETS: { fetch: vi.fn() }, BACKEND_ORIGIN: '' },
+    )
+
+    expect(response.status).toBe(500)
+    expect(await response.text()).toContain('BACKEND_ORIGIN')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('serves non-API requests from static assets', async () => {

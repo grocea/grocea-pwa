@@ -3,6 +3,9 @@
   "name": "grocea-pwa",
   "main": "src/worker.ts",
   "compatibility_date": "2026-07-27",
+  "vars": {
+    "BACKEND_ORIGIN": "https://grocea-backend.vercel.app"
+  },
   "observability": {
     "enabled": true
   },
