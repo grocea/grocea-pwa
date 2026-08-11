@@ -333,7 +333,7 @@ function mutationEntityIds(mutation: PendingMutation): string[] {
   const recipeBasis = Array.isArray(payload.recipeBasis) ? payload.recipeBasis : []
   const pantryBasis = Array.isArray(payload.pantryBasis) ? payload.pantryBasis : []
   const sources = item && Array.isArray(item.sources) ? item.sources : []
-  const ids: unknown[] = []
+  const ids: string[] = []
   const add = (value: unknown) => { if (typeof value === 'string') ids.push(value) }
   const addRecipeIngredients = () => recipeIngredients.forEach(value => {
     if (value && typeof value === 'object') add((value as Record<string, unknown>).ingredientId)
