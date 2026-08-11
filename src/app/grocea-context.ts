@@ -18,6 +18,7 @@ export type StorageStatus = 'loading' | 'ready' | 'error'
 export interface GroceaContextValue extends GroceaState {
   storageStatus: StorageStatus
   storageError: string | null
+  canMutate: boolean
   syncStatus: SyncStatus
   syncError: SyncError | null
   pendingMutationCount: number

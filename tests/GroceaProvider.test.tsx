@@ -70,15 +70,17 @@ function SyncProbe() {
 }
 
 function InitialSyncProbe() {
-  const { profile, ingredients, syncStatus, syncError, retrySync } = useGrocea()
+  const { profile, ingredients, canMutate, syncStatus, syncError, retrySync, updateProfile } = useGrocea()
   const { phase } = useBootSplash()
   return <div>
     <span data-testid="boot-phase">{phase}</span>
     <span data-testid="sync-status">{syncStatus}</span>
     <span data-testid="sync-error">{syncError ? `${syncError.code}:${syncError.status}:${syncError.message}` : ''}</span>
+    <span data-testid="can-mutate">{String(canMutate)}</span>
     <span data-testid="profile-name">{profile.displayName}</span>
     <span data-testid="ingredient-count">{ingredients.length}</span>
     <button onClick={() => void retrySync()}>Retry initial sync</button>
+    <button onClick={() => void updateProfile('Offline edit', 2).catch(() => undefined)}>Edit profile</button>
   </div>
 }
 
@@ -164,11 +166,58 @@ describe('GroceaProvider persistence', () => {
     render(<BootSplashProvider><GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider></BootSplashProvider>)
 
     await waitFor(() => expect(screen.getByTestId('sync-status').textContent).toBe('initial-sync'))
+    expect(screen.getByTestId('can-mutate').textContent).toBe('false')
+    fireEvent.click(screen.getByRole('button', { name: 'Edit profile' }))
+    await waitFor(() => expect(storage.listPendingMutations()).resolves.toHaveLength(0))
     await waitFor(() => expect(screen.getByTestId('boot-phase').textContent).toBe('ready'))
     expect(screen.getByTestId('profile-name').textContent).toBe(initialState.profile.displayName)
     expect(screen.getByTestId('ingredient-count').textContent).toBe(String(initialState.ingredients.length))
     expect(screen.getByTestId('sync-error').textContent).toBe('NETWORK_UNAVAILABLE:0:Backend API is unavailable.')
     await storage.destroy()
+  })
+
+  it('imports migrated local data before fetching the canonical remote state', async () => {
+    const userId = crypto.randomUUID()
+    const storage = new MemoryStorage()
+    storage.state.profile.displayName = 'Legacy kitchen'
+    const metadata: DatabaseMetadata = {
+      key: 'database',
+      schemaVersion: 4,
+      seedVersion: 1,
+      migrationStatus: 'none',
+      deviceId: crypto.randomUUID(),
+      syncCursor: null,
+      remoteImportStatus: 'pending',
+      importId: crypto.randomUUID(),
+      importConflicts: [],
+      ownerUserId: userId,
+      legacyClaimed: true,
+    }
+    Object.assign(storage, {
+      getMetadata: async () => ({ ...metadata }),
+      saveMetadata: async (next: DatabaseMetadata) => { Object.assign(metadata, next) },
+      saveCanonicalState: async (next: GroceaState) => { storage.state = cloneState(next) },
+    })
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
+      const url = String(input)
+      calls.push(url)
+      if (url === '/api/imports/local-state') {
+        return new Response(JSON.stringify({ revision: 3, id_map: {}, conflicts: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      if (url === '/api/state') return remoteStateResponse()
+      throw new Error(`Unexpected request: ${url}`)
+    }))
+
+    render(<GroceaProvider storage={storage}><InitialSyncProbe /></GroceaProvider>)
+
+    await waitFor(() => expect(metadata.remoteImportStatus).toBe('complete'))
+    expect(calls.indexOf('/api/imports/local-state')).toBeGreaterThanOrEqual(0)
+    expect(calls.indexOf('/api/imports/local-state')).toBeLessThan(calls.indexOf('/api/state'))
+    expect(screen.getByTestId('can-mutate').textContent).toBe('true')
   })
 
   it('replaces provisional seed state after initial sync retry succeeds', async () => {
@@ -536,6 +585,7 @@ describe('GroceaProvider persistence', () => {
 
     expect(fetchMock.mock.calls.some(([url]) => String(url) === `/api/pantry-stocks/${riceId}/operations`)).toBe(true)
     expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/pantry-stocks/rice/operations')).toBe(false)
-    expect(metadata.remoteImportStatus).toBe('complete')
+    expect(metadata.remoteImportStatus).toBe('conflicts')
+    expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/state')).toBe(false)
   })
 })

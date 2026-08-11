@@ -54,9 +54,9 @@ function describeSyncIssue(issue: { type: string; error?: { code: string; messag
 }
 
 function initialSyncCause(syncError: SyncError | null) {
-  if (syncError?.code === 'NETWORK_UNAVAILABLE' || syncError?.status === 0) return 'The Grocea service is unavailable right now. Starter data is available on this device and we will retry when the connection returns.'
-  if (syncError && syncError.status >= 500) return 'The Grocea service is having trouble right now. Starter data is available on this device while we retry.'
-  return 'Your account has not completed its first sync yet. Starter data is available on this device and will be replaced by your account data after a successful sync.'
+  if (syncError?.code === 'NETWORK_UNAVAILABLE' || syncError?.status === 0) return 'The Grocea service is unavailable right now. Starter data is available for viewing, but editing is locked until the first sync completes.'
+  if (syncError && syncError.status >= 500) return 'The Grocea service is having trouble right now. Starter data is available for viewing while we retry; editing is locked until the first sync completes.'
+  return 'Your account has not completed its first sync yet. Starter data is available for viewing and will be replaced by your account data after a successful sync.'
 }
 
 function syncErrorDetails(syncError: SyncError | null) {
