@@ -44,6 +44,7 @@ export function CategoriesScreen() {
 }
 
 function describeSyncIssue(issue: { type: string; error?: { code: string; message: string } }) {
+  if (issue.error?.code === 'LOCAL_ID_UNMAPPED') return { title: 'Local change needs remapping', message: 'This older local change references data that is not linked to your account. Discard it, then recreate the change after the first sync.' }
   if (issue.error?.code === 'GROCERY_CALCULATION_STALE') return { title: 'Grocery plan needs review', message: 'Recipe or Pantry data changed while this plan was syncing. Review the restored Basket, then create the list again.' }
   if (issue.error?.code === 'DEPENDENCY_FAILED') return { title: 'A related change did not sync', message: 'This change is waiting on another update. Retry sync after reviewing the earlier issue.' }
   if (issue.error?.code === 'NETWORK_UNAVAILABLE') return { title: 'Waiting for connection', message: 'Your change is safe on this device and will retry when the service is reachable.' }

@@ -390,6 +390,7 @@ describe('GroceaProvider persistence', () => {
       'basket.recipe.upsert',
       'grocery-list.create',
     ])
+    expect(storage.mutations[1].dependsOn).toEqual([storage.mutations[0].id])
   })
 
   it('does not reset planned servings when a recipe is already in Basket', async () => {
@@ -505,6 +506,73 @@ describe('GroceaProvider persistence', () => {
     expect(clone.steps).toEqual(['Cook the rice until tender.', 'Scramble the eggs and set aside.', 'Cook tomatoes, return eggs, and serve over rice.'])
     expect(screen.getByTestId('source-status').textContent).toBe('published')
     expect(storage.state.recipes.find(recipe => recipe.id === 'tomato-egg-rice')?.status).toBe('published')
+  })
+
+  it('continues unrelated queued mutations after a permanent failure', async () => {
+    const storage = new MemoryStorage()
+    const metadata: DatabaseMetadata = {
+      key: 'database',
+      schemaVersion: 4,
+      seedVersion: 1,
+      migrationStatus: 'none',
+      deviceId: crypto.randomUUID(),
+      syncCursor: '8',
+      remoteImportStatus: 'complete',
+      importId: crypto.randomUUID(),
+      importConflicts: [],
+      ownerUserId: crypto.randomUUID(),
+    }
+    const failedId = crypto.randomUUID()
+    const goodId = crypto.randomUUID()
+    const ingredientId = crypto.randomUUID()
+    storage.mutations = [
+      {
+        id: failedId,
+        deviceId: metadata.deviceId,
+        type: 'stock.operation',
+        createdAt: '2026-08-01T00:00:00Z',
+        payload: { eventId: crypto.randomUUID(), ingredientId, operation: 'add', amount: '1000', reason: 'Test' },
+        attempts: 0,
+        status: 'pending',
+        dependsOn: [],
+      },
+      {
+        id: goodId,
+        deviceId: metadata.deviceId,
+        type: 'profile.update',
+        createdAt: '2026-08-01T00:00:01Z',
+        payload: { displayName: 'Updated', preferredServings: 2 },
+        attempts: 0,
+        status: 'pending',
+        dependsOn: [],
+      },
+    ]
+    Object.assign(storage, {
+      getMetadata: async () => ({ ...metadata }),
+      saveMetadata: async () => undefined,
+      updateMutation: async (next: PendingMutation) => {
+        storage.mutations = storage.mutations.map(item => item.id === next.id ? next : item)
+      },
+    })
+    const fetchMock = vi.fn(async (input: string | URL) => {
+      const url = String(input)
+      if (url.startsWith('/api/pantry-stocks/')) {
+        return new Response(JSON.stringify({ code: 'VALIDATION_ERROR', message: 'Rejected', details: {} }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      if (url === '/api/profile') return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<GroceaProvider storage={storage}><SyncProbe /></GroceaProvider>)
+
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url) === '/api/profile')).toBe(true))
+    expect(storage.mutations).toHaveLength(1)
+    expect(storage.mutations[0]).toMatchObject({ id: failedId, status: 'failed' })
+    expect(storage.mutations[0].error?.code).toBe('VALIDATION_ERROR')
   })
 
   it('remaps legacy IDs from an incomplete import before retrying queued stock operations', async () => {

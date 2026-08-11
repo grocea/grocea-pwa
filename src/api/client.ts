@@ -304,6 +304,125 @@ const mutationHeaders = (mutation: PendingMutation) => ({
   'X-Device-ID': mutation.deviceId,
 })
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function mutationEntityIds(mutation: PendingMutation): string[] {
+  const payload = mutation.payload as Record<string, unknown>
+  const recipe = payload.recipe as Record<string, unknown> | undefined
+  const item = payload.item as Record<string, unknown> | undefined
+  const recipeIngredients = recipe && Array.isArray(recipe.ingredients) ? recipe.ingredients : []
+  const generatedItemIds = Array.isArray(payload.generatedItemIds) ? payload.generatedItemIds : []
+  const recipeBasis = Array.isArray(payload.recipeBasis) ? payload.recipeBasis : []
+  const pantryBasis = Array.isArray(payload.pantryBasis) ? payload.pantryBasis : []
+  const sources = item && Array.isArray(item.sources) ? item.sources : []
+  const ids: unknown[] = []
+  const add = (value: unknown) => { if (typeof value === 'string') ids.push(value) }
+  const addRecipeIngredients = () => recipeIngredients.forEach(value => {
+    if (value && typeof value === 'object') add((value as Record<string, unknown>).ingredientId)
+  })
+  switch (mutation.type) {
+    case 'category.create':
+    case 'ingredient.create':
+      add(payload.id)
+      add(payload.categoryId)
+      break
+    case 'stock.operation':
+      add(payload.eventId)
+      add(payload.ingredientId)
+      break
+    case 'recipe.create':
+      add(recipe?.id)
+      addRecipeIngredients()
+      break
+    case 'recipe.update':
+      add(payload.id)
+      add(recipe?.id)
+      addRecipeIngredients()
+      break
+    case 'recipe.delete':
+    case 'recipe.publish':
+      add(payload.id)
+      break
+    case 'recipe.cook':
+      add(payload.eventId)
+      add(payload.recipeId)
+      break
+    case 'activity.reverse':
+      add(payload.eventId)
+      add(payload.reversalId)
+      break
+    case 'basket.recipe.upsert':
+    case 'basket.recipe.remove':
+      add(payload.recipeId)
+      break
+    case 'grocery-list.create':
+      add(payload.id)
+      add(payload.listId)
+      generatedItemIds.forEach(value => {
+        if (value && typeof value === 'object') {
+          add((value as Record<string, unknown>).id)
+          add((value as Record<string, unknown>).ingredientId)
+        }
+      })
+      recipeBasis.forEach(value => {
+        if (!value || typeof value !== 'object') return
+        const basis = value as Record<string, unknown>
+        add(basis.recipeId)
+        if (Array.isArray(basis.ingredients)) basis.ingredients.forEach(ingredient => {
+          if (ingredient && typeof ingredient === 'object') add((ingredient as Record<string, unknown>).ingredientId)
+        })
+      })
+      pantryBasis.forEach(value => {
+        if (value && typeof value === 'object') add((value as Record<string, unknown>).ingredientId)
+      })
+      break
+    case 'grocery-list.update':
+    case 'grocery-list.reuse':
+      add(payload.listId)
+      break
+    case 'grocery-list.item.create':
+      add(payload.listId)
+      add(item?.id)
+      add(item?.ingredientId)
+      break
+    case 'grocery-list.item.update':
+      add(payload.listId)
+      add(item?.id)
+      add(item?.ingredientId)
+      sources.forEach(value => {
+        if (value && typeof value === 'object') add((value as Record<string, unknown>).recipeId)
+      })
+      break
+    case 'grocery-list.item.delete':
+      add(payload.listId)
+      add(payload.itemId)
+      break
+    case 'grocery-list.complete':
+      add(payload.listId)
+      add(payload.eventId)
+      if (Array.isArray(payload.pantryItemIds)) payload.pantryItemIds.forEach(add)
+      break
+    case 'grocery-list.delete':
+      add(payload.listId)
+      break
+    case 'basket.clear':
+    case 'profile.update':
+      break
+    default:
+      break
+  }
+  return [...new Set(ids)]
+}
+
+function assertMutationEntityIds(mutation: PendingMutation): void {
+  const invalid = mutationEntityIds(mutation).find(id => !uuidPattern.test(id))
+  if (invalid) {
+    throw new ApiError(422, 'LOCAL_ID_UNMAPPED', 'A local entity ID has not been mapped to the account.', {
+      mutation_type: mutation.type,
+    })
+  }
+}
+
 const recipePayload = (recipe: DraftRecipe, includeId = true) => ({
   ...(includeId ? { id: recipe.id } : {}),
   name: recipe.name,
@@ -318,6 +437,7 @@ const recipePayload = (recipe: DraftRecipe, includeId = true) => ({
 })
 
 export async function sendMutation(mutation: PendingMutation): Promise<void> {
+  assertMutationEntityIds(mutation)
   const headers = mutationHeaders(mutation)
   const payload = mutation.payload as Record<string, unknown>
   let path: string

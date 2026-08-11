@@ -110,4 +110,28 @@ describe('API contract mapping', () => {
       pantry_basis: [],
     })
   })
+
+  it('quarantines fixture aliases before they reach UUID-only API routes', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const mutation: PendingMutation = {
+      id: crypto.randomUUID(),
+      deviceId: crypto.randomUUID(),
+      type: 'stock.operation',
+      createdAt: new Date().toISOString(),
+      payload: {
+        eventId: crypto.randomUUID(),
+        ingredientId: 'rice',
+        operation: 'add',
+        amount: '1000',
+        reason: 'Offline test',
+      },
+      attempts: 0,
+      status: 'pending',
+      dependsOn: [],
+    }
+
+    await expect(sendMutation(mutation)).rejects.toMatchObject({ code: 'LOCAL_ID_UNMAPPED', status: 422 })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 })

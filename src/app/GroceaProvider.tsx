@@ -291,6 +291,55 @@ const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, strin
   }
 }
 
+type MutationLike = Pick<PendingMutation, 'type' | 'payload'> | MutationDraft
+
+function mutationCreatedIds(mutation: MutationLike): string[] {
+  const payload = mutation.payload as Record<string, unknown>
+  const recipe = payload.recipe as Record<string, unknown> | undefined
+  const item = payload.item as Record<string, unknown> | undefined
+  const generatedItemIds = Array.isArray(payload.generatedItemIds) ? payload.generatedItemIds : []
+  const ids: unknown[] = []
+  if (mutation.type === 'category.create' || mutation.type === 'ingredient.create') ids.push(payload.id)
+  if (mutation.type === 'recipe.create') ids.push(recipe?.id)
+  if (mutation.type === 'stock.operation' || mutation.type === 'recipe.cook' || mutation.type === 'grocery-list.complete') ids.push(payload.eventId)
+  if (mutation.type === 'activity.reverse') ids.push(payload.reversalId)
+  if (mutation.type === 'grocery-list.create') {
+    ids.push(payload.id, payload.listId)
+    generatedItemIds.forEach(value => {
+      if (value && typeof value === 'object') ids.push((value as Record<string, unknown>).id)
+    })
+  }
+  if (mutation.type === 'grocery-list.item.create') ids.push(item?.id)
+  return ids.filter((value): value is string => typeof value === 'string')
+}
+
+function mutationReferencedIds(mutation: MutationLike): string[] {
+  const created = new Set(mutationCreatedIds(mutation))
+  const collect = (value: unknown): string[] => {
+    if (typeof value === 'string') return [value]
+    if (Array.isArray(value)) return value.flatMap(collect)
+    if (!value || typeof value !== 'object') return []
+    return Object.values(value).flatMap(collect)
+  }
+  return [...new Set(collect(mutation.payload).filter(value => !created.has(value)))]
+}
+
+function deriveMutationDependencies(mutation: MutationDraft, queued: PendingMutation[]): string[] {
+  const creators = new Map<string, string>()
+  queued.forEach(item => mutationCreatedIds(item).forEach(id => creators.set(id, item.id)))
+  const operationDependencies = mutation.type === 'grocery-list.create'
+    ? queued.filter(item => item.type === 'basket.recipe.upsert').map(item => item.id)
+    : []
+  return [...new Set([
+    ...(mutation.dependsOn ?? []),
+    ...operationDependencies,
+    ...mutationReferencedIds(mutation).flatMap(id => {
+      const creator = creators.get(id)
+      return creator ? [creator] : []
+    }),
+  ])]
+}
+
 function toSyncError(error: unknown): { apiError: ApiError; syncError: SyncError } {
   const apiError = error instanceof ApiError
     ? error
@@ -478,8 +527,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
               setState(recovered)
             }
           }
-          if (apiError.retryable) scheduleRetry(failed.attempts)
-          break
+          if (apiError.retryable) {
+            scheduleRetry(failed.attempts)
+            break
+          }
+          continue
         }
         await storage.removeMutation(mutation.id)
       }
@@ -644,10 +696,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             payload: next.mutation.payload,
             attempts: 0,
             status: 'pending',
-            dependsOn: [...new Set([
-              ...(next.mutation.dependsOn ?? []),
-              ...queued.map(item => item.id),
-            ])],
+            dependsOn: deriveMutationDependencies(next.mutation, queued),
           }
           if (storage.saveStateAndMutation) await storage.saveStateAndMutation(next.state, mutation)
           else {
