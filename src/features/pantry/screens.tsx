@@ -125,7 +125,7 @@ export function PantryScreen() {
           <div>
             <span className="eyebrow">Pantry pulse</span>
             <strong>{inStockCount} <small>ingredients ready</small></strong>
-            <p>{publishedRecipeCount ? `Browse ${publishedRecipeCount} recipes and see what your stock can make.` : 'Add recipes to connect your stock to cooking.'}</p>
+            <p>{publishedRecipeCount ? `Browse ${publishedRecipeCount} recipes and check which ingredients are in stock.` : 'Add recipes to check their ingredients against your stock.'}</p>
           </div>
           <Link to="/recipes" className="pulse-action">Find a recipe <ArrowRight size={18} /></Link>
         </section>
@@ -396,7 +396,7 @@ export function AddStockScreen() {
               <h2><ClockCounterClockwise aria-hidden="true" />Activity record</h2>
               <dl><div><dt>Ingredient</dt><dd>{ingredient.name}</dd></div><div><dt>Change</dt><dd>{deltaLabel}</dd></div><div><dt>Reason</dt><dd>{reasonLabel}</dd></div></dl>
             </section>
-            <div className="summary-note"><Lightbulb aria-hidden="true" /><span>Balance updates immediately. You can reverse this entry later from Activity.</span></div>
+            <div className="summary-note"><Lightbulb aria-hidden="true" /><span>Grocea updates the balance now. You can reverse this change later from Activity.</span></div>
           </aside>
         </div>
       </form>
@@ -513,10 +513,10 @@ export function CreateIngredientScreen() {
 
   return (
     <AppShell>
-      <BackHeader title="Create ingredient" eyebrow="Add a custom pantry item" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
+      <BackHeader title="Create ingredient" eyebrow="Add a custom ingredient" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
       <form className="form-screen create-form workflow-form" onSubmit={submit} noValidate aria-busy={pending}>
         {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Ingredient was not created</strong><small>{formError}</small></span></div>}
-        <div className="info-banner"><Info size={21} /><span>Create custom ingredient only when catalog search has no match.</span></div>
+        <div className="info-banner"><Info size={21} /><span>Create a custom ingredient only if the catalog has no match.</span></div>
         <div className="workflow-layout">
           <section className="workflow-card create-workflow-card">
             <section className="workflow-section">
@@ -525,7 +525,7 @@ export function CreateIngredientScreen() {
                 <div className="field-group">
                   <label htmlFor="name">Name</label>
                   <input ref={nameRef} id="name" value={name} disabled={pending} onChange={(event) => setName(event.target.value)} placeholder="Tempeh" aria-describedby="name-help name-error" aria-invalid={showNameError} />
-                  <small id="name-help">Compared case-insensitively with global and custom names.</small>
+                  <small id="name-help">Grocea compares this name with global and custom ingredient names. Letter case does not affect the comparison.</small>
                   {showNameError && <span className="field-error" id="name-error" role="alert">{nameError}</span>}
                 </div>
                 <div className="field-group split-field">
@@ -542,7 +542,7 @@ export function CreateIngredientScreen() {
                   {(['mass', 'volume', 'count'] as MeasurementFamily[]).map((item) => <button key={item} type="button" disabled={pending} className={family === item ? 'selected' : ''} onClick={() => setFamily(item)} aria-pressed={family === item}>{item[0].toUpperCase() + item.slice(1)}</button>)}
                 </div>
               </fieldset>
-              <div className="units-card"><span><small>Supported units</small><strong>{familyUnits[family].join(' · ')}</strong></span><p>Measurement family cannot change after ingredient is used in stock, recipes or history.</p></div>
+              <div className="units-card"><span><small>Supported units</small><strong>{familyUnits[family].join(' · ')}</strong></span><p>You cannot change the measurement family after you use the ingredient. This applies to pantry stock, recipes, and activity history.</p></div>
             </section>
             <div className="form-actions">
               <button type="button" className="secondary-button" disabled={pending} onClick={() => navigate(draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients')}>Cancel</button>
@@ -551,7 +551,7 @@ export function CreateIngredientScreen() {
           </section>
           <aside className="workflow-summary-panel">
             <div className="ownership-card"><span className="user-icon"><User size={22} /></span><span><strong>Custom ingredient</strong><small>Saved to your account</small></span></div>
-            <div className="summary-note"><Lightbulb aria-hidden="true" /><span>Custom ingredients remain editable until they appear in stock, recipes, or activity history.</span></div>
+            <div className="summary-note"><Lightbulb aria-hidden="true" /><span>You can edit a custom ingredient until you use it. This includes pantry stock, recipes, and activity history.</span></div>
           </aside>
         </div>
       </form>

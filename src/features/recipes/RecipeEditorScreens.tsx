@@ -54,7 +54,7 @@ export function NewRecipeScreen() {
     setError('')
     void createRecipeDraft()
       .then(id => navigate(`/recipes/${id}/edit/basics`, { replace: true }))
-      .catch(() => setError('Draft could not be created. Your existing recipes are safe.'))
+      .catch(() => setError('Couldn’t create the draft. Your recipes are unchanged.'))
   }, [attempt, createRecipeDraft, navigate])
   if (error) return <AppShell><BackHeader title="New recipe" fallbackTo="/recipes" /><main className="screen-content"><div className="warning-banner danger" role="alert"><WarningCircle /><span><strong>Couldn’t start a recipe</strong><small>{error}</small></span></div><div className="inline-actions"><button className="button secondary" type="button" onClick={() => navigate('/recipes')}>Back to recipes</button><button className="button primary" type="button" onClick={() => { started.current = false; setAttempt(value => value + 1) }}>Try again</button></div></main></AppShell>
   return <AppShell><main className="editor-loading" role="status" aria-label="Creating new recipe">Creating draft…</main></AppShell>
@@ -80,7 +80,7 @@ export function RecipeEditorScreen() {
     navigate('/recipes', { state: { message: isUntouched ? undefined : 'Draft saved.' } })
   })
   const publishAction = usePendingAction(async () => {
-    if (draft && await publishRecipeDraft(draft.id)) navigate(`/recipes/${draft.id}`, { state: { message: 'Recipe confirmed.' } })
+    if (draft && await publishRecipeDraft(draft.id)) navigate(`/recipes/${draft.id}`, { state: { message: 'Recipe published.' } })
   })
 
   useEffect(() => { heading.current?.focus() }, [stage])
@@ -90,7 +90,7 @@ export function RecipeEditorScreen() {
     return () => window.removeEventListener('popstate', discardUntouchedOnBrowserBack)
   }, [deleteRecipeDraft, editableDraft, stage])
   if (!stage) return <Navigate to={`/recipes/${id}/edit/basics`} replace />
-  if (!draft || !editableDraft) return <AppShell><BackHeader title="Recipe editor" fallbackTo="/recipes" /><EmptyState title="Draft not found" message="This draft may have been deleted or confirmed." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
+  if (!draft || !editableDraft) return <AppShell><BackHeader title="Recipe editor" fallbackTo="/recipes" /><EmptyState title="Draft not found" message="This draft was deleted or published." action={<Link className="button primary" to="/recipes">View recipes</Link>} /></AppShell>
 
   const index = stages.indexOf(stage)
   const update = (patch: Parameters<typeof updateRecipeDraft>[1]) => {
@@ -126,7 +126,7 @@ export function RecipeEditorScreen() {
 
       {stage === 'basics' && <section className="editor-card">
         <label className="field-group"><span>Name</span><input autoFocus value={editableDraft.name} maxLength={120} onChange={event => update({ name: event.target.value })} aria-invalid={attempted && !stageValid(editableDraft, 'basics')} placeholder="Recipe name" /></label>
-        <label className="field-group"><span>Description <small>optional</small></span><textarea value={editableDraft.description} onChange={event => update({ description: event.target.value })} placeholder="What makes this recipe useful?" /></label>
+        <label className="field-group"><span>Description <small>optional</small></span><textarea value={editableDraft.description} onChange={event => update({ description: event.target.value })} placeholder="Describe this recipe" /></label>
         <label className="field-group"><span>Base servings</span><input type="number" min="1" max="99" value={editableDraft.baseServings} onChange={event => update({ baseServings: Math.max(1, Number(event.target.value) || 1) })} /></label>
         {attempted && !stageValid(editableDraft, 'basics') && <p className="field-error" role="alert">Add a recipe name between 1 and 120 characters.</p>}
       </section>}
@@ -136,7 +136,7 @@ export function RecipeEditorScreen() {
       {stage === 'steps' && <StepsStage draft={editableDraft} update={update} attempted={attempted} />}
       {stage === 'review' && <ReviewStage draft={editableDraft} ingredients={ingredients} />}
 
-      <div className="editor-actions"><button type="button" className="button secondary" disabled={leaveAction.pending || publishAction.pending} onClick={() => void leaveAction.run().catch(() => undefined)}>{leaveAction.pending ? 'Saving…' : 'Save & exit'}</button><button type="submit" className="button primary" disabled={leaveAction.pending || publishAction.pending}>{publishAction.pending ? 'Publishing…' : stage === 'review' ? 'Confirm recipe' : 'Next'}</button></div>
+      <div className="editor-actions"><button type="button" className="button secondary" disabled={leaveAction.pending || publishAction.pending} onClick={() => void leaveAction.run().catch(() => undefined)}>{leaveAction.pending ? 'Saving…' : 'Save and exit'}</button><button type="submit" className="button primary" disabled={leaveAction.pending || publishAction.pending}>{publishAction.pending ? 'Publishing…' : stage === 'review' ? 'Publish recipe' : 'Next'}</button></div>
     </form>
   </AppShell>
 }
@@ -176,7 +176,7 @@ function IngredientStage({ draft, ingredients, categoryName, query, setQuery, up
 }
 
 function MeasurementStage({ draft, ingredients, update, attempted }: { draft: DraftRecipe; ingredients: Ingredient[]; update: (patch: Partial<DraftRecipe>) => void; attempted: boolean }) {
-  return <section className="editor-card measurement-list"><p>Amounts are for {draft.baseServings} serving{draft.baseServings === 1 ? '' : 's'}. Units stay within each ingredient’s measurement family.</p>{draft.ingredients.map((item, index) => { const ingredient = ingredients.find(source => source.id === item.ingredientId); if (!ingredient) return null; const parsed = parseQuantity(item.quantity, item.unit); const invalid = attempted && (parsed === null || parsed <= 0n); return <div className="measurement-row" key={item.ingredientId}><span>{ingredientIcon(ingredient)}<strong>{ingredient.name}</strong><small>{ingredient.family}</small></span><label><span className="sr-only">{ingredient.name} amount</span><input value={item.quantity} inputMode="decimal" aria-invalid={invalid} onChange={event => update({ ingredients: draft.ingredients.map((current, itemIndex) => itemIndex === index ? { ...current, quantity: event.target.value } : current) })} placeholder="0" /></label><label><span className="sr-only">{ingredient.name} unit</span><select value={item.unit} onChange={event => update({ ingredients: draft.ingredients.map((current, itemIndex) => itemIndex === index ? { ...current, unit: event.target.value as Unit } : current) })}>{familyUnits[ingredient.family].map(unit => <option key={unit}>{unit}</option>)}</select></label>{invalid && <small className="field-error">Enter an amount greater than zero.</small>}</div>})}</section>
+  return <section className="editor-card measurement-list"><p>Enter amounts for {draft.baseServings} serving{draft.baseServings === 1 ? '' : 's'}. Use a unit from each ingredient’s measurement family.</p>{draft.ingredients.map((item, index) => { const ingredient = ingredients.find(source => source.id === item.ingredientId); if (!ingredient) return null; const parsed = parseQuantity(item.quantity, item.unit); const invalid = attempted && (parsed === null || parsed <= 0n); return <div className="measurement-row" key={item.ingredientId}><span>{ingredientIcon(ingredient)}<strong>{ingredient.name}</strong><small>{ingredient.family}</small></span><label><span className="sr-only">{ingredient.name} amount</span><input value={item.quantity} inputMode="decimal" aria-invalid={invalid} onChange={event => update({ ingredients: draft.ingredients.map((current, itemIndex) => itemIndex === index ? { ...current, quantity: event.target.value } : current) })} placeholder="0" /></label><label><span className="sr-only">{ingredient.name} unit</span><select value={item.unit} onChange={event => update({ ingredients: draft.ingredients.map((current, itemIndex) => itemIndex === index ? { ...current, unit: event.target.value as Unit } : current) })}>{familyUnits[ingredient.family].map(unit => <option key={unit}>{unit}</option>)}</select></label>{invalid && <small className="field-error">Enter an amount greater than zero.</small>}</div>})}</section>
 }
 
 function StepsStage({ draft, update, attempted }: { draft: DraftRecipe; update: (patch: Partial<DraftRecipe>) => void; attempted: boolean }) {
@@ -186,5 +186,5 @@ function StepsStage({ draft, update, attempted }: { draft: DraftRecipe; update: 
 
 function ReviewStage({ draft, ingredients }: { draft: DraftRecipe; ingredients: Ingredient[] }) {
   const invalid = !stageValid(draft, 'review')
-  return <div className="review-grid">{invalid && <div className="warning-banner"><WarningCircle /><span><strong>Recipe is incomplete</strong><small>Use the edit links below to finish required fields.</small></span></div>}<section className="review-card"><header><h2>Basics</h2><Link to={`/recipes/${draft.id}/edit/basics`}>Edit</Link></header><h3>{draft.name.trim() || 'Untitled recipe'}</h3><p>{draft.description.trim() || 'No description'}</p><small>Serves {draft.baseServings}</small></section><section className="review-card"><header><h2>Ingredients</h2><Link to={`/recipes/${draft.id}/edit/ingredients`}>Edit</Link></header><ul>{draft.ingredients.map(item => { const source = ingredients.find(ingredient => ingredient.id === item.ingredientId); const parsed = parseQuantity(item.quantity, item.unit); return <li key={item.ingredientId}><span>{source?.name ?? 'Missing ingredient'}</span><strong>{parsed !== null && parsed > 0n ? formatQuantityInUnit(parsed, item.unit) : 'Amount needed'}</strong></li> })}</ul></section><section className="review-card"><header><h2>Steps</h2><Link to={`/recipes/${draft.id}/edit/steps`}>Edit</Link></header><ol>{draft.steps.filter(step => step.trim()).map((step, index) => <li key={index}>{step.trim()}</li>)}</ol></section></div>
+  return <div className="review-grid">{invalid && <div className="warning-banner"><WarningCircle /><span><strong>Recipe is incomplete</strong><small>Complete the required fields. Use the edit links below.</small></span></div>}<section className="review-card"><header><h2>Basics</h2><Link to={`/recipes/${draft.id}/edit/basics`}>Edit</Link></header><h3>{draft.name.trim() || 'Untitled recipe'}</h3><p>{draft.description.trim() || 'No description'}</p><small>Serves {draft.baseServings}</small></section><section className="review-card"><header><h2>Ingredients</h2><Link to={`/recipes/${draft.id}/edit/ingredients`}>Edit</Link></header><ul>{draft.ingredients.map(item => { const source = ingredients.find(ingredient => ingredient.id === item.ingredientId); const parsed = parseQuantity(item.quantity, item.unit); return <li key={item.ingredientId}><span>{source?.name ?? 'Missing ingredient'}</span><strong>{parsed !== null && parsed > 0n ? formatQuantityInUnit(parsed, item.unit) : 'Amount needed'}</strong></li> })}</ul></section><section className="review-card"><header><h2>Steps</h2><Link to={`/recipes/${draft.id}/edit/steps`}>Edit</Link></header><ol>{draft.steps.filter(step => step.trim()).map((step, index) => <li key={index}>{step.trim()}</li>)}</ol></section></div>
 }

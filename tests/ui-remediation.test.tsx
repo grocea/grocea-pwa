@@ -143,7 +143,7 @@ describe('pending and destructive actions', () => {
     const view = renderRoute(<><BrandHeader /><SyncIssuesScreen /></>, '/sync-issues', storage)
 
     expect(await screen.findByRole('button', { name: 'Retry first sync' })).toBeTruthy()
-    expect(screen.getByText(/service is unavailable right now/)).toBeTruthy()
+    expect(screen.getByText(/service is unavailable/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry first sync' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Synchronization status: First sync pending' })).toBeTruthy()
     expect(screen.queryByText(/cookie|request body|credentials/i)).toBeNull()
@@ -207,7 +207,7 @@ describe('pending and destructive actions', () => {
     renderRoute(<SyncIssuesScreen />, '/sync-issues', storage)
     const discardButtons = await screen.findAllByRole('button', { name: /Discard local change/ })
     fireEvent.click(discardButtons[0])
-    expect(screen.getByText(/every dependent queued change/)).toBeTruthy()
+    expect(screen.getByText(/all dependent queued changes/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(storage.mutations.map(item => item.id)).toEqual(['parent', 'child'])
   })
@@ -219,7 +219,7 @@ describe('navigation and selection semantics', () => {
 
     expect(await screen.findByRole('heading', { name: 'Groceries' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'No grocery list yet' })).toBeTruthy()
-    expect(screen.getByText(/Choose recipes to plan your next shop\./)).toBeTruthy()
+    expect(screen.getByText(/Grocea uses your pantry stock to calculate what you need to buy\./)).toBeTruthy()
     expect(screen.getAllByRole('link', { name: 'Choose recipes' })).toHaveLength(1)
     expect(screen.queryByText('Past lists')).toBeNull()
     expect(screen.queryByText('Completed Grocery Lists appear here.')).toBeNull()
@@ -260,7 +260,7 @@ describe('navigation and selection semantics', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Basket, 1 recipe' }))
 
     expect(await screen.findByRole('heading', { name: 'Review basket' })).toBeTruthy()
-    expect(screen.getByText('Only what you need to buy gets added.')).toBeTruthy()
+    expect(screen.getByText('Grocea adds only the items that you need to buy.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Create list' })).toBeTruthy()
     expect(screen.queryByText('Plan your groceries')).toBeNull()
     const basketActions = screen.getByRole('group', { name: 'Basket actions' })
@@ -346,7 +346,7 @@ describe('navigation and selection semantics', () => {
 
     expect(await screen.findByRole('heading', { name: 'Oat porridge' })).toBeTruthy()
     expect(screen.getByText('Nothing to buy')).toBeTruthy()
-    expect(screen.getByText('Your Pantry already covered every calculated ingredient.')).toBeTruthy()
+    expect(screen.getByText('Your pantry has all required ingredients.')).toBeTruthy()
     expect(screen.getByText('Recipes used for this list')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reuse recipes' })).toBeTruthy()
     expect(screen.queryByText('COMPLETED')).toBeNull()

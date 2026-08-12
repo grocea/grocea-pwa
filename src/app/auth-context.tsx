@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event('grocea:auth-validated'))
   }, [])
 
-  const lock = useCallback((message = 'Your session expired. Sign in again to continue syncing.') => {
+  const lock = useCallback((message = 'Your session expired. Sign in again to sync your changes.') => {
     setCsrfToken(null)
     setSession(null)
     setStatus('anonymous')

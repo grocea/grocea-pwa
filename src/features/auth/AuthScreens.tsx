@@ -65,7 +65,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
       navigate(target, { replace: true })
     } catch (requestError) {
       const apiError = requestError instanceof ApiError ? requestError : null
-      setError(apiError?.message ?? 'The account request could not be completed. Try again.')
+      setError(apiError?.message ?? 'Couldn’t complete the account request. Try again.')
     } finally {
       setPending(false)
     }
@@ -73,7 +73,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
 
   return <main className="auth-page"><div className="auth-card">
     <Link className="auth-brand" to="/welcome"><img src="/brand/grocea-icon.png" alt="" />grocea</Link>
-    <div className="auth-heading"><span className="auth-icon" aria-hidden="true">{isRegister ? <UserPlus size={24} /> : <SignIn size={24} />}</span><span className="eyebrow">{isRegister ? 'CREATE ACCOUNT' : 'WELCOME BACK'}</span><h1>{isRegister ? 'Make your kitchen yours.' : 'Pick up where you left off.'}</h1><p>{isRegister ? 'Create a personal account, then keep your kitchen available offline.' : 'Sign in to your account to open its private pantry and sync queue.'}</p></div>
+    <div className="auth-heading"><span className="auth-icon" aria-hidden="true">{isRegister ? <UserPlus size={24} /> : <SignIn size={24} />}</span><span className="eyebrow">{isRegister ? 'CREATE ACCOUNT' : 'WELCOME BACK'}</span><h1>{isRegister ? 'Make your kitchen yours.' : 'Pick up where you left off.'}</h1><p>{isRegister ? 'Create an account to use Grocea offline and sync your kitchen data.' : 'Sign in to open your pantry and sync pending changes.'}</p></div>
     {(error || sessionError) && <div className="warning-banner danger" role="alert"><LockKey /><span>{error ?? sessionError}</span></div>}
     <form className="auth-form" onSubmit={submit} noValidate aria-busy={pending}>
       {isRegister && <label className="field-group"><span>Display name</span><input ref={displayNameRef} value={displayName} onChange={event => updateField('displayName', event.target.value, setDisplayName)} autoComplete="name" maxLength={120} required aria-invalid={Boolean(fieldErrors.displayName)} aria-describedby={fieldErrors.displayName ? 'display-name-error' : undefined} />{fieldErrors.displayName && <span className="field-error" id="display-name-error" role="alert">{fieldErrors.displayName}</span>}</label>}
@@ -82,7 +82,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
       {isRegister && <label className="field-group"><span>Repeat password</span><input ref={confirmationRef} type="password" value={confirmation} onChange={event => updateField('confirmation', event.target.value, setConfirmation)} autoComplete="new-password" minLength={15} maxLength={128} required aria-invalid={Boolean(fieldErrors.confirmation)} aria-describedby={fieldErrors.confirmation ? 'confirmation-error' : undefined} />{fieldErrors.confirmation && <span className="field-error" id="confirmation-error" role="alert">{fieldErrors.confirmation}</span>}</label>}
       <button className="button primary auth-submit" disabled={pending}>{pending ? 'Working…' : isRegister ? 'Create account' : 'Sign in'} <ArrowRight /></button>
     </form>
-    <div className="auth-footnote"><CheckCircle /><span>Session credentials stay in a secure, HttpOnly cookie. Your offline data is separated by account.</span></div>
+    <div className="auth-footnote"><CheckCircle /><span>Grocea stores your session credentials in a secure HttpOnly cookie. Grocea keeps offline data separate for each account.</span></div>
     <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Grocea?'} <Link to={`/${isRegister ? 'login' : 'register'}${location.search}`}>{isRegister ? 'Sign in' : 'Create an account'}</Link></p>
   </div></main>
 }

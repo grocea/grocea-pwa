@@ -142,7 +142,7 @@ interface Transition<T> {
 
 class MutationBlockedError extends Error {
   constructor() {
-    super('Connect once before making changes to this account.')
+    super('Connect to Grocea before you change this account.')
     this.name = 'MutationBlockedError'
   }
 }
@@ -153,7 +153,7 @@ function canonicalUnit(ingredient: Ingredient) {
 
 function buildGroceryList(state: GroceaState, id: string, now: string): GroceryList {
   if (state.groceryLists.some(list => list.status === 'active')) {
-    throw new Error('Complete or delete the active Grocery List first.')
+    throw new Error('Complete or delete the active grocery list first.')
   }
   if (!state.basket.length) throw new Error('Add at least one recipe to Basket first.')
   const recipes = state.basket.map(item => {
@@ -170,7 +170,7 @@ function buildGroceryList(state: GroceaState, id: string, now: string): GroceryL
   recipes.forEach(({ basket, recipe }) => {
     recipe.ingredients.forEach(requirement => {
       const ingredient = state.ingredients.find(candidate => candidate.id === requirement.ingredientId)
-      if (!ingredient) throw new Error('A Recipe Ingredient is no longer available.')
+      if (!ingredient) throw new Error('A recipe ingredient is no longer available.')
       const contribution = scaleQuantity(requirement.quantity, basket.servings, recipe.baseServings)
       const existing = aggregates.get(ingredient.id) ?? { required: 0n, sources: [] }
       const unit = canonicalUnit(ingredient)
@@ -483,7 +483,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             status: 'failed',
             error: {
               code: 'DEPENDENCY_FAILED',
-              message: 'An earlier queued change must be resolved first.',
+              message: 'Resolve the earlier queued change first.',
               retryable: false,
             },
           }
@@ -659,7 +659,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           }
         }
       }
-      if (!loaded) throw new Error('Stored Grocea data could not be loaded.')
+      if (!loaded) throw new Error('Grocea could not load stored data.')
       stateRef.current = loaded
       setState(loaded)
       updateStorageStatus('ready')
@@ -709,7 +709,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   const commit = useCallback(function commit<T>(transition: (current: GroceaState) => Transition<T>): Promise<T> {
     const operation = writeQueue.current.then(async () => {
       if (statusRef.current !== 'ready' || !stateRef.current) {
-        throw new Error('Local storage is unavailable. Retry before making changes.')
+        throw new Error('Local storage is unavailable. Try again before you make changes.')
       }
       if (!canMutateRef.current) {
         throw new MutationBlockedError()
@@ -746,7 +746,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     writeQueue.current = operation.then(() => undefined, () => undefined)
     return operation.catch(error => {
       if (!(error instanceof MutationBlockedError)) {
-        updateStorageStatus('error', error instanceof Error ? error.message : 'Your change could not be saved locally.')
+        updateStorageStatus('error', error instanceof Error ? error.message : 'Grocea could not save your change on this device.')
       }
       throw error
     })
@@ -783,7 +783,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         const source = sourceRecipeId
           ? current.recipes.find((recipe): recipe is PublishedRecipe => recipe.id === sourceRecipeId && isPublishedRecipe(recipe))
           : undefined
-        if (sourceRecipeId && !source) throw new Error('Published recipe could not be copied.')
+        if (sourceRecipeId && !source) throw new Error('Grocea could not copy the published recipe.')
         const recipe: DraftRecipe = {
           id,
           status: 'draft',
@@ -916,7 +916,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     })),
     addRecipeToBasket: (recipeId: string, requestedServings?: number) => commit(current => {
       const recipe = current.recipes.find(item => item.id === recipeId && isPublishedRecipe(item))
-      if (!recipe) throw new Error('Only published Recipes can be added to Basket.')
+      if (!recipe) throw new Error('You can add only published recipes to Basket.')
       const existing = current.basket.find(item => item.recipeId === recipeId)
       if (existing && requestedServings === undefined) return { state: current, result: undefined }
       const servings = Math.max(1, Math.min(12, requestedServings ?? recipe.baseServings))
@@ -1007,7 +1007,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       const now = new Date().toISOString()
       return commit(current => {
         const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
-        if (!list) throw new Error('Active Grocery List was not found.')
+        if (!list) throw new Error('Grocea could not find the active grocery list.')
         const ingredient = input.ingredientId
           ? current.ingredients.find(candidate => candidate.id === input.ingredientId)
           : undefined
@@ -1045,7 +1045,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       const now = new Date().toISOString()
       const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
       if (!list || !list.items.some(candidate => candidate.id === item.id)) {
-        throw new Error('Active Grocery List Item was not found.')
+        throw new Error('Grocea could not find the active grocery list item.')
       }
       const previous = list.items.find(candidate => candidate.id === item.id)!
       const ingredient = item.ingredientId
@@ -1093,10 +1093,10 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       const now = new Date().toISOString()
       return commit(current => {
         const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
-        if (!list) throw new Error('Active Grocery List was not found.')
+        if (!list) throw new Error('Grocea could not find the active grocery list.')
         const selected = list.items.filter(item => pantryItemIds.includes(item.id))
         if (selected.some(item => !item.checked || !item.ingredientId || item.quantity === undefined)) {
-          throw new Error('Pantry updates require checked catalog items with quantities.')
+          throw new Error('To update Pantry, select checked catalog items that have amounts.')
         }
         const additions = new Map<string, bigint>()
         selected.forEach(item => {
@@ -1136,7 +1136,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     },
     reuseGroceryList: (listId: string) => commit(current => {
       const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'completed')
-      if (!list) throw new Error('Completed Grocery List was not found.')
+      if (!list) throw new Error('Grocea could not find the completed grocery list.')
       const additions = list.recipes.flatMap(source => {
         if (current.basket.some(item => item.recipeId === source.recipeId)) return []
         const recipe = current.recipes.find(candidate => candidate.id === source.recipeId && isPublishedRecipe(candidate))
@@ -1239,7 +1239,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
 
   if (!state) {
     if (storageStatus === 'error') {
-      return <ConfirmDialog open={resetRequested} title="Reset all local data?" description="Every pantry balance, recipe, activity event, profile preference, and queued change stored on this device will be permanently removed. This cannot be undone." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
+      return <ConfirmDialog open={resetRequested} title="Reset all local data?" description="This permanently deletes all pantry balances, recipes, activity events, profile settings, and queued changes on this device. You cannot undo this action." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
     }
     return null
   }
@@ -1270,6 +1270,6 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       <button className="button secondary compact" type="button" onClick={() => void boot()}>Retry</button>
       <button className="button danger compact" type="button" onClick={() => setResetRequested(true)}>Reset local data</button>
     </div>}
-    <ConfirmDialog open={resetRequested} title="Reset all local data?" description="Every pantry balance, recipe, activity event, profile preference, and queued change stored on this device will be permanently removed. This cannot be undone." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
+    <ConfirmDialog open={resetRequested} title="Reset all local data?" description="This permanently deletes all pantry balances, recipes, activity events, profile settings, and queued changes on this device. You cannot undo this action." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
   </GroceaContext.Provider>
 }

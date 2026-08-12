@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Grocea",
   "short_name": "Grocea",
-  "description": "Grocea mobile-first progressive web app.",
+  "description": "Track pantry stock, plan recipes, record what you cook, and create grocery lists based on the ingredients you have.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

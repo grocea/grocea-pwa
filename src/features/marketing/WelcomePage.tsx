@@ -16,30 +16,30 @@ const benefits = [
   {
     icon: Package,
     title: 'Know what you have',
-    body: 'A simple, living picture of your pantry, fridge, and freezer.',
+    body: 'See the ingredients in your pantry, fridge, and freezer.',
     note: 'No more duplicate buys.',
     tone: 'warm',
   },
   {
     icon: ForkKnife,
     title: 'Cook with confidence',
-    body: 'Recipes surface around what you already have at home.',
+    body: 'See recipes that use ingredients you already have.',
     note: 'Your kitchen, working for you.',
     tone: 'mint',
   },
   {
     icon: Leaf,
     title: 'Waste less, gently',
-    body: 'Small, helpful nudges mean good food stays on your table.',
+    body: 'Use what you have and buy only what you need.',
     note: 'Every meal is a little kinder.',
     tone: 'sun',
   },
 ]
 
 const steps = [
-  ['01', 'Add what comes home', 'Build your kitchen as you shop or unpack.'],
-  ['02', 'See what needs your attention', 'Restock visibility keeps pantry gaps easy to spot.'],
-  ['03', 'Make something delicious', 'Cook from the ingredients already in reach.'],
+  ['01', 'Add what comes home', 'Add ingredients when you shop or unpack.'],
+  ['02', 'See what needs your attention', 'See which ingredients need restocking.'],
+  ['03', 'Make something delicious', 'Use ingredients that you already have.'],
 ]
 
 const recipes = [
@@ -76,7 +76,7 @@ export default function WelcomePage() {
           <div className="welcome-copy">
             <span className="welcome-pill"><Leaf size={14} weight="bold" /> Better food, less waste</span>
             <h1 id="welcome-title">Your kitchen,<br />in rhythm with you.</h1>
-            <p>Keep every ingredient in view, cook what you already have, and make fresh food feel beautifully effortless.</p>
+            <p>Track your ingredients, find recipes that use them, and create grocery lists for the items you need.</p>
             <div className="welcome-actions">
               <Link className="welcome-primary-button" to="/register">Organise my kitchen <ArrowRight size={18} /></Link>
               <a className="welcome-text-link" href="#how-it-works"><span aria-hidden="true">↓</span> See how it works</a>
@@ -107,7 +107,7 @@ export default function WelcomePage() {
       <section className="welcome-benefits" id="why-grocea" aria-labelledby="benefits-title">
         <div className="welcome-section-heading">
           <h2 id="benefits-title">Grocea brings clarity to your<br />everyday cooking.</h2>
-          <p>One calm home for your ingredients, meal ideas, and the little wins that make cooking feel lighter.</p>
+          <p>Track ingredients, plan recipes, and record what you cook in one place.</p>
         </div>
         <div className="benefit-grid">
           {benefits.map(({ icon: Icon, title, body, note, tone }) => <article className={`benefit-card ${tone}`} key={title}>
@@ -121,7 +121,7 @@ export default function WelcomePage() {
           <div className="flow-intro">
             <span className="welcome-eyebrow">Your week, a little easier</span>
             <h2 id="flow-title">From ingredients to a good dinner—without overthinking it.</h2>
-            <p>Grocea makes the next right step feel obvious, not overwhelming.</p>
+            <p>Grocea shows what is in stock, what needs restocking, and what each recipe needs.</p>
             <div className="flow-stat"><div><strong>24</strong><span>ingredients visible</span></div><div><strong>3</strong><span>items to restock</span></div></div>
             <p className="flow-reassurance"><Check size={17} weight="bold" /> More ease in your kitchen, from day one.</p>
           </div>
@@ -132,11 +132,11 @@ export default function WelcomePage() {
       </section>
 
       <section className="welcome-recipes" aria-labelledby="recipes-title">
-        <div className="recipes-intro"><span className="welcome-eyebrow">Made for real life</span><h2 id="recipes-title">Use what’s here. Make it feel special.</h2><p>Fresh ideas appear when your kitchen is already in view.</p></div>
+        <div className="recipes-intro"><span className="welcome-eyebrow">Made for real life</span><h2 id="recipes-title">Use what’s here. Make it feel special.</h2><p>Grocea compares recipe ingredients with your pantry stock.</p></div>
         <div className="recipe-showcase">
           {recipes.map(({ icon: Icon, title, meta, tone }) => <article key={title} className="showcase-card"><div className={tone}><Icon size={48} /></div><h3>{title}</h3><p>{meta}</p></article>)}
         </div>
-          <figure className="welcome-quote"><span aria-hidden="true"><Leaf /></span><blockquote>Private pantry tracking, offline-first work, and synchronization whenever the Grocea service is available.</blockquote><figcaption>How Grocea keeps your kitchen yours</figcaption></figure>
+          <figure className="welcome-quote"><span aria-hidden="true"><Leaf /></span><blockquote>Grocea stores pantry data for each account. You can work offline, and Grocea syncs when the service is available.</blockquote><figcaption>How Grocea keeps your kitchen yours</figcaption></figure>
       </section>
 
       <section className="welcome-final" aria-labelledby="final-title">

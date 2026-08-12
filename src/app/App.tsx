@@ -59,7 +59,7 @@ function ProtectedRoutes() {
   const location = useLocation()
   if (status === 'loading') return null
   if (status === 'unavailable') {
-    return <main className="storage-state"><div className="storage-state-card"><span className="eyebrow">CONNECTION REQUIRED</span><h1>Sign in to open Grocea</h1><p>Grocea needs one server-confirmed sign-in before it can create an account cache.</p><a className="button primary" href="/login">Go to sign in</a></div></main>
+    return <main className="storage-state"><div className="storage-state-card"><span className="eyebrow">CONNECTION REQUIRED</span><h1>Sign in to open Grocea</h1><p>Grocea must confirm one sign-in with the server before it can create offline data for this account.</p><a className="button primary" href="/login">Go to sign in</a></div></main>
   }
   if (status === 'anonymous') {
     const target = safeReturnTo(`${location.pathname}${location.search}${location.hash}`)
@@ -89,7 +89,7 @@ function AccountGroceaApp({ userId }: { userId: string }) {
   useEffect(() => {
     let active = true
     void legacyStorageExists().then(exists => { if (active) setLegacyStatus(exists ? 'needs-choice' : 'none') }).catch(error => {
-      if (active) { setLegacyError(error instanceof Error ? error.message : 'Legacy local data could not be inspected.'); setLegacyStatus('error') }
+      if (active) { setLegacyError(error instanceof Error ? error.message : 'Grocea could not inspect the existing local data.'); setLegacyStatus('error') }
     })
     return () => { active = false }
   }, [userId])
@@ -138,5 +138,5 @@ function AccountGroceaApp({ userId }: { userId: string }) {
 }
 
 function LegacyMigrationGate({ pending, onMove, onDelete }: { pending: boolean; onMove: () => Promise<void>; onDelete: () => Promise<void> }) {
-  return <main className="storage-state"><div className="storage-state-card"><span className="eyebrow">ONE-TIME DATA CHOICE</span><h1>What should happen to your local kitchen?</h1><p>Grocea found data from an earlier local workspace. Choose whether to move it into this account or start with a clean kitchen.</p><div className="form-actions"><button className="button primary" type="button" disabled={pending} onClick={() => void onMove()}>{pending ? 'Moving…' : 'Move local data to this account'}</button><button className="button danger" type="button" disabled={pending} onClick={() => { if (window.confirm('Delete the old local data? A recovery copy will not be kept.')) void onDelete() }}>Delete local data and start fresh</button></div></div></main>
+  return <main className="storage-state"><div className="storage-state-card"><span className="eyebrow">ONE-TIME DATA CHOICE</span><h1>Choose how to use local data</h1><p>Grocea found data from an earlier local workspace. Move the data to this account, or delete it and start with no local data.</p><div className="form-actions"><button className="button primary" type="button" disabled={pending} onClick={() => void onMove()}>{pending ? 'Moving…' : 'Move data to account'}</button><button className="button danger" type="button" disabled={pending} onClick={() => { if (window.confirm('Permanently delete the old local data? Grocea will not keep a recovery copy.')) void onDelete() }}>Delete data and start</button></div></div></main>
 }
