@@ -1,51 +1,29 @@
 import {
   ArrowRight,
-  Bread,
-  Carrot,
+  Basket,
   Check,
+  ClockCounterClockwise,
   CookingPot,
-  ForkKnife,
   Leaf,
+  LockSimple,
   Package,
-  Plus,
+  WifiSlash,
 } from '@phosphor-icons/react'
 import { Link } from 'react-router-dom'
 import './welcome.css'
 
-const benefits = [
-  {
-    icon: Package,
-    title: 'Know what you have',
-    body: 'See the ingredients in your pantry, fridge, and freezer.',
-    note: 'No more duplicate buys.',
-    tone: 'warm',
-  },
-  {
-    icon: ForkKnife,
-    title: 'Cook with confidence',
-    body: 'See recipes that use ingredients you already have.',
-    note: 'Your kitchen, working for you.',
-    tone: 'mint',
-  },
-  {
-    icon: Leaf,
-    title: 'Waste less, gently',
-    body: 'Use what you have and buy only what you need.',
-    note: 'Every meal is a little kinder.',
-    tone: 'sun',
-  },
+const loop = [
+  ['01', 'Know what is on hand', 'Track the ingredients you choose to keep in your pantry.'],
+  ['02', 'Choose what to cook', 'Compare recipe ingredients with your current stock.'],
+  ['03', 'Shop for what is missing', 'Build a grocery list from the basket of recipes you plan to make.'],
+  ['04', 'Keep your pantry current', 'Record cooking and shopping changes in a traceable history.'],
 ]
 
-const steps = [
-  ['01', 'Add what comes home', 'Add ingredients when you shop or unpack.'],
-  ['02', 'See what needs your attention', 'See which ingredients need restocking.'],
-  ['03', 'Make something delicious', 'Use ingredients that you already have.'],
-]
-
-const recipes = [
-  { icon: Carrot, title: 'Golden vegetable curry', meta: '35 min · Pantry favourite', tone: 'orange' },
-  { icon: Leaf, title: 'Herby green bowl', meta: '20 min · Pantry-friendly', tone: 'green' },
-  { icon: Bread, title: 'Tomato toast, elevated', meta: '15 min · Weeknight win', tone: 'peach' },
+const capabilities = [
+  { icon: Package, title: 'A pantry you control', body: 'Choose which ingredients to track. A zero balance only means “Needs restock” when you have chosen to track it.' },
+  { icon: CookingPot, title: 'Recipes grounded in stock', body: 'See what a recipe needs, what you have, and what is short before you cook.' },
+  { icon: Basket, title: 'Shopping with context', body: 'Combine recipe needs into a focused list, then decide which purchases should update Pantry.' },
+  { icon: ClockCounterClockwise, title: 'A record you can follow', body: 'Cooking and stock changes remain in Activity, with linked reversals for corrections.' },
 ]
 
 function Brand() {
@@ -62,87 +40,94 @@ export default function WelcomePage() {
     <header className="welcome-header">
       <Brand />
       <nav aria-label="Welcome page navigation">
-        <a href="#how-it-works">How it works</a>
-        <a href="#why-grocea">Why Grocea</a>
+        <a href="#kitchen-loop">The kitchen loop</a>
+        <a href="#offline">Offline & privacy</a>
         <Link to="/login">Sign in</Link>
-        <Link className="welcome-nav-cta" to="/register">Create account</Link>
+        <Link className="welcome-nav-cta" to="/register">Create account <ArrowRight size={16} /></Link>
       </nav>
-      <div className="welcome-mobile-actions"><Link className="welcome-mobile-signin" to="/login">Sign in</Link><Link className="welcome-mobile-cta" to="/register">Create account</Link></div>
+      <div className="welcome-mobile-actions"><Link className="welcome-mobile-signin" to="/login">Sign in</Link><Link className="welcome-mobile-cta" to="/register">Get started</Link></div>
     </header>
 
     <main id="welcome-main">
       <section className="welcome-hero" aria-labelledby="welcome-title">
         <div className="welcome-hero-inner">
           <div className="welcome-copy">
-            <span className="welcome-pill"><Leaf size={14} weight="bold" /> Better food, less waste</span>
-            <h1 id="welcome-title">Your kitchen,<br />in rhythm with you.</h1>
-            <p>Track your ingredients, find recipes that use them, and create grocery lists for the items you need.</p>
+            <span className="welcome-kicker"><Leaf size={16} weight="fill" /> THE KITCHEN LEDGER</span>
+            <h1 id="welcome-title">A clearer view of what’s in your kitchen.</h1>
+            <p>Keep pantry stock, recipes, shopping, and cooking in one connected place—so each decision starts with what you already know.</p>
             <div className="welcome-actions">
-              <Link className="welcome-primary-button" to="/register">Organise my kitchen <ArrowRight size={18} /></Link>
-              <a className="welcome-text-link" href="#how-it-works"><span aria-hidden="true">↓</span> See how it works</a>
+              <Link className="welcome-primary-button" to="/register">Create your account <ArrowRight size={18} /></Link>
+              <a className="welcome-text-link" href="#kitchen-loop">Explore the kitchen loop <span aria-hidden="true">↓</span></a>
             </div>
-            <div className="welcome-proof">
-              <span className="welcome-avatars" aria-hidden="true"><i /><i /><i /></span>
-              <span>Private account · Offline-first · Syncs when available</span>
-            </div>
+            <div className="welcome-facts"><span><LockSimple size={17} /> Private personal account</span><span><WifiSlash size={17} /> Offline after first sync</span></div>
           </div>
 
-          <div className="kitchen-preview" aria-label="Preview of the Grocea kitchen dashboard">
-            <div className="preview-top"><strong>My kitchen</strong><span><Plus size={20} /></span></div>
-            <div className="preview-idea">
-              <small>Cook with what you have</small>
-              <div><strong>Tonight’s good idea</strong><CookingPot size={22} /></div>
-              <p><Carrot size={20} /> <span><b>Golden vegetable curry</b><small>Uses 8 ingredients from your pantry</small></span><ArrowRight size={22} /></p>
+          <div className="welcome-product" aria-label="Example view of Grocea">
+            <div className="product-window-bar"><span className="window-mark"><img src="/brand/grocea-icon.png" alt="" /></span><strong>My kitchen</strong><span className="preview-sync"><Check size={14} weight="bold" /> Synced</span></div>
+            <div className="product-preview-grid">
+              <section className="preview-pane pantry-preview" aria-label="Sample pantry balances">
+                <div className="preview-heading"><div><small>YOUR PANTRY</small><strong>On hand</strong></div><span className="preview-count">3 tracked</span></div>
+                <div className="preview-ingredient"><span className="ingredient-stamp grain">O</span><span><strong>Rolled oats</strong><small>Pantry staples</small></span><b>800 g</b></div>
+                <div className="preview-ingredient"><span className="ingredient-stamp dairy">M</span><span><strong>Whole milk</strong><small>Dairy & chilled</small></span><b>1.5 L</b></div>
+                <div className="preview-ingredient restock"><span className="ingredient-stamp produce">C</span><span><strong>Carrots</strong><small>Needs restock</small></span><b>0 items</b></div>
+                <small className="preview-caption">Illustrative sample</small>
+              </section>
+              <section className="preview-pane dinner-preview" aria-label="Sample recipe and shopping need">
+                <small className="preview-eyebrow">A RECIPE FROM YOUR KITCHEN</small>
+                <div className="recipe-art" aria-hidden="true"><Leaf size={34} weight="light" /><span>GOOD THINGS, IN SEASON</span></div>
+                <h2>Oat porridge</h2>
+                <p>For 2 servings · 2 ingredients</p>
+                <div className="recipe-ready"><Check size={16} weight="bold" /> Pantry has what you need</div>
+                <div className="preview-list-row"><Basket size={17} /><span>Shopping list</span><b>Ready when you are</b></div>
+              </section>
             </div>
-            <div className="preview-stats">
-              <div><small>In stock</small><strong>24 items</strong></div>
-              <div><small>Restock</small><strong>3 items</strong></div>
-            </div>
-            <div className="preview-note"><span><Leaf size={19} /></span><p><strong>Made with your pantry</strong><small>Save time, spend less</small></p></div>
+            <div className="product-preview-foot"><span>One kitchen, kept in context.</span><span>Example screen · sample quantities</span></div>
           </div>
         </div>
-        <div className="welcome-hero-foot"><span>A calmer way to cook, every day</span><div><span>Plan less</span><span>Waste less</span><span>Enjoy more</span></div></div>
+        <div className="welcome-hero-foot"><span>From what you have to what you’ll make</span><a href="#kitchen-loop">See how Grocea connects it <span aria-hidden="true">↓</span></a></div>
       </section>
 
-      <section className="welcome-benefits" id="why-grocea" aria-labelledby="benefits-title">
-        <div className="welcome-section-heading">
-          <h2 id="benefits-title">Grocea brings clarity to your<br />everyday cooking.</h2>
-          <p>Track ingredients, plan recipes, and record what you cook in one place.</p>
+      <section className="welcome-loop" id="kitchen-loop" aria-labelledby="loop-title">
+        <div className="section-intro">
+          <span className="welcome-kicker">A CONTINUOUS KITCHEN WORKFLOW</span>
+          <h2 id="loop-title">Every part of the kitchen, in step.</h2>
+          <p>Grocea carries useful context from pantry to plate, then keeps a record of what changed.</p>
         </div>
-        <div className="benefit-grid">
-          {benefits.map(({ icon: Icon, title, body, note, tone }) => <article className={`benefit-card ${tone}`} key={title}>
-            <span><Icon size={23} /></span><h3>{title}</h3><p>{body}</p><strong>{note}</strong>
+        <ol className="loop-grid">
+          {loop.map(([number, title, body], index) => <li className="loop-step" key={number}>
+            <span className="loop-number">{number}</span>
+            <div className="loop-connector" aria-hidden="true"><i className={index === 0 ? 'filled' : ''} /></div>
+            <h3>{title}</h3><p>{body}</p>
+          </li>)}
+        </ol>
+      </section>
+
+      <section className="welcome-capabilities" aria-labelledby="capabilities-title">
+        <div className="section-intro capabilities-intro">
+          <span className="welcome-kicker">USEFUL, NOT NOISY</span>
+          <h2 id="capabilities-title">A practical ledger for everyday cooking.</h2>
+        </div>
+        <div className="capability-list">
+          {capabilities.map(({ icon: Icon, title, body }, index) => <article key={title} className="capability-row">
+            <span className="capability-index">0{index + 1}</span><span className="capability-icon"><Icon size={23} weight="regular" /></span>
+            <h3>{title}</h3><p>{body}</p>
           </article>)}
         </div>
       </section>
 
-      <section className="welcome-flow" id="how-it-works" aria-labelledby="flow-title">
-        <div className="welcome-flow-inner">
-          <div className="flow-intro">
-            <span className="welcome-eyebrow">Your week, a little easier</span>
-            <h2 id="flow-title">From ingredients to a good dinner—without overthinking it.</h2>
-            <p>Grocea shows what is in stock, what needs restocking, and what each recipe needs.</p>
-            <div className="flow-stat"><div><strong>24</strong><span>ingredients visible</span></div><div><strong>3</strong><span>items to restock</span></div></div>
-            <p className="flow-reassurance"><Check size={17} weight="bold" /> More ease in your kitchen, from day one.</p>
-          </div>
-          <ol className="flow-steps">
-            {steps.map(([number, title, body]) => <li key={number}><span>{number}</span><p><strong>{title}</strong><small>{body}</small></p></li>)}
-          </ol>
-        </div>
-      </section>
-
-      <section className="welcome-recipes" aria-labelledby="recipes-title">
-        <div className="recipes-intro"><span className="welcome-eyebrow">Made for real life</span><h2 id="recipes-title">Use what’s here. Make it feel special.</h2><p>Grocea compares recipe ingredients with your pantry stock.</p></div>
-        <div className="recipe-showcase">
-          {recipes.map(({ icon: Icon, title, meta, tone }) => <article key={title} className="showcase-card"><div className={tone}><Icon size={48} /></div><h3>{title}</h3><p>{meta}</p></article>)}
-        </div>
-          <figure className="welcome-quote"><span aria-hidden="true"><Leaf /></span><blockquote>Grocea stores pantry data for each account. You can work offline, and Grocea syncs when the service is available.</blockquote><figcaption>How Grocea keeps your kitchen yours</figcaption></figure>
+      <section className="welcome-offline" id="offline" aria-labelledby="offline-title">
+        <div className="offline-mark"><WifiSlash size={26} /></div>
+        <div><span className="welcome-kicker">YOUR DATA, YOUR KITCHEN</span><h2 id="offline-title">Private by account. Ready for offline moments.</h2><p>Sign in and complete your first sync while online. After that, Grocea saves changes on this device and syncs them when the service is available.</p></div>
+        <div className="offline-facts"><span><Check size={17} weight="bold" /> Personal account data</span><span><Check size={17} weight="bold" /> Metric quantities throughout</span><span><Check size={17} weight="bold" /> Stock changes stay traceable</span></div>
       </section>
 
       <section className="welcome-final" aria-labelledby="final-title">
-        <div><h2 id="final-title">A more thoughtful kitchen<br />starts today.</h2><p>Bring calm to your groceries, confidence to your cooking, and a little more joy to every meal.</p><div className="final-actions"><Link to="/register">Create your account <ArrowRight size={18} /></Link><span>Your account · Works offline</span></div></div>
-        <footer><Brand /><small>© 2026 Grocea. Better food, less waste.</small></footer>
+        <span className="welcome-kicker">START WITH WHAT’S IN YOUR KITCHEN</span>
+        <h2 id="final-title">Make your kitchen easier to keep up with.</h2>
+        <p>Set up your pantry, find a recipe, and keep the next shop connected to the meal.</p>
+        <div className="final-actions"><Link to="/register">Create your account <ArrowRight size={18} /></Link><Link className="final-signin" to="/login">Already have an account? Sign in</Link></div>
       </section>
     </main>
+    <footer className="welcome-footer"><Brand /><span>Pantry · Recipes · Groceries · Cooking history</span><small>© 2026 Grocea</small></footer>
   </div>
 }

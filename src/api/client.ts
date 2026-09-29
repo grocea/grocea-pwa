@@ -180,6 +180,7 @@ export function mapApiState(value: ApiState): { state: GroceaState; revision: nu
     scope: ingredient.scope,
   }))
   const balances = Object.fromEntries(value.pantry_stocks.map(stock => [stock.ingredient_id, decimalToMinor(stock.quantity)]))
+  const trackedIngredientIds = value.ingredients.filter(ingredient => ingredient.tracked_in_pantry).map(ingredient => ingredient.id)
   const profile: Profile = {
     displayName: value.profile.display_name,
     preferredServings: value.profile.preferred_servings ?? 2,
@@ -191,6 +192,7 @@ export function mapApiState(value: ApiState): { state: GroceaState; revision: nu
       categories,
       ingredients,
       balances,
+      trackedIngredientIds,
       recipes: value.recipes.map(mapRecipe),
       activity: value.activity.map(mapActivity),
       profile,
@@ -348,6 +350,9 @@ function mutationEntityIds(mutation: PendingMutation): string[] {
       add(payload.eventId)
       add(payload.ingredientId)
       break
+    case 'pantry.tracking':
+      add(payload.ingredientId)
+      break
     case 'recipe.create':
       add(recipe?.id)
       addRecipeIngredients()
@@ -480,6 +485,11 @@ export async function sendMutation(mutation: PendingMutation): Promise<number | 
         measurement_family: payload.family,
         track_in_pantry: payload.createStock,
       }
+      break
+    case 'pantry.tracking':
+      path = `/api/pantry-stocks/${payload.ingredientId}/tracking`
+      method = 'PUT'
+      body = { tracked: payload.tracked }
       break
     case 'stock.operation':
       path = `/api/pantry-stocks/${payload.ingredientId}/operations`

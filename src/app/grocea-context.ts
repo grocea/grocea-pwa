@@ -27,6 +27,7 @@ export interface GroceaContextValue extends GroceaState {
   categoryName: (id: string) => string
   ingredient: (id: string) => Ingredient | undefined
   adjustStock: (ingredientId: string, operation: StockOperation, amount: bigint, reason: string) => Promise<void>
+  setPantryTracking: (ingredientId: string, tracked: boolean) => Promise<void>
   createIngredient: (name: string, categoryId: string, family: MeasurementFamily, createStock?: boolean) => Promise<string>
   createRecipeDraft: (sourceRecipeId?: string) => Promise<string>
   updateRecipeDraft: (id: string, patch: Partial<Pick<DraftRecipe, 'name' | 'description' | 'baseServings' | 'ingredients' | 'steps'>>) => Promise<void>

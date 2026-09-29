@@ -31,6 +31,10 @@ function displayGroceryListTitle(title: string) {
   return title.replace(/^Groceries\s+—\s+/, '')
 }
 
+function formatListDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value))
+}
+
 function useRouteToast() {
   const location = useLocation()
   const routeMessage = (location.state as { message?: string } | null)?.message
@@ -132,7 +136,7 @@ export function GroceriesScreen() {
       </div>
       <div className="grocery-how-it-works"><span className="eyebrow">HOW IT WORKS</span><ol><li><span>1</span><span><strong>Pick recipes</strong><small>Add dishes to Basket.</small></span></li><li><span>2</span><span><strong>Review what’s missing</strong><small>Grocea subtracts pantry stock.</small></span></li><li><span>3</span><span><strong>Shop with a focused list</strong><small>Check items off as you go.</small></span></li></ol></div>
     </section>}
-    {completed.length > 0 && <details className="grocery-history-disclosure"><summary><span className="grocery-history-summary-copy"><strong>Past lists</strong><small>{completed.length} saved list{completed.length === 1 ? '' : 's'} · newest first</small></span><span className="grocery-history-summary-action">View history <ArrowRight /></span></summary><div className="grocery-history">{completed.map(list => <Link key={list.id} to={`/groceries/${list.id}`}><span><strong>{displayGroceryListTitle(list.title)}</strong><small>{new Date(list.completedAt ?? list.createdAt).toLocaleDateString()} · {list.items.length} items · {list.recipes.length} recipes</small></span><span className="grocery-card-action">Open list <ArrowRight /></span></Link>)}</div></details>}
+    {completed.length > 0 && <details className="grocery-history-disclosure"><summary><span className="grocery-history-summary-copy"><strong>Past lists</strong><small>{completed.length} saved list{completed.length === 1 ? '' : 's'} · newest first</small></span><span className="grocery-history-summary-action">View history <ArrowRight /></span></summary><div className="grocery-history">{completed.map(list => <Link key={list.id} to={`/groceries/${list.id}`}><span><strong>{displayGroceryListTitle(list.title)}</strong><small>Completed {formatListDate(list.completedAt ?? list.createdAt)} · {list.items.length} items · {list.recipes.length} recipes</small></span><span className="grocery-card-action">Open list <ArrowRight /></span></Link>)}</div></details>}
   </main></AppShell>
 }
 
@@ -314,7 +318,7 @@ export function GroceryListScreen() {
   }
   const checkedCount = list.items.filter(item => item.checked).length
   const remainingCount = list.items.length - checkedCount
-  return <AppShell><BackHeader title={active ? 'Shopping list' : 'Past list'} titleAs="span" fallbackTo="/groceries" eyebrow={active ? 'In progress' : new Date(list.completedAt ?? list.createdAt).toLocaleDateString()} />
+  return <AppShell><BackHeader title={active ? 'Shopping list' : 'Past list'} titleAs="span" fallbackTo="/groceries" eyebrow={active ? 'In progress' : `Completed ${formatListDate(list.completedAt ?? list.createdAt)}`} />
     <main className="detail-screen grocery-screen grocery-list-screen"><ToastNotice message={message} />{error && <div className="warning-banner danger" role="alert"><WarningCircle /><span>{error}</span></div>}
       {active ? <section className="active-list-overview">
         {!titleEditing ? <div className="grocery-title-row"><div className="grocery-title-copy"><h1 data-page-title tabIndex={-1}>{displayGroceryListTitle(list.title)}</h1></div><button className="icon-button" type="button" aria-label="Edit list name" onClick={beginTitleEdit}><PencilSimple size={19} /></button></div> : <form className="grocery-title-form editing" onSubmit={saveTitle} aria-busy={titleState === 'saving'}>
@@ -326,7 +330,7 @@ export function GroceryListScreen() {
           <div><span className="shopping-progress-icon"><ListChecks size={21} /></span><span><strong>{checkedCount} of {list.items.length} purchased</strong><small>{remainingCount ? `${remainingCount} remaining` : 'Ready to complete'}</small></span></div>
           <progress max={Math.max(1, list.items.length)} value={checkedCount} aria-label={`${checkedCount} of ${list.items.length} grocery items purchased`} />
         </div>
-      </section> : <section className="completed-list-summary"><span className="eyebrow">PAST LIST</span><h1 data-page-title tabIndex={-1}>{displayGroceryListTitle(list.title)}</h1><p>Completed {new Date(list.completedAt ?? list.createdAt).toLocaleDateString()} · {list.recipes.length} recipe{list.recipes.length === 1 ? '' : 's'}</p></section>}
+      </section> : <section className="completed-list-summary"><span className="eyebrow">PAST LIST</span><h1 data-page-title tabIndex={-1}>{displayGroceryListTitle(list.title)}</h1><p>Completed {formatListDate(list.completedAt ?? list.createdAt)} · {list.recipes.length} recipe{list.recipes.length === 1 ? '' : 's'}</p></section>}
       {active && <div className="shopping-list-toolbar"><div><strong>Items to buy</strong><small>{list.items.length} item{list.items.length === 1 ? '' : 's'}</small></div></div>}
       {editing && <ItemEditor initial={editing === 'new' ? undefined : editing} ingredients={[...ingredients].sort((a, b) => a.name.localeCompare(b.name))} onCancel={() => setEditing(null)} onSave={async input => { if (editing === 'new') await addGroceryItem(list.id, input); else await updateGroceryItem(list.id, { ...editing, ...input }); setEditing(null) }} />}
       {!list.items.length ? <div className="nothing-to-buy" role="status"><span><CheckCircle size={24} /></span><div><strong>Nothing to buy</strong><p>Your pantry has all required ingredients.</p></div></div> : !active && !visibleItems.length ? <div className="nothing-to-buy" role="status"><span><CheckCircle size={24} /></span><div><strong>No purchased items</strong><p>You completed this list without marking items as purchased.</p></div></div> : groups.map(group => <section className="grocery-group" key={group.category}><div className="section-label"><strong>{group.category}</strong><span>{group.items.length} item{group.items.length === 1 ? '' : 's'}</span></div><div className="grocery-items">{group.items.map(item => <article className={`grocery-item${active ? ' active' : ''}${item.checked ? ' checked' : ''}`} key={item.id}>{active ? <label className="grocery-check"><input type="checkbox" checked={item.checked} aria-label={`Mark ${item.label} ${item.checked ? 'not purchased' : 'purchased'}`} onChange={() => void updateGroceryItem(list.id, { ...item, checked: !item.checked })} /></label> : <span className="completion-mark"><Check /></span>}<span className="grocery-item-copy"><strong>{item.label}{item.edited && <small className="edited-badge">Edited</small>}</strong><small className="grocery-amount">Buy {amountLabel(item)}</small></span>{active && <span className="grocery-item-actions"><button className="icon-button" type="button" aria-label={`Edit ${item.label}`} onClick={() => setEditing(item)}><PencilSimple size={19} /></button><button className="icon-button danger-text" type="button" aria-label={`Delete ${item.label}`} onClick={() => setDeleteItemTarget(item)}><Trash size={19} /></button></span>}</article>)}</div></section>)}

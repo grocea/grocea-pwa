@@ -30,6 +30,28 @@ function AppRoutes() {
   const { status } = useAuth()
   const { phase, failure } = useBootSplash()
   const location = useLocation()
+  useEffect(() => {
+    const publicPage = location.pathname === '/welcome'
+    const title = publicPage ? 'Grocea — A clearer view of what’s in your kitchen' : 'Grocea · Your kitchen ledger'
+    const description = publicPage
+      ? 'Keep pantry stock, recipes, shopping, and cooking in one connected kitchen ledger. Private by account and available offline after your first sync.'
+      : 'Private Grocea kitchen workspace.'
+    document.title = title
+    const descriptionTag = document.head.querySelector<HTMLMetaElement>('meta[name="description"]')
+    if (descriptionTag) descriptionTag.content = description
+    const robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]') ?? document.head.appendChild(Object.assign(document.createElement('meta'), { name: 'robots' }))
+    robots.content = publicPage ? 'index,follow' : 'noindex,nofollow'
+    const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+    if (publicPage) {
+      const link = canonical ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }))
+      link.href = 'https://grocea-pwa.ammar-jmldn.workers.dev/welcome'
+    } else {
+      canonical?.remove()
+    }
+    document.head.querySelector<HTMLMetaElement>('meta[property="og:title"]')?.setAttribute('content', title)
+    document.head.querySelector<HTMLMetaElement>('meta[property="og:description"]')?.setAttribute('content', description)
+    document.head.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', 'https://grocea-pwa.ammar-jmldn.workers.dev/welcome')
+  }, [location.pathname])
   const accountSession = status === 'authenticated' || status === 'offline-authenticated'
   const showSplash = location.pathname !== '/welcome' && (status === 'loading' || (accountSession && (phase === 'pending' || phase === 'failure')))
   return <>

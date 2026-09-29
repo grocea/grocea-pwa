@@ -231,10 +231,28 @@ function isGroceryList(value: unknown): value is GroceryList {
 
 function normalizeStateShape(value: unknown): unknown {
   if (!isRecord(value)) return value
+  const ingredients = Array.isArray(value.ingredients) ? value.ingredients : []
+  const balances = isRecord(value.balances) ? value.balances : {}
+  const activity = Array.isArray(value.activity) ? value.activity : []
+  const inferredTracked = new Set<string>()
+  for (const [id, balance] of Object.entries(balances)) {
+    if (typeof balance === 'bigint' && balance !== 0n) inferredTracked.add(id)
+  }
+  activity.forEach(event => {
+    if (!isRecord(event) || !Array.isArray(event.changes)) return
+    event.changes.forEach(change => {
+      if (isRecord(change) && isString(change.ingredientId)) inferredTracked.add(change.ingredientId)
+    })
+  })
   return {
     ...value,
     basket: Array.isArray(value.basket) ? value.basket : [],
     groceryLists: Array.isArray(value.groceryLists) ? value.groceryLists : [],
+    trackedIngredientIds: Array.isArray(value.trackedIngredientIds)
+      ? value.trackedIngredientIds.filter(isString)
+      : ingredients.filter(isRecord).flatMap(ingredient => (
+        isString(ingredient.id) && inferredTracked.has(ingredient.id) ? [ingredient.id] : []
+      )),
   }
 }
 
@@ -253,7 +271,9 @@ export function isGroceaState(value: unknown): value is GroceaState {
     || !Array.isArray(value.groceryLists)
     || !value.groceryLists.every(isGroceryList)
     || !isProfile(value.profile)
-    || !isRecord(value.balances)) return false
+    || !isRecord(value.balances)
+    || !Array.isArray(value.trackedIngredientIds)
+    || !value.trackedIngredientIds.every(isString)) return false
 
   if (!Object.values(value.balances).every(balance => typeof balance === 'bigint')) return false
 
@@ -261,6 +281,8 @@ export function isGroceaState(value: unknown): value is GroceaState {
   if (!hasUniqueIds(value.categories) || !hasUniqueIds(value.ingredients) || !hasUniqueIds(value.recipes) || !hasUniqueIds(value.activity)) return false
   const categoryIds = new Set(value.categories.map(category => category.id))
   const ingredients = new Map(value.ingredients.map(ingredient => [ingredient.id, ingredient]))
+  if (new Set(value.trackedIngredientIds).size !== value.trackedIngredientIds.length
+    || value.trackedIngredientIds.some(id => !ingredients.has(id))) return false
   if (value.ingredients.some(ingredient => !categoryIds.has(ingredient.categoryId))) return false
   if (value.recipes.some(recipe => recipe.ingredients.some(item => {
     const ingredient = ingredients.get(item.ingredientId)
@@ -274,6 +296,7 @@ export function cloneState(state: GroceaState): GroceaState {
     categories: state.categories.map(category => ({ ...category })),
     ingredients: state.ingredients.map(ingredient => ({ ...ingredient })),
     balances: { ...state.balances },
+    trackedIngredientIds: [...state.trackedIngredientIds],
     recipes: state.recipes.map(recipe => ({
       ...recipe,
       ingredients: recipe.ingredients.map(ingredient => ({ ...ingredient })),
@@ -369,7 +392,14 @@ export function reconcileGlobalFixtures(persisted: GroceaState, seed: GroceaStat
     ingredient.id,
     persisted.balances[ingredient.id] ?? seed.balances[ingredient.id] ?? 0n,
   ]))
-  return { ...cloneState(persisted), categories, ingredients, recipes, balances }
+  return {
+    ...cloneState(persisted),
+    categories,
+    ingredients,
+    recipes,
+    balances,
+    trackedIngredientIds: persisted.trackedIngredientIds.filter(id => ingredients.some(item => item.id === id)),
+  }
 }
 
 function requestPersistentStorage(): void {

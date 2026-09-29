@@ -1807,6 +1807,115 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 .stock-row-caret { color: #88958d; }
 .stock-group .stock-row:hover .stock-row-caret { color: var(--green); transform: translateX(2px); }
 
+/* Kitchen Ledger — final cross-surface refinements. */
+:root {
+  --ink: #15271d;
+  --muted: #526158;
+  --quiet: #607067;
+  --green: #254f3a;
+  --green-deep: #193b2b;
+  --green-soft: #e4f0e7;
+  --surface: #fffefa;
+  --warm: #f4f2ea;
+  --line: #dce1da;
+  --warning: #8a4b20;
+  --warning-bg: #fff0df;
+}
+
+body { background: var(--warm); color: var(--ink); }
+.app-shell, .app-page { background: var(--warm); }
+.screen-content, .detail-screen, .result-screen, .form-screen { max-width: 1360px; }
+.page-heading { align-items: center; margin-bottom: 22px; }
+.page-heading h1, .catalog-heading h1 { color: var(--ink); font-size: clamp(30px, 3vw, 40px); letter-spacing: -.05em; line-height: 1.04; }
+.page-heading p, .catalog-heading p { max-width: 720px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.brand-header, .back-header { border-color: var(--line); background: rgb(244 242 234 / 94%); }
+.primary-navigation { background: #f0efe7; }
+.nav-item { border-radius: 9px; color: #526158; font-size: 13px; font-weight: 650; }
+.nav-item.active { color: var(--green-deep); background: #e3eadd; }
+.nav-item:hover:not(.active) { background: #e9ebe2; }
+.button, .primary-button, .secondary-button, .new-button { border-radius: 9px; box-shadow: none; }
+.button.primary, .primary-button, .new-button { background: var(--green); }
+.button.primary:hover, .primary-button:hover, .new-button:hover { background: var(--green-deep); }
+.button.secondary, .secondary-button { border-color: #cbd3c9; background: var(--surface); }
+.button:focus-visible, .nav-item:focus-visible, .stock-row:focus-visible, .catalog-track-toggle:focus-visible { outline: 3px solid #91ad79; outline-offset: 2px; }
+.pantry-pulse { min-height: 154px; align-items: center; margin-bottom: 20px; padding: 24px 26px; border: 1px solid #d4dfd1; border-radius: 10px; background: #e7eee3; box-shadow: none; }
+.pantry-pulse::after { content: none; }
+.pantry-pulse strong { margin-top: 8px; font-size: 42px; letter-spacing: -.055em; }
+.pantry-pulse strong small { font-size: 16px; }
+.pantry-pulse p { margin-top: 9px; font-size: 13px; }
+.pulse-action { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 0 13px; color: var(--green-deep); border: 1px solid #bdcbbb; border-radius: 8px; background: rgb(255 254 250 / 74%); font-size: 12px; font-weight: 700; }
+.pantry-tools { gap: 12px; margin-bottom: 14px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.pantry-view-tabs { border: 1px solid var(--line); border-radius: 9px; background: #ebece4; }
+.pantry-view-tabs button { min-height: 44px; border-radius: 7px; color: #566358; }
+.pantry-view-tabs button.selected { color: var(--green-deep); background: var(--surface); box-shadow: 0 1px 2px rgb(21 39 29 / 8%); }
+.pantry-filters .search-field, .pantry-filters .compact-select select, .catalog-toolbar .compact-select select { min-height: 46px; border-color: #d3d9d0; border-radius: 8px; background: var(--surface); }
+.pantry-actions { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 20px; }
+.pantry-actions .button { min-height: 43px; padding-inline: 14px; font-size: 13px; }
+.stock-list { gap: 13px; }
+.stock-group { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: none; }
+.stock-group-heading { min-height: 42px; border-bottom: 1px solid #e6e9e2; background: #fafaf6; }
+.stock-group-heading h2 { color: #435648; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; }
+.stock-group-heading span { color: #758176; font-size: 10px; }
+.stock-group .stock-row { min-height: 66px; border-radius: 0; border-bottom-color: #edf0e9; }
+.stock-group .stock-row.warning { background: #fffaf4; }
+.stock-group .stock-row:hover { background: #f7f8f2; box-shadow: none; transform: none; }
+.stock-group .ingredient-icon { color: #335a40; border-radius: 9px; background: #edf1e8; }
+.stock-group .stock-row.warning .stock-quantity strong { color: var(--warning); }
+.catalog-heading { margin-bottom: 18px; }
+.catalog-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(170px, 230px); gap: 10px; margin: 14px 0; }
+.catalog-toolbar .search-field { min-height: 46px; border-radius: 8px; background: var(--surface); }
+.catalog-list { border-radius: 10px; box-shadow: none; }
+.catalog-row { min-height: 70px; gap: 12px; padding: 10px 13px; border-bottom-color: #e8ebe4; background: var(--surface); }
+.catalog-row:nth-child(even) { background: #fcfcf8; }
+.catalog-row strong { font-size: 13px; }
+.catalog-row small { font-size: 10px; }
+.catalog-track-toggle { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; flex: 0 0 auto; padding: 0 11px; color: #fff; border: 1px solid var(--green); border-radius: 7px; background: var(--green); font-size: 11px; font-weight: 700; cursor: pointer; }
+.catalog-track-toggle:hover:not(:disabled) { background: var(--green-deep); }
+.catalog-track-toggle.quiet { color: #536357; border-color: #d3d9d0; background: transparent; }
+.catalog-track-toggle.quiet:hover:not(:disabled) { background: #f0f2eb; }
+.catalog-track-toggle:disabled { cursor: not-allowed; opacity: .55; }
+.catalog-tracked-state { display: inline-flex !important; align-items: center; gap: 5px !important; color: #477051; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.profile-policy { display: grid; gap: 5px; padding: 13px 14px; color: #435648; border: 1px solid #dbe2d6; border-radius: 9px; background: #f4f6f0; }
+.profile-policy strong { font-size: 13px; }
+.profile-policy span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.menu-list { border-radius: 10px; box-shadow: none; }
+.menu-list > a { min-height: 68px; border-bottom-color: #e9ece6; }
+.menu-icon { border-radius: 9px; }
+.recipe-card, .activity-row, .workflow-card, .detail-section, .form-section, .profile-summary, .grocery-next-step, .grocery-history-disclosure { border-radius: 10px; box-shadow: none; }
+.recipe-card:hover, .activity-row:hover { box-shadow: 0 4px 14px rgb(21 39 29 / 5%); transform: none; }
+.status { border-radius: 5px; }
+.grocery-item { min-height: 76px; }
+
+@media (min-width: 980px) {
+  .app-shell.with-navigation { grid-template-columns: 244px minmax(0, 1fr); }
+  .primary-navigation { padding: 24px 15px; border-right-color: #d9ded4; background: #f0efe7; }
+  .desktop-wordmark { margin-bottom: 38px; }
+  .nav-links { gap: 5px; }
+  .nav-item { min-height: 48px; }
+  .pantry-content { max-width: 1390px; }
+}
+
+@media (max-width: 700px) {
+  .pantry-pulse { min-height: 130px; align-items: flex-start; flex-direction: column; gap: 14px; padding: 19px; }
+  .pantry-pulse strong { font-size: 36px; }
+  .pantry-pulse p { max-width: 330px; }
+  .pantry-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .pantry-actions .button { padding-inline: 9px; font-size: 12px; }
+  .catalog-toolbar { grid-template-columns: minmax(0, 1fr) 128px; gap: 7px; }
+  .catalog-row { min-height: 68px; padding: 8px 10px; }
+  .catalog-track-toggle { min-height: 40px; padding-inline: 9px; font-size: 10px; }
+  .stock-group { border-radius: 9px; }
+}
+
+@media (max-width: 400px) {
+  .pantry-actions { grid-template-columns: 1fr; }
+  .catalog-toolbar { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
 @media (min-width: 1200px) {
   .pantry-content { display: block; }
 }
@@ -1973,4 +2082,13 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
   .grocery-hub .basket-link { align-self: flex-start; }
   .grocery-next-step { padding: 18px; }
   .grocery-history-disclosure summary { align-items: flex-start; flex-direction: column; gap: 8px; }
+}
+
+/* Keep the Kitchen Ledger's flatter surface language after responsive rules. */
+.grocery-next-step, .grocery-history-disclosure { border-radius: 10px; box-shadow: none; }
+.grocery-how-it-works { border-radius: 9px; box-shadow: none; }
+.auth-card { border-radius: 12px; box-shadow: none; }
+@media (max-width: 700px) {
+  .stock-group { border-radius: 9px; }
+  .stock-group-heading { min-height: 42px; padding-inline: 13px; }
 }

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#F4F2EA"/>
+  <circle cx="1062" cy="93" r="318" stroke="#DCE4D8" stroke-width="2"/>
+  <circle cx="1062" cy="93" r="256" stroke="#E2E8DE" stroke-width="2"/>
+  <rect x="72" y="72" width="42" height="42" rx="12" fill="#254F3A"/>
+  <path d="M93 82C81 88 83 102 96 105C104 100 105 88 93 82Z" fill="#D9FF82"/>
+  <path d="M92 103C92 95 95 90 101 87" stroke="#254F3A" stroke-width="2" stroke-linecap="round"/>
+  <text x="128" y="102" fill="#193B2B" font-family="Arial,sans-serif" font-size="27" font-weight="700" letter-spacing="-1.5">grocea</text>
+  <text x="72" y="199" fill="#285640" font-family="Arial,sans-serif" font-size="15" font-weight="700" letter-spacing="3">THE KITCHEN LEDGER</text>
+  <text x="72" y="280" fill="#173528" font-family="Georgia,serif" font-size="62" letter-spacing="-2.6">A clearer view of what’s</text>
+  <text x="72" y="351" fill="#173528" font-family="Georgia,serif" font-size="62" letter-spacing="-2.6">in your kitchen.</text>
+  <text x="74" y="411" fill="#5F6F64" font-family="Arial,sans-serif" font-size="22">Pantry stock, recipes, shopping, and cooking—</text>
+  <text x="74" y="444" fill="#5F6F64" font-family="Arial,sans-serif" font-size="22">kept in one connected place.</text>
+  <rect x="720" y="147" width="392" height="334" rx="16" fill="#FFFEFA" stroke="#D9DED4" stroke-width="2"/>
+  <rect x="720" y="147" width="392" height="61" rx="16" fill="#254F3A"/>
+  <path d="M720 192H1112V208H720V192Z" fill="#254F3A"/>
+  <text x="752" y="185" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="19" font-weight="700">My kitchen</text>
+  <text x="752" y="249" fill="#607067" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">YOUR PANTRY</text>
+  <text x="752" y="281" fill="#173528" font-family="Georgia,serif" font-size="28">On hand</text>
+  <path d="M752 302H1080M752 360H1080M752 418H1080" stroke="#E5E9E1" stroke-width="2"/>
+  <circle cx="773" cy="332" r="14" fill="#F3EDDA"/><text x="768" y="338" fill="#665C3C" font-family="Georgia,serif" font-size="17" font-weight="700">O</text>
+  <text x="799" y="331" fill="#233A2B" font-family="Arial,sans-serif" font-size="16" font-weight="700">Rolled oats</text><text x="799" y="349" fill="#788378" font-family="Arial,sans-serif" font-size="12">Pantry staples</text><text x="1028" y="340" fill="#324A39" font-family="Arial,sans-serif" font-size="15" font-weight="700">800 g</text>
+  <circle cx="773" cy="390" r="14" fill="#E7F0E5"/><text x="768" y="396" fill="#42664D" font-family="Georgia,serif" font-size="17" font-weight="700">M</text>
+  <text x="799" y="389" fill="#233A2B" font-family="Arial,sans-serif" font-size="16" font-weight="700">Whole milk</text><text x="799" y="407" fill="#788378" font-family="Arial,sans-serif" font-size="12">Dairy &amp; chilled</text><text x="1028" y="398" fill="#324A39" font-family="Arial,sans-serif" font-size="15" font-weight="700">1.5 L</text>
+  <circle cx="773" cy="448" r="14" fill="#F7ECE0"/><text x="768" y="454" fill="#9B6236" font-family="Georgia,serif" font-size="17" font-weight="700">C</text>
+  <text x="799" y="447" fill="#233A2B" font-family="Arial,sans-serif" font-size="16" font-weight="700">Carrots</text><text x="799" y="465" fill="#945927" font-family="Arial,sans-serif" font-size="12">Needs restock</text><text x="1013" y="456" fill="#945927" font-family="Arial,sans-serif" font-size="15" font-weight="700">0 items</text>
+  <rect x="72" y="520" width="225" height="46" rx="8" fill="#285640"/>
+  <text x="95" y="550" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="16" font-weight="700">Private by account</text>
+  <text x="325" y="550" fill="#526158" font-family="Arial,sans-serif" font-size="16">Works offline after your first sync</text>
+</svg>

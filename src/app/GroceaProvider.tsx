@@ -25,6 +25,7 @@ import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 type Action =
   | { type: 'stock'; eventId: string; ingredientId: string; operation: StockOperation; amount: bigint; reason: string }
   | { type: 'ingredient'; ingredient: Ingredient; createStock: boolean }
+  | { type: 'tracking'; ingredientId: string; tracked: boolean }
   | { type: 'recipe-create'; recipe: DraftRecipe }
   | {
     type: 'recipe-update'
@@ -45,6 +46,20 @@ function reducer(state: GroceaState, action: Action): GroceaState {
       ...state,
       ingredients: [...state.ingredients, action.ingredient],
       balances: action.createStock ? { ...state.balances, [action.ingredient.id]: 0n } : state.balances,
+      trackedIngredientIds: action.createStock
+        ? [...new Set([...state.trackedIngredientIds, action.ingredient.id])]
+        : state.trackedIngredientIds,
+    }
+  }
+  if (action.type === 'tracking') {
+    return {
+      ...state,
+      balances: action.tracked
+        ? { ...state.balances, [action.ingredientId]: state.balances[action.ingredientId] ?? 0n }
+        : state.balances,
+      trackedIngredientIds: action.tracked
+        ? [...new Set([...state.trackedIngredientIds, action.ingredientId])]
+        : state.trackedIngredientIds.filter(id => id !== action.ingredientId),
     }
   }
   if (action.type === 'recipe-create') {
@@ -104,13 +119,19 @@ function reducer(state: GroceaState, action: Action): GroceaState {
     return {
       ...state,
       balances: { ...state.balances, [action.ingredientId]: next },
+      trackedIngredientIds: [...new Set([...state.trackedIngredientIds, action.ingredientId])],
       activity: [event, ...state.activity],
     }
   }
   if (action.type === 'cook') {
     const balances = { ...state.balances }
     action.event.changes.forEach(change => { balances[change.ingredientId] = change.after })
-    return { ...state, balances, activity: [action.event, ...state.activity] }
+    return {
+      ...state,
+      balances,
+      trackedIngredientIds: [...new Set([...state.trackedIngredientIds, ...action.event.changes.map(change => change.ingredientId)])],
+      activity: [action.event, ...state.activity],
+    }
   }
   const original = state.activity.find(event => event.id === action.eventId)
   if (!original || original.reversedAt) return state
@@ -119,6 +140,7 @@ function reducer(state: GroceaState, action: Action): GroceaState {
   return {
     ...state,
     balances,
+    trackedIngredientIds: [...new Set([...state.trackedIngredientIds, ...action.reversal.changes.map(change => change.ingredientId)])],
     activity: [
       action.reversal,
       ...state.activity.map(event => event.id === action.eventId
@@ -764,6 +786,20 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         },
       }))
     },
+    setPantryTracking: (ingredientId: string, tracked: boolean) => commit(current => {
+      const ingredient = current.ingredients.find(item => item.id === ingredientId)
+      if (!ingredient) throw new Error('Grocea could not find that ingredient.')
+      const isTracked = current.trackedIngredientIds.includes(ingredientId)
+      if (isTracked === tracked) return { state: current, result: undefined }
+      if (!tracked && (current.balances[ingredientId] ?? 0n) !== 0n) {
+        throw new Error('Set this ingredient’s balance to zero before stopping tracking.')
+      }
+      return {
+        state: reducer(current, { type: 'tracking', ingredientId, tracked }),
+        result: undefined,
+        mutation: { type: 'pantry.tracking', payload: { ingredientId, tracked } },
+      }
+    }),
     createIngredient: (name: string, categoryId: string, family: Ingredient['family'], createStock = false) => {
       const id = crypto.randomUUID()
       return commit(current => ({
@@ -1124,6 +1160,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           state: {
             ...current,
             balances,
+            trackedIngredientIds: [...new Set([...current.trackedIngredientIds, ...additions.keys()])],
             activity,
             groceryLists: current.groceryLists.map(candidate => candidate.id === listId
               ? { ...candidate, status: 'completed', completedAt: now, updatedAt: now }

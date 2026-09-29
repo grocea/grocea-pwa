@@ -96,6 +96,7 @@ export interface GroceaState {
   categories: Category[]
   ingredients: Ingredient[]
   balances: Record<string, bigint>
+  trackedIngredientIds: string[]
   recipes: Recipe[]
   activity: ActivityEvent[]
   profile: Profile

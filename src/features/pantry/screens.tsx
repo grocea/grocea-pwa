@@ -2,6 +2,7 @@ import {
   ArrowRight,
   ArrowsLeftRight,
   CaretRight,
+  Check,
   Circle,
   ClockCounterClockwise,
   Drop,
@@ -10,7 +11,6 @@ import {
   Grains,
   Info,
   Lightbulb,
-  LockSimple,
   MagnifyingGlass,
   Minus,
   NotePencil,
@@ -21,7 +21,7 @@ import {
 } from '@phosphor-icons/react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AppShell, BackHeader, BrandHeader, OwnershipMark } from '../../shared/ui/AppShell'
+import { AppShell, BackHeader, BrandHeader } from '../../shared/ui/AppShell'
 import { defaultUnit, familyUnits, formatQuantity, parseQuantity } from '../../shared/lib/quantity'
 import { usePendingAction } from '../../shared/lib/usePendingAction'
 import { useGrocea as usePantry } from '../../app/grocea-context'
@@ -57,7 +57,7 @@ function safeRecipeReturnTo(value: string | null) {
 }
 
 export function PantryScreen() {
-  const { ingredients, balances, categories, categoryName, recipes } = usePantry()
+  const { ingredients, balances, trackedIngredientIds, categories, categoryName, recipes } = usePantry()
   const location = useLocation()
   const navigate = useNavigate()
   const routeMessage = (location.state as { message?: string } | null)?.message
@@ -66,8 +66,9 @@ export function PantryScreen() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
 
-  const inStockCount = ingredients.filter((item) => (balances[item.id] ?? 0n) > 0n).length
-  const restockCount = ingredients.length - inStockCount
+  const tracked = useMemo(() => new Set(trackedIngredientIds), [trackedIngredientIds])
+  const inStockCount = ingredients.filter((item) => tracked.has(item.id) && (balances[item.id] ?? 0n) > 0n).length
+  const restockCount = trackedIngredientIds.length - inStockCount
   const publishedRecipeCount = recipes.filter((recipe) => recipe.status === 'published').length
   useEffect(() => {
     if (routeMessage) navigate(location.pathname, { replace: true, state: null })
@@ -77,6 +78,7 @@ export function PantryScreen() {
     () =>
       ingredients
         .filter((item) => {
+          if (!tracked.has(item.id)) return false
           const balance = balances[item.id] ?? 0n
           const matchesTab = tab === 'stock' ? balance > 0n : balance <= 0n
           const matchesQuery = item.name.toLowerCase().includes(query.trim().toLowerCase())
@@ -84,7 +86,7 @@ export function PantryScreen() {
           return matchesTab && matchesQuery && matchesCategory
         })
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [balances, category, ingredients, query, tab],
+    [balances, category, ingredients, query, tab, tracked],
   )
   const ingredientGroups = useMemo(() => {
     if (query.trim()) {
@@ -118,7 +120,7 @@ export function PantryScreen() {
         <SuccessNotice message={notice} />
         <header className="page-heading">
           <h1 data-page-title tabIndex={-1}>Pantry</h1>
-          <p>{inStockCount} in stock · {restockCount} need restock</p>
+          <p>{trackedIngredientIds.length} tracked · {inStockCount} in stock · {restockCount} need restock</p>
         </header>
 
         <section className="pantry-pulse" aria-label="Pantry overview">
@@ -156,7 +158,10 @@ export function PantryScreen() {
           </div>
         </div>
 
-        <Link className="floating-action pantry-add-stock" to="/pantry/stock/new"><Plus size={24} /> Add stock</Link>
+        <div className="pantry-actions">
+          <Link className="button primary" to="/pantry/stock/new"><Plus size={20} /> Add stock</Link>
+          <Link className="button secondary" to="/ingredients">Track ingredients <ArrowRight size={18} /></Link>
+        </div>
 
         <section className="stock-list" aria-live="polite" aria-label={tab === 'stock' ? 'In-stock ingredients' : 'Ingredients needing restock'}>
           {ingredientGroups.map((group) => (
@@ -185,7 +190,7 @@ export function PantryScreen() {
               </div>
             </section>
           ))}
-          {shown.length === 0 && <div className="empty-state"><strong>No ingredients found</strong><span>Try another search or category.</span></div>}
+          {shown.length === 0 && <div className="empty-state"><strong>{tab === 'restock' && restockCount === 0 ? 'Nothing needs restocking' : tab === 'stock' && inStockCount === 0 ? 'No ingredients in stock yet' : 'No ingredients found'}</strong><span>{query || category !== 'all' ? 'Try another search or category.' : tab === 'restock' && restockCount === 0 ? 'Track an ingredient from the catalog when you want Grocea to watch its balance.' : 'Add a pantry balance or track an ingredient to get started.'}</span></div>}
         </section>
       </main>
     </AppShell>
@@ -349,7 +354,7 @@ export function AddStockScreen() {
                   </select>
                 </div>
               </div>
-              <small className="field-help" id="quantity-help"><Info aria-hidden="true" />{ingredient.family[0].toUpperCase() + ingredient.family.slice(1)} units only for {ingredient.name}.</small>
+              <small className="field-help" id="quantity-help"><Info aria-hidden="true" />{ingredient.family === 'count' ? 'Fractions are allowed for partial ingredients, such as half an onion.' : `${ingredient.family[0].toUpperCase() + ingredient.family.slice(1)} units only for ${ingredient.name}.`}</small>
               {quantityInvalid && <span className="field-error" id="quantity-error" role="alert">Enter {operation === 'set' ? 'a valid signed balance' : 'a quantity greater than zero'}.</span>}
 
               <div className={`balance-preview mobile-balance-preview${projected <= 0n ? ' warning' : ''}`}>
@@ -405,7 +410,7 @@ export function AddStockScreen() {
 }
 
 export function CatalogScreen() {
-  const { ingredients, categories, categoryName } = usePantry()
+  const { ingredients, categories, categoryName, trackedIngredientIds, balances, setPantryTracking, canMutate } = usePantry()
   const location = useLocation()
   const navigate = useNavigate()
   const routeState = location.state as { message?: string; scope?: 'global' | 'custom' } | null
@@ -413,6 +418,9 @@ export function CatalogScreen() {
   const [scope, setScope] = useState<'global' | 'custom'>(routeState?.scope ?? 'global')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
+  const [trackingId, setTrackingId] = useState<string | null>(null)
+  const [trackingError, setTrackingError] = useState('')
+  const [trackingNotice, setTrackingNotice] = useState('')
   const globalCount = ingredients.filter((item) => item.scope === 'global').length
   const customCount = ingredients.length - globalCount
   useEffect(() => {
@@ -433,34 +441,46 @@ export function CatalogScreen() {
       <BrandHeader />
       <main className="screen-content catalog-content">
         <SuccessNotice message={notice} />
+        <SuccessNotice message={trackingNotice} />
+        {trackingError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span>{trackingError}</span></div>}
         <header className="catalog-heading">
-          <div><h1 data-page-title tabIndex={-1}>Ingredients</h1><p>{globalCount} global · {customCount} yours</p></div>
+          <div><h1 data-page-title tabIndex={-1}>Ingredient catalog</h1><p>{globalCount} global · {customCount} yours · {trackedIngredientIds.length} tracked</p></div>
           <Link className="new-button" to="/ingredients/new"><Plus size={20} /> New</Link>
         </header>
-
-        <label className="search-field catalog-search">
-          <MagnifyingGlass size={22} aria-hidden="true" />
-          <span className="sr-only">Search ingredient catalog</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ingredient catalog…" />
-        </label>
 
         <div className="segmented-control" aria-label="Ingredient ownership">
           <button type="button" className={scope === 'global' ? 'selected' : ''} onClick={() => setScope('global')} aria-pressed={scope === 'global'}>Global</button>
           <button type="button" className={scope === 'custom' ? 'selected' : ''} onClick={() => setScope('custom')} aria-pressed={scope === 'custom'}>Yours</button>
         </div>
 
-        <div className="category-chips" aria-label="Filter ingredients by category">
-          <button type="button" className={category === 'all' ? 'selected' : ''} onClick={() => setCategory('all')} aria-pressed={category === 'all'}>All</button>
-          {categories.slice(0, 3).map((item) => <button type="button" key={item.id} className={category === item.id ? 'selected' : ''} onClick={() => setCategory(item.id)} aria-pressed={category === item.id}>{item.name}</button>)}
+        <div className="catalog-toolbar">
+          <label className="search-field catalog-search">
+            <MagnifyingGlass size={22} aria-hidden="true" />
+            <span className="sr-only">Search ingredient catalog</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search ingredients…" />
+          </label>
+          <label className="compact-select"><span className="sr-only">Filter by category</span><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">All categories</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         </div>
-
-        <div className="catalog-sort"><strong>Alphabetical</strong><label><span className="sr-only">Category filter</span><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">Category</option>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
 
         <section className="catalog-list" aria-live="polite">
           {shown.map((ingredient) => (
             <article key={ingredient.id} className="catalog-row">
               <span><strong>{ingredient.name}</strong><small>{categoryName(ingredient.categoryId)} · {ingredient.family[0].toUpperCase() + ingredient.family.slice(1)}</small></span>
-              {ingredient.scope === 'global' ? <span className="scope-mark" role="img" aria-label="Global ingredient" title="Global ingredient"><LockSimple aria-hidden="true" /></span> : <OwnershipMark label="Your ingredient" />}
+              {trackedIngredientIds.includes(ingredient.id)
+                ? (balances[ingredient.id] ?? 0n) === 0n
+                  ? <button type="button" className="catalog-track-toggle quiet" disabled={!canMutate || trackingId === ingredient.id} aria-label={`Stop tracking ${ingredient.name}`} onClick={async () => {
+                    setTrackingId(ingredient.id); setTrackingError(''); setTrackingNotice('')
+                    try { await setPantryTracking(ingredient.id, false); setTrackingNotice(`${ingredient.name} is no longer tracked in Pantry.`) }
+                    catch (cause) { setTrackingError(cause instanceof Error ? cause.message : 'Tracking could not be changed. Try again.') }
+                    finally { setTrackingId(null) }
+                  }}>{trackingId === ingredient.id ? 'Saving…' : 'Stop tracking'}</button>
+                  : <span className="catalog-tracked-state"><Check size={16} aria-hidden="true" /> Tracked</span>
+                : <button type="button" className="catalog-track-toggle" disabled={!canMutate || trackingId === ingredient.id} aria-label={`Track ${ingredient.name} in Pantry`} onClick={async () => {
+                  setTrackingId(ingredient.id); setTrackingError(''); setTrackingNotice('')
+                  try { await setPantryTracking(ingredient.id, true); setTrackingNotice(`${ingredient.name} added to Pantry tracking.`) }
+                  catch (cause) { setTrackingError(cause instanceof Error ? cause.message : 'Tracking could not be changed. Try again.') }
+                  finally { setTrackingId(null) }
+                }}><Plus size={17} aria-hidden="true" />{trackingId === ingredient.id ? 'Saving…' : 'Track'}</button>}
             </article>
           ))}
           {shown.length === 0 && <div className="empty-state"><strong>{scope === 'custom' ? 'No custom ingredients yet' : 'No ingredients found'}</strong><span>{scope === 'custom' ? 'Create one when the global catalog has no match.' : 'Try another search or category.'}</span></div>}

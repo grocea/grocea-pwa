@@ -31,6 +31,13 @@ export function formatQuantity(quantity: bigint, family: MeasurementFamily) {
   return formatWithFactor(quantity, unitFactors.item, 'item')
 }
 
+export function displayUnitFor(quantity: bigint, family: MeasurementFamily): Unit {
+  const absolute = quantity < 0n ? -quantity : quantity
+  if (family === 'mass') return absolute >= unitFactors.kg ? 'kg' : absolute >= unitFactors.g ? 'g' : 'mg'
+  if (family === 'volume') return absolute >= unitFactors.L ? 'L' : 'ml'
+  return 'item'
+}
+
 export function formatQuantityInUnit(quantity: bigint, unit: Unit) {
   return formatWithFactor(quantity, unitFactors[unit], unit)
 }

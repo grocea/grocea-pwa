@@ -31,6 +31,7 @@ export const initialState: GroceaState = {
     { id: 'tomatoes', name: 'Tomatoes', categoryId: 'produce', family: 'count', scope: 'global' },
   ],
   balances: { rice: 2_400_000n, bananas: 0n, butter: 250_000n, carrots: 0n, chickpeas: 600_000n, coffee: -50_000n, cucumber: 0n, eggs: 8_000n, flour: 1_200_000n, milk: 1_500_000n, oats: 800_000n, oil: 750_000n, tomatoes: 2_000n },
+  trackedIngredientIds: ['rice', 'bananas', 'butter', 'carrots', 'chickpeas', 'coffee', 'cucumber', 'eggs', 'flour', 'milk', 'oats', 'oil', 'tomatoes'],
   recipes: [
     { id: 'tomato-egg-rice', status: 'published', name: 'Tomato egg rice', description: 'A fast, comforting rice bowl with soft eggs and juicy tomatoes.', baseServings: 2, scope: 'global', ingredients: [{ ingredientId: 'rice', quantity: 300_000n, unit: 'g' }, { ingredientId: 'eggs', quantity: 2_000n, unit: 'item' }, { ingredientId: 'tomatoes', quantity: 3_000n, unit: 'item' }], steps: ['Cook the rice until tender.', 'Scramble the eggs and set aside.', 'Cook tomatoes, return eggs, and serve over rice.'] },
     { id: 'oat-porridge', status: 'published', name: 'Oat porridge', description: 'Creamy everyday oats.', baseServings: 1, scope: 'global', ingredients: [{ ingredientId: 'oats', quantity: 80_000n, unit: 'g' }, { ingredientId: 'milk', quantity: 250_000n, unit: 'ml' }], steps: ['Simmer oats and milk for 6 minutes.', 'Rest briefly, then serve.'] },
