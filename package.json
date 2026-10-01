@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "VITE_DEMO_MODE=true vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "api:generate": "node tools/generate-api-types.mjs",

@@ -12,6 +12,8 @@ import {
   type AuthSession,
 } from '../api/client'
 
+import { demoAccount, demoMode } from './demo'
+
 export type AuthStatus = 'loading' | 'authenticated' | 'offline-authenticated' | 'anonymous' | 'unavailable'
 
 const LAST_ACCOUNT_KEY = 'grocea:last-account'
@@ -52,6 +54,27 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  return demoMode ? <DemoAuthProvider>{children}</DemoAuthProvider> : <ServerAuthProvider>{children}</ServerAuthProvider>
+}
+
+function DemoAuthProvider({ children }: { children: ReactNode }) {
+  const [signedIn, setSignedIn] = useState(true)
+  // Demo identity stays in memory and never touches real session/cache keys.
+  const value: AuthContextValue = {
+    status: signedIn ? 'authenticated' : 'anonymous',
+    session: null,
+    account: signedIn ? demoAccount : null,
+    error: null,
+    register: async () => { setSignedIn(true) },
+    signIn: async () => { setSignedIn(true) },
+    changePassword: async () => {},
+    signOut: async () => { setSignedIn(false) },
+    lock: () => { setSignedIn(false) },
+  }
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+function ServerAuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [session, setSession] = useState<AuthSession | null>(null)
   const [error, setError] = useState<string | null>(null)

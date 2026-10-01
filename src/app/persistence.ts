@@ -610,7 +610,7 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
       }),
       transaction.done,
     ])
-    if (typeof localStorage !== 'undefined') localStorage.removeItem(LEGACY_STORAGE_KEY)
+    if (!this.ownerUserId && typeof localStorage !== 'undefined') localStorage.removeItem(LEGACY_STORAGE_KEY)
     return cloneState(resetState)
   }
 

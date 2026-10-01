@@ -20,6 +20,7 @@ import { familyUnits, formatQuantityValue, parseQuantity, scaleQuantity } from '
 import { GroceaContext, type GroceaContextValue, type StorageStatus } from './grocea-context'
 import { useBootSplash } from './boot-context'
 import { deleteLegacyStorage, groceaStorage, type DatabaseMetadata, type GroceaStorage } from './persistence'
+import { demoMode } from './demo'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 
 type Action =
@@ -458,6 +459,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }, [])
 
   const synchronize = useCallback(async (importCandidate?: GroceaState) => {
+    if (demoMode) return
     if (!storage.getMetadata || !storage.saveMetadata || statusRef.current !== 'ready' || syncingRef.current) return
     syncingRef.current = true
     setSyncStatus('syncing')
@@ -628,6 +630,14 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     updateStorageStatus('loading')
     try {
       await storage.open()
+      if (demoMode) {
+        const loaded = await storage.loadState()
+        stateRef.current = loaded
+        setState(loaded)
+        updateStorageStatus('ready')
+        setSyncStatus('idle')
+        return
+      }
       let loaded: GroceaState | undefined
       let metadata = storage.getMetadata ? await storage.getMetadata() : null
       if (metadata) deviceIdRef.current = metadata.deviceId
@@ -697,12 +707,15 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     const timer = window.setTimeout(() => { void boot() }, 0)
     const sync = () => { if (hasCsrfToken()) void synchronize() }
     const syncAfterAuth = () => { void synchronize() }
+    const requestDemoReset = () => setResetRequested(true)
+    if (demoMode) window.addEventListener('grocea:demo-reset', requestDemoReset)
     window.addEventListener('focus', sync)
     window.addEventListener('grocea:sync', sync)
     window.addEventListener('grocea:auth-validated', syncAfterAuth)
     return () => {
       window.clearTimeout(timer)
       if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current)
+      window.removeEventListener('grocea:demo-reset', requestDemoReset)
       window.removeEventListener('focus', sync)
       window.removeEventListener('grocea:sync', sync)
       window.removeEventListener('grocea:auth-validated', syncAfterAuth)
@@ -738,7 +751,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       }
       const next = transition(stateRef.current)
       if (next.state !== stateRef.current) {
-        if (next.mutation) {
+        if (next.mutation && !demoMode) {
           const queued = await storage.listPendingMutations()
           const mutation: PendingMutation = {
             id: crypto.randomUUID(),
@@ -761,7 +774,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         stateRef.current = next.state
         setState(next.state)
         void refreshQueueStatus()
-        window.dispatchEvent(new Event('grocea:sync'))
+        if (!demoMode) window.dispatchEvent(new Event('grocea:sync'))
       }
       return next.result
     })
@@ -1258,10 +1271,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     updateStorageStatus('loading')
     try {
       const resetState = await storage.reset()
-      const metadata = storage.getMetadata ? await storage.getMetadata() : null
+      const metadata = !demoMode && storage.getMetadata ? await storage.getMetadata() : null
       initialSyncPendingRef.current = accountSyncIncomplete(metadata)
       updateMutationAvailability(metadata)
       setSyncError(null)
+      setSyncStatus('idle')
       stateRef.current = resetState
       setState(resetState)
       updateStorageStatus('ready')
@@ -1276,7 +1290,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
 
   if (!state) {
     if (storageStatus === 'error') {
-      return <ConfirmDialog open={resetRequested} title="Reset all local data?" description="This permanently deletes all pantry balances, recipes, activity events, profile settings, and queued changes on this device. You cannot undo this action." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
+      return <ConfirmDialog open={resetRequested} title={demoMode ? 'Reset demo data?' : 'Reset all local data?'} description={demoMode ? 'Replace your demo changes with the original sample kitchen.' : 'This permanently deletes all pantry balances, recipes, activity events, profile settings, and queued changes on this device. You cannot undo this action.'} confirmLabel={demoMode ? 'Reset demo data' : 'Reset local data'} pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
     }
     return null
   }
@@ -1307,6 +1321,6 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       <button className="button secondary compact" type="button" onClick={() => void boot()}>Retry</button>
       <button className="button danger compact" type="button" onClick={() => setResetRequested(true)}>Reset local data</button>
     </div>}
-    <ConfirmDialog open={resetRequested} title="Reset all local data?" description="This permanently deletes all pantry balances, recipes, activity events, profile settings, and queued changes on this device. You cannot undo this action." confirmLabel="Reset local data" pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
+    <ConfirmDialog open={resetRequested} title={demoMode ? 'Reset demo data?' : 'Reset all local data?'} description={demoMode ? 'Replace your demo changes with the original sample kitchen.' : 'This permanently deletes all pantry balances, recipes, activity events, profile settings, and queued changes on this device. You cannot undo this action.'} confirmLabel={demoMode ? 'Reset demo data' : 'Reset local data'} pendingLabel="Resetting…" onDismiss={() => setResetRequested(false)} onConfirm={reset} />
   </GroceaContext.Provider>
 }

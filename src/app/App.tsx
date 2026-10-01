@@ -13,6 +13,7 @@ import { GroceaProvider } from './GroceaProvider'
 import { AuthProvider, useAuth } from './auth-context'
 import { BootSplashProvider, useBootSplash } from './boot-context'
 import { createGroceaStorage, deleteLegacyStorage, legacyStorageExists, migrateLegacyStorage } from './persistence'
+import { createDemoStorage, demoMode } from './demo'
 import { AuthScreen } from '../features/auth/AuthScreens'
 import '../styles/app.css'
 
@@ -23,7 +24,14 @@ export default function App() {
 function AppContent() {
   const { status, account } = useAuth()
   const bootKey = `${status}:${account?.id ?? 'none'}`
-  return <BootSplashProvider key={bootKey}><AppRoutes /></BootSplashProvider>
+  return <BootSplashProvider key={bootKey}>
+    {demoMode && <details style={{ position: 'fixed', bottom: 'calc(90px + env(safe-area-inset-bottom, 0px))', right: 12, zIndex: 40, maxWidth: 'min(320px, calc(100vw - 24px))', padding: 12, borderRadius: 12, background: 'var(--surface, white)', border: '1px solid var(--line)', boxShadow: '0 2px 12px #0002' }}>
+      <summary>Development demo</summary>
+      <p>Sample data stays in this browser. Sign-in and password changes are simulated. Changes persist after reload.</p>
+      <button className="button secondary compact" type="button" onClick={() => window.dispatchEvent(new Event('grocea:demo-reset'))} disabled={!account}>Reset demo data</button>
+    </details>}
+    <AppRoutes />
+  </BootSplashProvider>
 }
 
 function AppRoutes() {
@@ -103,13 +111,14 @@ function GroceaApp() {
 }
 
 function AccountGroceaApp({ userId }: { userId: string }) {
-  const storage = useMemo(() => createGroceaStorage(userId), [userId])
-  const [legacyStatus, setLegacyStatus] = useState<'checking' | 'none' | 'needs-choice' | 'error'>('checking')
+  const storage = useMemo(() => demoMode ? createDemoStorage() : createGroceaStorage(userId), [userId])
+  const [legacyStatus, setLegacyStatus] = useState<'checking' | 'none' | 'needs-choice' | 'error'>(demoMode ? 'none' : 'checking')
   const [legacyError, setLegacyError] = useState<string | null>(null)
   const [migrationPending, setMigrationPending] = useState(false)
   const { markChoice } = useBootSplash()
   useEffect(() => {
     let active = true
+    if (demoMode) return
     void legacyStorageExists().then(exists => { if (active) setLegacyStatus(exists ? 'needs-choice' : 'none') }).catch(error => {
       if (active) { setLegacyError(error instanceof Error ? error.message : 'Grocea could not inspect the existing local data.'); setLegacyStatus('error') }
     })

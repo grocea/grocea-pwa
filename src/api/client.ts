@@ -11,6 +11,7 @@ import type {
   PublishedRecipe,
   Recipe,
 } from '../domain/types'
+import { demoMode } from '../app/demo'
 import type { schemas } from './generated'
 
 // Production always uses the same-origin Cloudflare Worker proxy.
@@ -223,6 +224,7 @@ interface RequestResult<T> {
 }
 
 async function requestWithMeta<T>(path: string, init: RequestInit = {}): Promise<RequestResult<T>> {
+  if (demoMode) throw new ApiError(0, 'DEMO_MODE', 'API requests are disabled in development demo mode.')
   let response: Response
   try {
     const headers = new Headers(init.headers)

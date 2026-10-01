@@ -28,6 +28,30 @@ Leave that variable empty or unset in Cloudflare. Deploy with:
 npm run deploy
 ```
 
+## UI development without an API
+
+```bash
+npm install
+npm run dev:demo
+```
+
+This development-only mode opens a sample kitchen immediately, with pantry stock,
+recipes (including a draft), a basket, grocery lists, and activity. Product
+interactions use the normal local state and IndexedDB persistence without API
+requests or a synchronization outbox. Changes survive reloads; **Reset demo data**
+restores the sample kitchen.
+
+Demo storage uses `grocea:development-demo:v1` and never imports legacy data or
+uses real account/session storage. Sign out from Profile to work on login and
+registration; both forms accept locally valid inputs and reopen the same demo
+kitchen. Password changes are simulated. Reloading starts signed in again.
+The `/welcome` and `/system-states` pages are also available.
+
+Alternatively, set `VITE_DEMO_MODE=true` in `.env.local` and use `npm run dev`.
+Remove that flag to return to API-backed development. Production builds ignore
+this flag and always require real authentication. Demo mode does not verify
+server validation, authentication security, or synchronization behavior.
+
 ## Checks
 
 ```bash
