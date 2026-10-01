@@ -34,3 +34,10 @@ artifacts
 notes-to-improve.md
 context.md
 reports
+
+/.wolf
+/.claude
+/.codex
+/.opencode
+Agents.md
+Claude.md
