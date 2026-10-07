@@ -19,10 +19,13 @@ function Wordmark({ className }: { className: string }) {
 
 function Navigation() {
   const { pathname } = useLocation()
+  const activeIndex = navItems.findIndex(({ path }) => pathname === path || pathname.startsWith(`${path}/`) || (path === '/more' && morePaths.some(candidate => pathname === candidate || pathname.startsWith(`${candidate}/`))))
   return <nav className="primary-navigation" aria-label="Primary navigation">
     <Wordmark className="desktop-wordmark" />
-    <div className="nav-links">{navItems.map(({ label, path, icon: Icon }) => {
-      const selected = pathname === path || pathname.startsWith(`${path}/`) || (path === '/more' && morePaths.some(candidate => pathname === candidate || pathname.startsWith(`${candidate}/`)))
+    <div className="nav-links">
+      {activeIndex >= 0 && <span className="nav-glass-selection" data-index={activeIndex} style={{ transform: `translateX(calc(${activeIndex} * (100% + 2px)))` }} aria-hidden="true" />}
+      {navItems.map(({ label, path, icon: Icon }, index) => {
+      const selected = index === activeIndex
       return <Link key={path} to={path} className={`nav-item${selected ? ' active' : ''}`} aria-current={selected ? 'page' : undefined}><Icon size={24} weight={selected ? 'fill' : 'regular'} aria-hidden="true" /><span>{label}</span></Link>
     })}</div>
   </nav>
