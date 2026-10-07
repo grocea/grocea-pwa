@@ -4,6 +4,8 @@ import {
   Check,
   ClockCounterClockwise,
   CookingPot,
+  EnvelopeSimple,
+  GithubLogo,
   Leaf,
   LockSimple,
   Package,
@@ -42,10 +44,12 @@ export default function WelcomePage() {
       <nav aria-label="Welcome page navigation">
         <a href="#kitchen-loop">The kitchen loop</a>
         <a href="#offline">Offline & privacy</a>
+        <a href="#contact">Contact Us</a>
         <Link to="/login">Sign in</Link>
         <Link className="welcome-nav-cta" to="/register">Create account <ArrowRight size={16} /></Link>
       </nav>
       <div className="welcome-mobile-actions"><Link className="welcome-mobile-signin" to="/login">Sign in</Link><Link className="welcome-mobile-cta" to="/register">Get started</Link></div>
+      <a className="welcome-mobile-contact" href="#contact">Contact Us <ArrowRight size={14} aria-hidden="true" /></a>
     </header>
 
     <main id="welcome-main">
@@ -128,6 +132,13 @@ export default function WelcomePage() {
         <div className="final-actions"><Link to="/register">Create your account <ArrowRight size={18} /></Link><Link className="final-signin" to="/login">Already have an account? Sign in</Link></div>
       </section>
     </main>
-    <footer className="welcome-footer"><Brand /><span>Pantry · Recipes · Groceries · Cooking history</span><small>© 2026 Grocea</small></footer>
+    <footer className="welcome-footer">
+      <div className="welcome-footer-about"><Brand /><span>Pantry · Recipes · Groceries · Cooking history</span></div>
+      <nav className="welcome-contact" id="contact" aria-label="Contact and source code" tabIndex={-1}>
+        <a href="https://github.com/grocea/grocea-pwa"><GithubLogo size={18} aria-hidden="true" /> GitHub</a>
+        <a href="mailto:grocea@aeyslo.lol"><EnvelopeSimple size={18} aria-hidden="true" /> grocea@aeyslo.lol</a>
+      </nav>
+      <small>© 2026 Grocea</small>
+    </footer>
   </div>
 }
