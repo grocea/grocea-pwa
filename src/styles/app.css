@@ -1834,7 +1834,7 @@ body { background: var(--warm); color: var(--ink); }
 .nav-item.active { color: var(--green-deep); background: #e3eadd; }
 .nav-item:hover:not(.active) { background: #e9ebe2; }
 .button, .primary-button, .secondary-button, .new-button { border-radius: 9px; box-shadow: none; }
-.button.primary, .primary-button, .new-button { background: var(--green); }
+.button.primary, .primary-button, .new-button { color: #fff; background: var(--green); }
 .button.primary:hover, .primary-button:hover, .new-button:hover { background: var(--green-deep); }
 .button.secondary, .secondary-button { border-color: #cbd3c9; background: var(--surface); }
 .button:focus-visible, .nav-item:focus-visible, .stock-row:focus-visible, .catalog-track-toggle:focus-visible { outline: 3px solid #91ad79; outline-offset: 2px; }
