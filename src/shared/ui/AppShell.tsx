@@ -1,5 +1,5 @@
 import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useGrocea } from '../../app/grocea-context'
 
@@ -21,7 +21,10 @@ function Navigation() {
   const { pathname } = useLocation()
   return <nav className="primary-navigation" aria-label="Primary navigation">
     <Wordmark className="desktop-wordmark" />
-    <div className="nav-links">{navItems.map(({ label, path, icon: Icon }) => <NavLink key={path} to={path} className={({ isActive }) => `nav-item${(isActive || (path === '/more' && morePaths.some(candidate => pathname === candidate || pathname.startsWith(`${candidate}/`)))) ? ' active' : ''}`}><Icon size={24} /><span>{label}</span></NavLink>)}</div>
+    <div className="nav-links">{navItems.map(({ label, path, icon: Icon }) => {
+      const selected = pathname === path || pathname.startsWith(`${path}/`) || (path === '/more' && morePaths.some(candidate => pathname === candidate || pathname.startsWith(`${candidate}/`)))
+      return <Link key={path} to={path} className={`nav-item${selected ? ' active' : ''}`} aria-current={selected ? 'page' : undefined}><Icon size={24} weight={selected ? 'fill' : 'regular'} aria-hidden="true" /><span>{label}</span></Link>
+    })}</div>
   </nav>
 }
 
