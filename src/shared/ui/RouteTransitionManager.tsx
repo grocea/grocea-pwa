@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useLocation, useNavigationType } from 'react-router-dom'
 
 export function RouteTransitionManager() {
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   const navigationType = useNavigationType()
+  const dragFrom = navigationType === 'PUSH' && typeof state?.navGlassFrom === 'number' && Number.isFinite(state.navGlassFrom) ? Math.max(0, Math.min(4, state.navGlassFrom)) : null
   const previousPath = useRef(pathname)
   const previousTab = useRef<number | null>(null)
   const scrollPositions = useRef(new Map<string, number>())
@@ -19,7 +20,7 @@ export function RouteTransitionManager() {
   useLayoutEffect(() => {
     const selection = document.querySelector<HTMLElement>('.nav-glass-selection')
     const currentTab = selection ? Number(selection.dataset.index) : null
-    const from = previousTab.current
+    const from = dragFrom ?? previousTab.current
     previousTab.current = currentTab
     if (!selection || from === null || currentTab === null || from === currentTab || !window.matchMedia('(max-width: 979px) and (prefers-reduced-motion: no-preference)').matches) return
     // Route screens remount their AppShell; retain the previous position here.
@@ -29,7 +30,7 @@ export function RouteTransitionManager() {
       { transform: `translateX(calc(${currentTab} * (100% + 2px))) scale(1)`, offset: 1 },
     ], { duration: 360, easing: 'cubic-bezier(.22, 1, .36, 1)' })
     return () => animation.cancel()
-  }, [pathname])
+  }, [pathname, dragFrom])
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const page = document.querySelector<HTMLElement>('.app-page')

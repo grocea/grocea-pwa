@@ -1,6 +1,6 @@
 import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { useGrocea } from '../../app/grocea-context'
 
 const navItems = [
@@ -19,14 +19,64 @@ function Wordmark({ className }: { className: string }) {
 
 function Navigation() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const activeIndex = navItems.findIndex(({ path }) => pathname === path || pathname.startsWith(`${path}/`) || (path === '/more' && morePaths.some(candidate => pathname === candidate || pathname.startsWith(`${candidate}/`))))
+  const [dragPosition, setDragPosition] = useState<number | null>(null)
+  const gesture = useRef<{ pointerId: number; startX: number; position: number; moved: boolean } | null>(null)
+  const suppressClick = useRef(false)
+
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    if (!event.isPrimary || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || !window.matchMedia('(max-width: 979px)').matches) return
+    if (!(event.target instanceof Element) || !event.target.closest('.nav-item')) return
+    suppressClick.current = false
+    gesture.current = { pointerId: event.pointerId, startX: event.clientX, position: activeIndex, moved: false }
+  }
+
+  function moveDrag(event: PointerEvent<HTMLDivElement>) {
+    const current = gesture.current
+    if (!current || current.pointerId !== event.pointerId) return
+    if (!current.moved && Math.abs(event.clientX - current.startX) < 6) return
+    if (!current.moved) {
+      event.currentTarget.setPointerCapture(event.pointerId)
+      // Take control from any in-flight tab-switch animation.
+      event.currentTarget.querySelector('.nav-glass-selection')?.getAnimations().forEach(animation => animation.cancel())
+      current.moved = true
+    }
+    event.preventDefault()
+    const rect = event.currentTarget.getBoundingClientRect()
+    const cellWidth = (rect.width - 8) / navItems.length
+    current.position = Math.max(0, Math.min(navItems.length - 1, (event.clientX - rect.left - cellWidth / 2) / (cellWidth + 2)))
+    setDragPosition(current.position)
+  }
+
+  function finishDrag(event: PointerEvent<HTMLDivElement>, cancelled = false) {
+    const current = gesture.current
+    if (!current || current.pointerId !== event.pointerId) return
+    gesture.current = null
+    setDragPosition(null)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    if (!current.moved) return
+    suppressClick.current = true
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (cancelled || event.clientY < rect.top - 24 || event.clientY > rect.bottom + 24) return
+    const targetIndex = Math.round(current.position)
+    if (targetIndex !== activeIndex) navigate(navItems[targetIndex].path, { state: { navGlassFrom: current.position } })
+  }
+
   return <nav className="primary-navigation" aria-label="Primary navigation">
     <Wordmark className="desktop-wordmark" />
-    <div className="nav-links">
-      {activeIndex >= 0 && <span className="nav-glass-selection" data-index={activeIndex} style={{ transform: `translateX(calc(${activeIndex} * (100% + 2px)))` }} aria-hidden="true" />}
+    <div className={`nav-links${dragPosition !== null ? ' dragging' : ''}`} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={event => finishDrag(event)} onPointerCancel={event => finishDrag(event, true)} onLostPointerCapture={event => finishDrag(event, true)} onDragStart={event => { if (window.matchMedia('(max-width: 979px)').matches) event.preventDefault() }} onClickCapture={event => {
+      if (event.detail === 0) { suppressClick.current = false; return }
+      if (!suppressClick.current) return
+      event.preventDefault()
+      event.stopPropagation()
+      suppressClick.current = false
+    }}>
+      {activeIndex >= 0 && <span className="nav-glass-selection" data-index={activeIndex} style={{ transform: `translateX(calc(${dragPosition ?? activeIndex} * (100% + 2px)))` }} aria-hidden="true" />}
       {navItems.map(({ label, path, icon: Icon }, index) => {
       const selected = index === activeIndex
-      return <Link key={path} to={path} className={`nav-item${selected ? ' active' : ''}`} aria-current={selected ? 'page' : undefined}><Icon size={24} weight={selected ? 'fill' : 'regular'} aria-hidden="true" /><span>{label}</span></Link>
+      const preview = dragPosition !== null && index === Math.round(dragPosition)
+      return <Link key={path} to={path} className={`nav-item${selected ? ' active' : ''}${preview ? ' drag-preview' : ''}`} aria-current={selected ? 'page' : undefined}><Icon size={24} weight={selected || preview ? 'fill' : 'regular'} aria-hidden="true" /><span>{label}</span></Link>
     })}</div>
   </nav>
 }
