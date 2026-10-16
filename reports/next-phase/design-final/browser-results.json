@@ -1,0 +1,716 @@
+{
+  "results": [
+    {
+      "width": 320,
+      "scroll": 320,
+      "height": 5212,
+      "headings": [
+        {
+          "text": "Your kitchen,accounted for",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "36px",
+          "lines": 2
+        },
+        {
+          "text": "See what is missing",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 2
+        },
+        {
+          "text": "Tomato egg rice",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "From pantry to plate",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 2
+        },
+        {
+          "text": "Check a recipe",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Buy what is missing",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Keep the record",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Offline after first sync",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 2
+        },
+        {
+          "text": "On your device",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Your personal kitchen",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Get in touch",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 1
+        }
+      ],
+      "fonts": [
+        "Inter",
+        "Inter"
+      ],
+      "overflow": [],
+      "crops": [
+        {
+          "src": "/images/welcome/pantry.png",
+          "naturalWidth": 852,
+          "naturalHeight": 324,
+          "displayWidth": 288,
+          "displayHeight": 110,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 16.225352112676056
+        },
+        {
+          "src": "/images/welcome/recipe.png",
+          "naturalWidth": 852,
+          "naturalHeight": 927,
+          "displayWidth": 288,
+          "displayHeight": 313,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 16.225352112676056
+        },
+        {
+          "src": "/images/welcome/shopping.png",
+          "naturalWidth": 864,
+          "naturalHeight": 609,
+          "displayWidth": 288,
+          "displayHeight": 203,
+          "sourceCssWidth": 288,
+          "mainTextEquivalent": 16
+        },
+        {
+          "src": "/images/welcome/activity.png",
+          "naturalWidth": 852,
+          "naturalHeight": 864,
+          "displayWidth": 288,
+          "displayHeight": 292,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 16.225352112676056
+        }
+      ],
+      "links": [
+        {
+          "text": "Skip to content",
+          "href": "#welcome-main"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Offline & privacy",
+          "href": "#offline"
+        },
+        {
+          "text": "Contact",
+          "href": "#contact"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Explore the kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Back to top",
+          "href": "#welcome-top"
+        },
+        {
+          "text": "grocea@aeyslo.lol",
+          "href": "mailto:grocea@aeyslo.lol"
+        },
+        {
+          "text": "GitHub",
+          "href": "https://github.com/grocea/grocea-pwa"
+        }
+      ],
+      "footer": "© 2026 Grocea. Open source under the MIT licence.",
+      "errors": false
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "height": 5062,
+      "headings": [
+        {
+          "text": "Your kitchen,accounted for",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "39px",
+          "lines": 2
+        },
+        {
+          "text": "See what is missing",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 1
+        },
+        {
+          "text": "Tomato egg rice",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "From pantry to plate",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 1
+        },
+        {
+          "text": "Check a recipe",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Buy what is missing",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Keep the record",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Offline after first sync",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 2
+        },
+        {
+          "text": "On your device",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Your personal kitchen",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Get in touch",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32px",
+          "lines": 1
+        }
+      ],
+      "fonts": [
+        "Inter",
+        "Inter"
+      ],
+      "overflow": [],
+      "crops": [
+        {
+          "src": "/images/welcome/pantry.png",
+          "naturalWidth": 852,
+          "naturalHeight": 324,
+          "displayWidth": 358,
+          "displayHeight": 136,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 20.169014084507044
+        },
+        {
+          "src": "/images/welcome/recipe.png",
+          "naturalWidth": 852,
+          "naturalHeight": 927,
+          "displayWidth": 358,
+          "displayHeight": 390,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 20.169014084507044
+        },
+        {
+          "src": "/images/welcome/shopping.png",
+          "naturalWidth": 864,
+          "naturalHeight": 609,
+          "displayWidth": 358,
+          "displayHeight": 252,
+          "sourceCssWidth": 288,
+          "mainTextEquivalent": 19.88888888888889
+        },
+        {
+          "src": "/images/welcome/activity.png",
+          "naturalWidth": 852,
+          "naturalHeight": 864,
+          "displayWidth": 358,
+          "displayHeight": 363,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 20.169014084507044
+        }
+      ],
+      "links": [
+        {
+          "text": "Skip to content",
+          "href": "#welcome-main"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Offline & privacy",
+          "href": "#offline"
+        },
+        {
+          "text": "Contact",
+          "href": "#contact"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Explore the kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Back to top",
+          "href": "#welcome-top"
+        },
+        {
+          "text": "grocea@aeyslo.lol",
+          "href": "mailto:grocea@aeyslo.lol"
+        },
+        {
+          "text": "GitHub",
+          "href": "https://github.com/grocea/grocea-pwa"
+        }
+      ],
+      "footer": "© 2026 Grocea. Open source under the MIT licence.",
+      "errors": false
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "height": 4739,
+      "headings": [
+        {
+          "text": "Your kitchen,accounted for",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "41.472px",
+          "lines": 2
+        },
+        {
+          "text": "See what is missing",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32.256px",
+          "lines": 1
+        },
+        {
+          "text": "Tomato egg rice",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "From pantry to plate",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32.256px",
+          "lines": 2
+        },
+        {
+          "text": "Check a recipe",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Buy what is missing",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Keep the record",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Offline after first sync",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32.256px",
+          "lines": 1
+        },
+        {
+          "text": "On your device",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Your personal kitchen",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Get in touch",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "32.256px",
+          "lines": 1
+        }
+      ],
+      "fonts": [
+        "Inter",
+        "Inter"
+      ],
+      "overflow": [],
+      "crops": [
+        {
+          "src": "/images/welcome/pantry.png",
+          "naturalWidth": 852,
+          "naturalHeight": 324,
+          "displayWidth": 643,
+          "displayHeight": 244,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 36.225352112676056
+        },
+        {
+          "src": "/images/welcome/recipe.png",
+          "naturalWidth": 852,
+          "naturalHeight": 927,
+          "displayWidth": 297,
+          "displayHeight": 323,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 16.732394366197184
+        },
+        {
+          "src": "/images/welcome/shopping.png",
+          "naturalWidth": 864,
+          "naturalHeight": 609,
+          "displayWidth": 313,
+          "displayHeight": 221,
+          "sourceCssWidth": 288,
+          "mainTextEquivalent": 17.38888888888889
+        },
+        {
+          "src": "/images/welcome/activity.png",
+          "naturalWidth": 852,
+          "naturalHeight": 864,
+          "displayWidth": 297,
+          "displayHeight": 301,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 16.732394366197184
+        }
+      ],
+      "links": [
+        {
+          "text": "Skip to content",
+          "href": "#welcome-main"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Offline & privacy",
+          "href": "#offline"
+        },
+        {
+          "text": "Contact",
+          "href": "#contact"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Explore the kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Back to top",
+          "href": "#welcome-top"
+        },
+        {
+          "text": "grocea@aeyslo.lol",
+          "href": "mailto:grocea@aeyslo.lol"
+        },
+        {
+          "text": "GitHub",
+          "href": "https://github.com/grocea/grocea-pwa"
+        }
+      ],
+      "footer": "© 2026 Grocea. Open source under the MIT licence.",
+      "errors": false
+    },
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "height": 5472,
+      "headings": [
+        {
+          "text": "Your kitchen,accounted for",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "72px",
+          "lines": 2
+        },
+        {
+          "text": "See what is missing",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "56px",
+          "lines": 1
+        },
+        {
+          "text": "Tomato egg rice",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "From pantry to plate",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "56px",
+          "lines": 2
+        },
+        {
+          "text": "Check a recipe",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Buy what is missing",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Keep the record",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Offline after first sync",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "56px",
+          "lines": 1
+        },
+        {
+          "text": "On your device",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Your personal kitchen",
+          "font": "Inter, ui-sans-serif, system-ui, sans-serif",
+          "size": "18px",
+          "lines": 1
+        },
+        {
+          "text": "Get in touch",
+          "font": "Georgia, \"Times New Roman\", serif",
+          "size": "56px",
+          "lines": 1
+        }
+      ],
+      "fonts": [
+        "Inter",
+        "Inter"
+      ],
+      "overflow": [],
+      "crops": [
+        {
+          "src": "/images/welcome/pantry.png",
+          "naturalWidth": 852,
+          "naturalHeight": 324,
+          "displayWidth": 724,
+          "displayHeight": 275,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 40.7887323943662
+        },
+        {
+          "src": "/images/welcome/recipe.png",
+          "naturalWidth": 852,
+          "naturalHeight": 927,
+          "displayWidth": 518,
+          "displayHeight": 564,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 29.183098591549296
+        },
+        {
+          "src": "/images/welcome/shopping.png",
+          "naturalWidth": 864,
+          "naturalHeight": 609,
+          "displayWidth": 433,
+          "displayHeight": 305,
+          "sourceCssWidth": 288,
+          "mainTextEquivalent": 24.055555555555557
+        },
+        {
+          "src": "/images/welcome/activity.png",
+          "naturalWidth": 852,
+          "naturalHeight": 864,
+          "displayWidth": 435,
+          "displayHeight": 442,
+          "sourceCssWidth": 284,
+          "mainTextEquivalent": 24.507042253521128
+        }
+      ],
+      "links": [
+        {
+          "text": "Skip to content",
+          "href": "#welcome-main"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Offline & privacy",
+          "href": "#offline"
+        },
+        {
+          "text": "Contact",
+          "href": "#contact"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Explore the kitchen loop",
+          "href": "#kitchen-loop"
+        },
+        {
+          "text": "Create account",
+          "href": "/register"
+        },
+        {
+          "text": "Sign in",
+          "href": "/login"
+        },
+        {
+          "text": "grocea",
+          "href": "/welcome"
+        },
+        {
+          "text": "Back to top",
+          "href": "#welcome-top"
+        },
+        {
+          "text": "grocea@aeyslo.lol",
+          "href": "mailto:grocea@aeyslo.lol"
+        },
+        {
+          "text": "GitHub",
+          "href": "https://github.com/grocea/grocea-pwa"
+        }
+      ],
+      "footer": "© 2026 Grocea. Open source under the MIT licence.",
+      "errors": false
+    }
+  ],
+  "checks": [
+    "native radio ArrowRight ready and wraparound shortage",
+    "reduced motion removes animation",
+    "contact and top anchors",
+    "signup/login actual routes",
+    "real JavaScript-disabled noscript reading at four widths",
+    "full-page capture viewport expanded to document height"
+  ]
+}

@@ -1,0 +1,1242 @@
+{
+ "url": "http://127.0.0.1:5184/welcome",
+ "at": "2026-10-16T15:41:11.728Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 7,
+   "filled": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "motion": {
+    "elements": 23,
+    "css": 23,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 5472,
+     "screens": 6.1,
+     "words": 336,
+     "img": 6,
+     "video": 0,
+     "canvas": 0,
+     "svg": 0,
+     "sections": 5,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "pantry.png",
+      "recipe.png",
+      "shopping.png",
+      "activity.png"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Your kitchen, accounted for",
+     "words": 4,
+     "chars": 27,
+     "lines": 2,
+     "size": 72,
+     "vw": 5,
+     "font": "Georgia",
+     "weight": 700,
+     "tracking": -0.045,
+     "leading": 1.02,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "center",
+     "position": "center",
+     "widthRatio": 0.33,
+     "top": 180,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Your kitchen, accounted for",
+     "words": 4,
+     "lines": 2,
+     "size": 72,
+     "font": "Georgia"
+    },
+    "headings": [
+     {
+      "text": "Your kitchen, accounted for",
+      "words": 4,
+      "chars": 27,
+      "lines": 2,
+      "size": 72,
+      "vw": 5,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.33,
+      "top": 180,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "See what is missing",
+      "words": 4,
+      "chars": 19,
+      "lines": 1,
+      "size": 56,
+      "vw": 3.9,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.39,
+      "top": 1155,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From pantry to plate",
+      "words": 4,
+      "chars": 20,
+      "lines": 2,
+      "size": 56,
+      "vw": 3.9,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.33,
+      "top": 1778,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Offline after first sync",
+      "words": 4,
+      "chars": 24,
+      "lines": 1,
+      "size": 56,
+      "vw": 3.9,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.41,
+      "top": 4000,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Get in touch",
+      "words": 3,
+      "chars": 12,
+      "lines": 1,
+      "size": 56,
+      "vw": 3.9,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.82,
+      "top": 5183,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "grocea@aeyslo.lol",
+      "words": 1,
+      "chars": 17,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.5,
+      "font": "Inter",
+      "weight": 400,
+      "tracking": -0.005,
+      "leading": 1.55,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.22,
+      "top": 5260,
+      "tag": "a",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 6,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Inter",
+       "share": 0.95,
+       "mono": false
+      },
+      {
+       "family": "Georgia",
+       "share": 0.05,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      14,
+      16,
+      18,
+      24,
+      36,
+      56,
+      72
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Inter",
+      "size": 18,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": -0.011,
+      "contrast": 13.2
+     },
+     "measureChars": 43,
+     "max": {
+      "size": 72,
+      "vw": 5,
+      "font": "Georgia",
+      "text": "Your kitchen,accounted for"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.09,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f4f2ea",
+     "bodyBgHsl": {
+      "h": 48,
+      "s": 0.31,
+      "l": 0.94
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f4f2e9",
+       "top": 0,
+       "hsl": {
+        "h": 49,
+        "s": 0.33,
+        "l": 0.94
+       }
+      },
+      {
+       "color": "#e7eee3",
+       "top": 84,
+       "hsl": {
+        "h": 98,
+        "s": 0.24,
+        "l": 0.91
+       }
+      },
+      {
+       "color": "#fffefa",
+       "top": 116,
+       "hsl": {
+        "h": 48,
+        "s": 1,
+        "l": 0.99
+       }
+      },
+      {
+       "color": "#285640",
+       "top": 5027,
+       "hsl": {
+        "h": 151,
+        "s": 0.37,
+        "l": 0.25
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#173528",
+       "share": 0.78
+      },
+      {
+       "color": "#526158",
+       "share": 0.15
+      },
+      {
+       "color": "#fffefa",
+       "share": 0.07
+      }
+     ],
+     "button": {
+      "bg": "#285640",
+      "hsl": {
+       "h": 151,
+       "s": 0.37,
+       "l": 0.25
+      },
+      "fg": "#fffefa"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 2,
+     "radius": 8,
+     "height": 50,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Create account"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 4,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.15
+     }
+    ],
+    "nav": {
+     "links": 5,
+     "fixed": false,
+     "height": 84,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "inter"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 5,
+   "filled": [
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "motion": {
+    "elements": 23,
+    "css": 23,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 4739,
+     "screens": 4.6,
+     "words": 336,
+     "img": 6,
+     "video": 0,
+     "canvas": 0,
+     "svg": 0,
+     "sections": 5,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "pantry.png",
+      "recipe.png",
+      "shopping.png",
+      "activity.png"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Your kitchen, accounted for",
+     "words": 4,
+     "chars": 27,
+     "lines": 2,
+     "size": 41.5,
+     "vw": 5.4,
+     "font": "Georgia",
+     "weight": 700,
+     "tracking": -0.045,
+     "leading": 1.02,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "center",
+     "position": "center",
+     "widthRatio": 0.35,
+     "top": 164,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Your kitchen, accounted for",
+     "words": 4,
+     "lines": 2,
+     "size": 41.5,
+     "font": "Georgia"
+    },
+    "headings": [
+     {
+      "text": "Your kitchen, accounted for",
+      "words": 4,
+      "chars": 27,
+      "lines": 2,
+      "size": 41.5,
+      "vw": 5.4,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.35,
+      "top": 164,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "See what is missing",
+      "words": 4,
+      "chars": 19,
+      "lines": 1,
+      "size": 32.3,
+      "vw": 4.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 998,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From pantry to plate",
+      "words": 4,
+      "chars": 20,
+      "lines": 2,
+      "size": 32.3,
+      "vw": 4.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.35,
+      "top": 1637,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Offline after first sync",
+      "words": 4,
+      "chars": 24,
+      "lines": 1,
+      "size": 32.3,
+      "vw": 4.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.77,
+      "top": 3327,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Get in touch",
+      "words": 3,
+      "chars": 12,
+      "lines": 1,
+      "size": 32.3,
+      "vw": 4.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 4486,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 5,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Inter",
+       "share": 0.95,
+       "mono": false
+      },
+      {
+       "family": "Georgia",
+       "share": 0.05,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      14,
+      16,
+      18,
+      23,
+      24,
+      32,
+      42
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Inter",
+      "size": 18,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": -0.011,
+      "contrast": 13.2
+     },
+     "measureChars": 36,
+     "max": {
+      "size": 41.5,
+      "vw": 5.4,
+      "font": "Georgia",
+      "text": "Your kitchen,accounted for"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.09,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f4f2ea",
+     "bodyBgHsl": {
+      "h": 48,
+      "s": 0.31,
+      "l": 0.94
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f4f2e9",
+       "top": 0,
+       "hsl": {
+        "h": 49,
+        "s": 0.33,
+        "l": 0.94
+       }
+      },
+      {
+       "color": "#e7eee3",
+       "top": 84,
+       "hsl": {
+        "h": 98,
+        "s": 0.24,
+        "l": 0.91
+       }
+      },
+      {
+       "color": "#fffefa",
+       "top": 116,
+       "hsl": {
+        "h": 48,
+        "s": 1,
+        "l": 0.99
+       }
+      },
+      {
+       "color": "#285640",
+       "top": 4330,
+       "hsl": {
+        "h": 151,
+        "s": 0.37,
+        "l": 0.25
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#173528",
+       "share": 0.78
+      },
+      {
+       "color": "#526158",
+       "share": 0.15
+      },
+      {
+       "color": "#fffefa",
+       "share": 0.07
+      }
+     ],
+     "button": {
+      "bg": "#285640",
+      "hsl": {
+       "h": 151,
+       "s": 0.37,
+       "l": 0.25
+      },
+      "fg": "#fffefa"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 2,
+     "radius": 8,
+     "height": 50,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Create account"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 4,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.2
+     }
+    ],
+    "nav": {
+     "links": 5,
+     "fixed": false,
+     "height": 84,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "inter"
+    ]
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 6,
+   "filled": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "motion": {
+    "elements": 23,
+    "css": 23,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 5062,
+     "screens": 6,
+     "words": 336,
+     "img": 6,
+     "video": 0,
+     "canvas": 0,
+     "svg": 0,
+     "sections": 5,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "pantry.png",
+      "recipe.png",
+      "shopping.png",
+      "activity.png"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": []
+    },
+    "hero": {
+     "text": "Your kitchen, accounted for",
+     "words": 4,
+     "chars": 27,
+     "lines": 2,
+     "size": 39,
+     "vw": 10,
+     "font": "Georgia",
+     "weight": 700,
+     "tracking": -0.045,
+     "leading": 1.02,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "center",
+     "position": "center",
+     "widthRatio": 0.65,
+     "top": 184,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Your kitchen, accounted for",
+     "words": 4,
+     "lines": 2,
+     "size": 39,
+     "font": "Georgia"
+    },
+    "headings": [
+     {
+      "text": "grocea",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 24,
+      "vw": 6.2,
+      "font": "Inter",
+      "weight": 750,
+      "tracking": -0.045,
+      "leading": 1.55,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.31,
+      "top": 14,
+      "tag": "a",
+      "kind": "heading"
+     },
+     {
+      "text": "Your kitchen, accounted for",
+      "words": 4,
+      "chars": 27,
+      "lines": 2,
+      "size": 39,
+      "vw": 10,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.65,
+      "top": 184,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "See what is missing",
+      "words": 4,
+      "chars": 19,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 852,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From pantry to plate",
+      "words": 4,
+      "chars": 20,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1781,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Offline after first sync",
+      "words": 4,
+      "chars": 24,
+      "lines": 2,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.82,
+      "top": 3713,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "grocea",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 24,
+      "vw": 6.2,
+      "font": "Inter",
+      "weight": 750,
+      "tracking": -0.045,
+      "leading": 1.55,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.31,
+      "top": 4727,
+      "tag": "a",
+      "kind": "heading"
+     },
+     {
+      "text": "Get in touch",
+      "words": 3,
+      "chars": 12,
+      "lines": 1,
+      "size": 32,
+      "vw": 8.2,
+      "font": "Georgia",
+      "weight": 700,
+      "tracking": -0.045,
+      "leading": 1.02,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 4811,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 7,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 1,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Inter",
+       "share": 0.95,
+       "mono": false
+      },
+      {
+       "family": "Georgia",
+       "share": 0.05,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      14,
+      16,
+      18,
+      20,
+      24,
+      32,
+      39
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Inter",
+      "size": 16,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": -0.012,
+      "contrast": 13.2
+     },
+     "measureChars": 43,
+     "max": {
+      "size": 39,
+      "vw": 10,
+      "font": "Georgia",
+      "text": "Your kitchen,accounted for"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.09,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f4f2ea",
+     "bodyBgHsl": {
+      "h": 48,
+      "s": 0.31,
+      "l": 0.94
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f4f2e9",
+       "top": 0,
+       "hsl": {
+        "h": 49,
+        "s": 0.33,
+        "l": 0.94
+       }
+      },
+      {
+       "color": "#e7eee3",
+       "top": 124,
+       "hsl": {
+        "h": 98,
+        "s": 0.24,
+        "l": 0.91
+       }
+      },
+      {
+       "color": "#fffefa",
+       "top": 148,
+       "hsl": {
+        "h": 48,
+        "s": 1,
+        "l": 0.99
+       }
+      },
+      {
+       "color": "#285640",
+       "top": 4695,
+       "hsl": {
+        "h": 151,
+        "s": 0.37,
+        "l": 0.25
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#173528",
+       "share": 0.78
+      },
+      {
+       "color": "#526158",
+       "share": 0.15
+      },
+      {
+       "color": "#fffefa",
+       "share": 0.07
+      }
+     ],
+     "button": {
+      "bg": "#285640",
+      "hsl": {
+       "h": 151,
+       "s": 0.37,
+       "l": 0.25
+      },
+      "fg": "#fffefa"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 3,
+     "inHero": 2,
+     "radius": 8,
+     "height": 50,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Create account"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 3,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.15
+     }
+    ],
+    "nav": {
+     "links": 5,
+     "fixed": false,
+     "height": 124,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "inter"
+    ]
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "palette-cream",
+   "width": 1440,
+   "message": "Yellow-cream background (page background #f4f2ea, section #f4f2e9, section #fffefa).",
+   "fix": "Use the drawn palette. If you want warmth, take a low-chroma stone or bone, not a yellow cream.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1440,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/desktop-fold.jpg",
+   "pages": [
+    "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/desktop-page-01.jpg",
+    "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/desktop-page-02.jpg"
+   ]
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/tablet-fold.jpg",
+   "pages": [
+    "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/tablet-page-01.jpg"
+   ]
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/mobile-fold.jpg",
+   "pages": [
+    "/Users/ammar/Documents/Grocea/.worktrees/d1-welcome/grocea-pwa/reports/next-phase/design-final/round-2/mobile-page-01.jpg"
+   ]
+  }
+ ]
+}

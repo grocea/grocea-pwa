@@ -1,0 +1,38 @@
+[
+  {
+    "name": "pantry",
+    "selector": ".stock-group",
+    "x": 18,
+    "y": 441,
+    "width": 284,
+    "height": 108,
+    "text": "PRODUCE\n1 ingredient\nTomatoes\n2 items"
+  },
+  {
+    "name": "recipe",
+    "selector": ".detail-section",
+    "x": 18,
+    "y": 389.375,
+    "width": 284,
+    "height": 309,
+    "text": "Ingredients\n2 servings\nBasmati rice\n2.4 kg in pantry\nAvailable · 300 g\nEggs\n8 items in pantry\nAvailable · 2 items\nTomatoes\n2 items in pantry\nShort · 3 items\nAdd 1 item"
+  },
+  {
+    "name": "shopping",
+    "selector": ".grocery-group",
+    "x": 16,
+    "y": 328.078125,
+    "width": 288,
+    "height": 203,
+    "text": "PRODUCE\n2 ITEMS\nCarrots\nBuy 2 items\nTomatoes\nBuy 1 item"
+  },
+  {
+    "name": "activity",
+    "selector": ".detail-section",
+    "x": 18,
+    "y": 275.59375,
+    "width": 284,
+    "height": 288,
+    "text": "Pantry changes\nBEFORE → AFTER\nBasmati rice\n2.4 kg → 2.1 kg\n−300 g\nEggs\n8 items → 6 items\n−2 items\nTomatoes\n3 items → 0 items\n−3 items"
+  }
+]
