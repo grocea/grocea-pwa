@@ -1,0 +1,9 @@
+{
+  "checked": true,
+  "queue": [
+    {
+      "type": "grocery-list.item.update",
+      "checked": true
+    }
+  ]
+}

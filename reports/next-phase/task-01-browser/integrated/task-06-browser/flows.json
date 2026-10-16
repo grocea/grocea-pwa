@@ -1,0 +1,11 @@
+{
+  "environment": "real loopback production build + generated disposable accounts; visibility/date case explicitly controlled simulation",
+  "syncRetries": 5,
+  "results": [
+    "UI standalone shopping with checked 1000 g catalog item completed with Pantry update, one acknowledged outcome and actual completed server list",
+    "UI cook preview/confirm produced one acknowledged cooking outcome",
+    "real server STATE_REVISION_CONFLICT invalidates trial candidate; discard does not promote it",
+    "controlled past start-date/hidden visibility events do not count; visible interaction records one distinct later date (simulation, no elapsed-day claim)",
+    "real same-browser sign out/new account: journal off and old account data not shown"
+  ]
+}

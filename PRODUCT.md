@@ -31,7 +31,7 @@ An individual cook uses Grocea to manage ingredients at home, decide what to coo
 
 ## Confirmed Product Policies
 
-- **Pantry tracking is explicit.** Catalog membership does not imply a restock intention. An ingredient is tracked only when the cook adds or explicitly tracks it in their pantry; a tracked ingredient at zero balance is “Needs restock,” while an untracked catalog ingredient is not.
+- **Pantry tracking is explicit.** Catalog membership does not imply a restock intention. An ingredient is tracked only when the cook adds or explicitly tracks it in their pantry; a tracked ingredient at or below zero is depleted and needs restock. An optional account-specific threshold also marks a positive balance at or below that threshold as running low. Untracked catalog ingredients do not imply shopping intent. A saved refill quantity is a fixed proposed purchase, not a subtraction from current balance.
 - **Measurements are metric-only.** Do not expose a user-selectable measurement-system preference. Keep precise canonical quantities and format metric values in readable scales (for example, g/kg and ml/l), retaining count units where the ingredient is measured by item.
 
 ## Evidence on Hand
@@ -44,3 +44,13 @@ An individual cook uses Grocea to manage ingredients at home, decide what to coo
 1. Keep pantry, recipes, shopping, and cooking connected as one workflow.
 2. Keep account data private and useful when offline.
 3. Make stock changes traceable to the activity that caused them.
+
+## Implemented next-phase capabilities
+
+Standalone shopping lists preserve the recipe Basket. Catalog or free-text items can be added, purchased items checked, and selected purchased catalog quantities added to Pantry during completion. Recipe-generated shopping remains available. Bulk Pantry review supports exact metric Add/Set amounts and packs, then saves one atomic event; its activity history remains immutable. Per-ingredient thresholds and optional refill quantities are private to the account.
+
+Recovery uses standard SMTP and expiring single-use links; acceptance does not promise inbox delivery. Profile exports server JSON with an explicit exclusion warning if local work remains, and permits current-password account deletion with account-scoped same-browser cleanup. Other devices and downloaded files may retain copies.
+
+The optional one-week journal is off by default, stays in this browser, and records only eligible server-acknowledged outcomes plus actual foreground return dates and participant notes. It can stop, export or clear independently. It does not imply a completed participant study or measured savings.
+
+Authenticated offline use requires a complete production app download and successful first sync. Updates wait until old Grocea tabs close; reopening adopts the downloaded build without clearing queued changes. Public shell files are separately versioned and content-validated; account data remains in account-scoped IndexedDB. Browser storage eviction or clearing can remove offline availability. The prior fixed-cache worker requires one close-all-tabs/reopen transition before the new coherent-shell contract applies; legacy open clients cannot be retroactively repaired. Physical installed-device and hosted-release checks remain pending.

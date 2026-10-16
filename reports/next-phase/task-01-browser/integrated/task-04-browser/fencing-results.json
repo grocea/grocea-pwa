@@ -1,0 +1,7 @@
+{
+  "checks": [
+    "held decoded account-A export body rejected after account-B activation; no stale download",
+    "blocked IndexedDB purge shows recovery; reload resumes persistent cleanup and account DB is gone",
+    "development demo loads/reloads with isolated account guard and no auth network calls"
+  ]
+}

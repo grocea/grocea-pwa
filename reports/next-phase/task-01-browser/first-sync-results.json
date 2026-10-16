@@ -1,0 +1,14 @@
+{
+  "controlledInitial503": true,
+  "geometry": {
+    "label": "First sync pending",
+    "labelWidth": 94.84375,
+    "headerWidth": 320,
+    "actionLeft": 143.15625,
+    "wordmarkRight": 120.8125,
+    "labelScroll": 95,
+    "labelClient": 95
+  },
+  "recovered": true,
+  "pendingAndConflict320": true
+}

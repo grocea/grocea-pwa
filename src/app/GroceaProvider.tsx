@@ -438,6 +438,8 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   const statusRef = useRef<StorageStatus>('loading')
   const writeQueue = useRef<Promise<void>>(Promise.resolve())
   const syncingRef = useRef(false)
+  const localIntentRef = useRef(0)
+  const syncAgainRef = useRef(false)
   const syncCompletionRef = useRef<Promise<void>>(Promise.resolve())
   const deviceIdRef = useRef<string>(crypto.randomUUID())
   const retryTimerRef = useRef<number | null>(null)
@@ -482,7 +484,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
 
   const synchronize = useCallback(async (importCandidate?: GroceaState) => {
     if (demoMode) return
-    if (syncingRef.current) { await syncCompletionRef.current; return }
+    if (syncingRef.current) { syncAgainRef.current = true; await syncCompletionRef.current; return }
     if (!storage.getMetadata || !storage.saveMetadata || statusRef.current !== 'ready') return
     syncingRef.current = true
     let completeSync: () => void = () => {}
@@ -640,17 +642,28 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         scheduleRetry(0)
       }
       if (remaining.length === 0 && metadata.remoteImportStatus !== 'conflicts') {
+        const intent = localIntentRef.current
         const remote = await fetchState()
-        if (storage.saveCanonicalState) await storage.saveCanonicalState(remote.state)
-        else await storage.saveState(remote.state)
-        metadata = { ...metadata, syncCursor: String(remote.revision), remoteImportStatus: 'complete' }
-        await storage.saveMetadata(metadata)
-        if (metadata.legacyClaimed) await deleteLegacyStorage()
-        initialSyncPendingRef.current = false
-        updateMutationAvailability(metadata)
-        setSyncError(null)
-        stateRef.current = remote.state
-        setState(remote.state)
+        // Append immediately, rather than awaiting a possibly outdated queue tail.
+        // No network work runs inside the local write queue.
+        const adoption = writeQueue.current.then(async () => {
+          if (intent !== localIntentRef.current) { syncAgainRef.current = true; return }
+          if (!storage.adoptCanonicalState) return
+          const adopted = await storage.adoptCanonicalState(remote.state, remote.revision)
+          if (!adopted) {
+            const pending = await storage.listPendingMutations()
+            if (pending.some(item => item.status === 'pending')) syncAgainRef.current = true
+            return
+          }
+          if (adopted.legacyClaimed) await deleteLegacyStorage()
+          initialSyncPendingRef.current = false
+          updateMutationAvailability(adopted)
+          setSyncError(null)
+          stateRef.current = remote.state
+          setState(remote.state)
+        })
+        writeQueue.current = adoption.then(() => undefined, () => undefined)
+        await adoption
       }
       await refreshQueueStatus()
     } catch (error) {
@@ -671,6 +684,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     } finally {
       syncingRef.current = false
       completeSync()
+      if (syncAgainRef.current) { syncAgainRef.current = false; scheduleRetry(0) }
     }
   }, [refreshQueueStatus, scheduleRetry, storage, trialUserId, updateMutationAvailability, updateStorageStatus])
 
@@ -791,6 +805,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }, [boot, markFailure, markReady, state, storageError, storageStatus])
 
   const commit = useCallback(function commit<T>(transition: (current: GroceaState) => Transition<T>): Promise<T> {
+    localIntentRef.current += 1
     const trialPeriod = consentPeriod(trialUserId)
     const operation = writeQueue.current.then(async () => {
       if (statusRef.current !== 'ready' || !stateRef.current) {
@@ -1356,14 +1371,18 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }), [commit, startShoppingList])
 
   const retrySync = useCallback(async () => {
-    const queued = await storage.listPendingMutations()
-    if (storage.updateMutation) {
-      await Promise.all(queued.filter(item => item.status === 'failed').map(item => storage.updateMutation!({
-        ...item,
-        status: 'pending',
-        error: undefined,
-      })))
-    }
+    const retry = writeQueue.current.then(async () => {
+      const queued = await storage.listPendingMutations()
+      if (storage.updateMutation) {
+        await Promise.all(queued.filter(item => item.status === 'failed').map(item => storage.updateMutation!({
+          ...item,
+          status: 'pending',
+          error: undefined,
+        })))
+      }
+    })
+    writeQueue.current = retry.then(() => undefined, () => undefined)
+    await retry
     await synchronize()
   }, [storage, synchronize])
 

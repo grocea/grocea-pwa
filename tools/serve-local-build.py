@@ -11,6 +11,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 BUILD = Path(__file__).resolve().parents[1] / "dist"
+API_OUTAGE_MARKER = None
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -31,19 +32,43 @@ class Handler(SimpleHTTPRequestHandler):
             return False
         return True
 
+    def guess_type(self, path):
+        if (BUILD / 'wrong-mime-fixture').exists() and str(path).endswith('.js') and '/assets/' in str(path):
+            return 'application/json'
+        return super().guess_type(path)
+
+    def end_headers(self):
+        path = urlsplit(self.path).path
+        if path.startswith('/assets/'):
+            self.send_header('Cache-Control', 'public, max-age=31536000, immutable')
+        elif path in {'/', '/sw.js', '/index.html'}:
+            self.send_header('Cache-Control', 'no-cache')
+        super().end_headers()
+
     def do_GET(self):
         if not self.valid_request():
             return
-        if self.path.startswith("/api/"):
+        path = urlsplit(self.path).path
+        if path == "/api" or path.startswith("/api/"):
             return self.proxy()
+        # A/B fixtures can have equal second-resolution mtimes and lengths.
+        # Never answer 304 for mutable shell/worker using mtime alone.
+        if path in {'/', '/index.html', '/sw.js'}:
+            for header in ('If-Modified-Since', 'If-None-Match'):
+                if header in self.headers:
+                    del self.headers[header]
         file = Path(self.translate_path(self.path))
-        if not file.exists() and "." not in self.path.rsplit("/", 1)[-1]:
+        if not file.exists() and self.headers.get("Sec-Fetch-Mode") == "navigate":
             self.path = "/index.html"
         super().do_GET()
 
     def do_HEAD(self):
-        if self.valid_request():
-            super().do_HEAD()
+        if not self.valid_request():
+            return
+        path = urlsplit(self.path).path
+        if path == "/api" or path.startswith("/api/"):
+            return self.proxy()
+        super().do_HEAD()
 
     def do_POST(self):
         self.proxy()
@@ -55,8 +80,12 @@ class Handler(SimpleHTTPRequestHandler):
     def proxy(self):
         if not self.valid_request():
             return
-        if not self.path.startswith("/api/"):
+        path = urlsplit(self.path).path
+        if path != "/api" and not path.startswith("/api/"):
             self.send_error(404)
+            return
+        if API_OUTAGE_MARKER and API_OUTAGE_MARKER.exists() and self.command not in {"GET", "HEAD"}:
+            self.send_error(503, "Synthetic local API outage")
             return
         connection = http.client.HTTPConnection("127.0.0.1", 8000, timeout=20)
         try:
@@ -72,7 +101,9 @@ class Handler(SimpleHTTPRequestHandler):
                 if key.lower() not in {"transfer-encoding", "connection", "server", "date"}:
                     self.send_header(key, value)
             self.end_headers()
-            self.wfile.write(response.read())
+            content = response.read()
+            if self.command != "HEAD":
+                self.wfile.write(content)
         finally:
             connection.close()
 
@@ -80,7 +111,11 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=5184)
+    parser.add_argument("--build", type=Path, default=BUILD, help="Explicit production output directory (can be an atomically switched symlink)")
+    parser.add_argument("--api-outage-marker", type=Path)
     args = parser.parse_args()
+    BUILD = args.build.absolute()
+    API_OUTAGE_MARKER = args.api_outage_marker
     if not (BUILD / "index.html").exists():
         parser.error("Run npm run build first")
     print(f"Local production fixture: http://127.0.0.1:{args.port}", flush=True)

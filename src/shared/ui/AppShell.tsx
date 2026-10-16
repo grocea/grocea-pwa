@@ -1,6 +1,7 @@
 import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { getShellStatus } from '../../registerServiceWorker'
 import { useGrocea } from '../../app/grocea-context'
 
 const navItems = [
@@ -11,7 +12,7 @@ const navItems = [
   { label: 'More', path: '/more', icon: DotsThree },
 ]
 
-const morePaths = ['/more', '/profile', '/ingredients', '/categories', '/sync-issues', '/system-states']
+const morePaths = ['/more', '/profile', '/ingredients', '/categories', '/sync-issues', '/system-states', '/trial']
 
 function Wordmark({ className }: { className: string }) {
   return <Link className={className} to="/pantry"><img className="brand-mark" src="/brand/grocea-icon.png" alt="" />grocea</Link>
@@ -81,6 +82,17 @@ function Navigation() {
   </nav>
 }
 
+function ShellNotice() {
+  const [shellStatus, setShellStatus] = useState(getShellStatus)
+  useEffect(() => {
+    const update = () => setShellStatus(getShellStatus())
+    window.addEventListener('grocea:shell-status', update)
+    update()
+    return () => window.removeEventListener('grocea:shell-status', update)
+  }, [])
+  return <>{shellStatus === 'waiting' && <div className="shell-update-notice" role="status">Update ready. Close all Grocea tabs and reopen to use it. Saved changes stay on this device.</div>}{shellStatus === 'unavailable' && <div className="shell-update-notice" role="status">App download incomplete. Connect and reopen Grocea before relying on offline launch.</div>}</>
+}
+
 export function AppShell({ children, navigation = false, action }: { children: ReactNode; navigation?: boolean; action?: ReactNode }) {
   return <div className={`app-shell${navigation ? ' with-navigation' : ''}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
@@ -94,7 +106,7 @@ export function BrandHeader({ action }: { action?: ReactNode }) {
   const syncLabel = syncStatus === 'initial-sync' ? 'First sync pending' : syncStatus === 'syncing' ? 'Syncing' : syncStatus === 'failed' ? 'Sync issue' : syncStatus === 'offline' ? 'Offline' : pendingMutationCount ? `${pendingMutationCount} pending` : 'Synced'
   const status = syncStatus === 'initial-sync' ? 'initial-sync' : syncStatus === 'syncing' ? 'syncing' : syncStatus === 'failed' ? 'failed' : syncStatus === 'offline' ? 'offline' : pendingMutationCount ? 'pending' : 'synced'
   const StatusIcon = status === 'initial-sync' || status === 'syncing' ? ArrowClockwise : status === 'failed' ? WarningCircle : status === 'offline' ? WifiSlash : status === 'pending' ? Clock : CheckCircle
-  return <><header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-indicator ${status}`} aria-label={`Synchronization status: ${syncLabel}`} title={syncLabel}><StatusIcon size={21} weight={status === 'synced' ? 'fill' : 'bold'} aria-hidden="true" />{pendingMutationCount > 0 && <span className="sync-count" aria-hidden="true">{pendingMutationCount > 99 ? '99+' : pendingMutationCount}</span>}<span className="sr-only">{syncLabel}</span></Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header><div className="app-header-offset" aria-hidden="true" /></>
+  return <><header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-indicator ${status}`} aria-label={`Synchronization status: ${syncLabel}`} title={syncLabel}><StatusIcon size={21} weight={status === 'synced' ? 'fill' : 'bold'} aria-hidden="true" />{pendingMutationCount > 0 && <span className="sync-count" aria-hidden="true">{pendingMutationCount > 99 ? '99+' : pendingMutationCount}</span>}<span className={status === 'synced' ? 'sr-only' : 'sync-visible-label'}>{syncLabel}</span></Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header><div className="app-header-offset" aria-hidden="true" /><ShellNotice /></>
 }
 
 export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pantry', titleAs = 'h1' }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void; fallbackTo?: string; titleAs?: 'h1' | 'span' }) {
@@ -105,7 +117,7 @@ export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pant
     else navigate(fallbackTo, { replace: true })
   })
   const Title = titleAs
-  return <><header className="back-header"><button className="icon-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={24} /></button><div><Title {...(titleAs === 'h1' ? { 'data-page-title': true, tabIndex: -1 } : {})}>{title}</Title>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header><div className="app-header-offset" aria-hidden="true" /></>
+  return <><header className="back-header"><button className="icon-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={24} /></button><div><Title {...(titleAs === 'h1' ? { 'data-page-title': true, tabIndex: -1 } : {})}>{title}</Title>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header><div className="app-header-offset" aria-hidden="true" /><ShellNotice /></>
 }
 
 export function PageHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {

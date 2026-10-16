@@ -217,7 +217,7 @@ App fields and buttons use comfortable, gently rounded corners; list cards are a
 - A quiet leaf-wash panel surfaces tracked stock readiness and the next useful action. Keep its numbers and call to action clear; no catalog-wide zero counts should imply shopping intent.
 
 ### Pantry tracking and quantities
-- Catalog ingredients are untracked until a cook chooses to track them. Only a tracked ingredient with a zero balance is “Needs restock”; a tracked item must be brought to zero before tracking can be stopped.
+- Catalog ingredients are untracked until a cook chooses to track them. Tracked balances at or below zero are depleted. Optional account thresholds also include positive balances at or below the threshold in “Needs restock”; distinguish depleted and running-low rows. A tracked item must be brought to zero before tracking can be stopped.
 - Grocea is metric-only. Do not render a disabled measurement-system preference. Display ingredient amounts in consistent readable metric scales (g/kg, ml/L, and item counts) while retaining precise canonical amounts.
 
 ## Do's and Don'ts
@@ -233,3 +233,11 @@ App fields and buttons use comfortable, gently rounded corners; list cards are a
 - **Don't** let the PWA olive shell tint replace the signed-in app's ledger-green and pantry-lime palette.
 - **Don't** flatten the current warm, precise character into a cold enterprise dashboard or add decoration that competes with stock and recipe information.
 - **Don't** reuse the dark-green primary-button hover without checking foreground contrast; the current CSS changes its background but does not explicitly change its text color.
+
+## Final integration states
+
+Keep the approved green Kitchen Ledger identity, mascot, and glass navigation. More remains selected throughout the optional trial route. Normal synced headers keep the quiet icon; first-sync, pending, offline and failure states expose a short readable label/count. Download/update notices flow below fixed header offsets, preserving controls at phone and desktop widths.
+
+More distinguishes a completed first sync and version-confirmed complete shell from initial setup, unavailable download and waiting update. Waiting guidance asks users to close all Grocea tabs and reopen, preserving saved work. A failed update keeps a valid active shell available. Cache-loss repair validates every exact public file before writing; an old build cannot replace its shell with a newer origin's bytes.
+
+Public welcome remains the targeted D1 repair with four synthetic actual-app crops, readable headings, approved identity and no invented results. Installation, native icon clipping, device safe areas and screen-reader/device behavior require separate physical verification.

@@ -19,7 +19,7 @@ npm run dev
 Vite proxies `/api` to local backend. For local development against another
 origin, set `VITE_API_ORIGIN`.
 
-Cloudflare Workers deployment serves the PWA and proxies `/api/*` to the
+Cloudflare Workers deployment serves the PWA and proxies `/api` and `/api/*` to the
 production backend from the same origin. Production builds always use relative
 `/api` requests, even if a stale `VITE_API_ORIGIN` value remains configured.
 Leave that variable empty or unset in Cloudflare. Deploy with:
@@ -56,7 +56,6 @@ server validation, authentication security, or synchronization behavior.
 
 ```bash
 npm run api:generate
-npm test
 npm run build
 npm run lint
 ```
@@ -81,8 +80,7 @@ screen for retry or discard.
 Migrated local state uploads once. Backend maps legacy global fixture IDs,
 safe-merges compatible custom data, preserves exact balances/history, and
 reports conflicts without overwriting existing server data. The service worker
-keeps same-origin `/api/*` network-only and the app-shell cache is versioned for
-auth rollouts. Cross-origin API requests are not handled by the service worker.
+keeps `/api` and `/api/*`, authenticated/private requests, unknown resources and cross-origin requests out of CacheStorage. Production uses a deterministic public precache generated after Vite emits final files; SHA256 validation protects install and staged cache-loss repair. Controlled app navigations use the active build’s own index/assets. Updates wait naturally until old tabs close; no forced reload clears local work. Offline launch requires complete app download, successful first sync and an active matching worker. The legacy fixed-cache worker needs a one-time close-all-tabs/reopen boundary before this contract applies.
 
 
 ### Account recovery, export and deletion
@@ -104,3 +102,19 @@ GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs node tools/verify-account-export.mjs
 ```
 
 These create only synthetic disposable accounts and use real local storage/service workers. Scripts keep credentials/reset links in memory and save redacted results/screenshots. They do not verify physical installed devices, production SMTP, deployment or remote cache erasure.
+
+### Final offline verification
+
+Use a dedicated local PostgreSQL database and backend `tools/verify_account.py --serve` for API8000, SMTP8025 and private synthetic fixture control8030. Start `python3 tools/serve-local-build.py --port 5184` after `npm run build`. No test framework is required.
+
+```sh
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs node tools/verify-sync-race.mjs
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs GROCEA_RACE_MODE=queued node tools/verify-sync-race.mjs
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs GROCEA_RACE_MODE=adoption node tools/verify-sync-race.mjs
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs GROCEA_RACE_MODE=retry node tools/verify-sync-race.mjs
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs node tools/verify-first-sync-browser.mjs
+```
+
+Stop the ordinary UI fixture before running `tools/verify-offline-browser.mjs`: it owns5184 temporarily, constructs A/B outputs, covers all worker targets including restart, and stops its server/browser in finally. Its controlled mutation outage, bad-MIME/missing-file builds and saved-A-index restoration are verification fixtures, not production features. Reopen the ordinary fixture for account/shopping/bulk/restock/trial helpers. Result evidence and external boundaries are in `reports/next-phase/task-01.md` and `docs/next-phase/DELIVERY.md`.
+
+Browser storage can be evicted. Exact same-build public repair on reconnect never deletes kitchen data; if the origin has moved to a newer build, close all tabs and reopen to activate a successfully downloaded update. Physical installed iOS/Android, hosted response headers/scope, production SMTP delivery and actual consenting seven-day participants remain release/manual work. No deployment is implied by these local checks.

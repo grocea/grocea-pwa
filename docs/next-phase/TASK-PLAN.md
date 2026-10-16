@@ -1,7 +1,7 @@
 # Grocea implementation plan
 
 feature_id: GROCEA-2026-10
-status: in_progress
+status: done
 model: gpt-6.1-sol
 prepared: 2026-10-16
 preparation_gate: [FEATURE-PREPARATION.md](FEATURE-PREPARATION.md)
@@ -10,7 +10,7 @@ preparation_gate: [FEATURE-PREPARATION.md](FEATURE-PREPARATION.md)
 
 | ID | Task | Status | Dependencies | Plan |
 |---|---|---|---|---|
-| T01 | Offline reliability and verification | draft | T02 → T03 → T05 → T04 → T06 → D1 | [Plan](plans/01.md) |
+| T01 | Offline reliability and verification | done | T02 → T03 → T05 → T04 → T06 → D1 | [Plan](plans/01.md) |
 | T02 | Standalone shopping and restock-to-list | done | none | [Plan](plans/02.md) |
 | T03 | Fast pantry setup and bulk adjustments | done | T02 | [Plan](plans/03.md) |
 | T04 | Account recovery, export and deletion | done | T05 | [Plan](plans/04.md) |

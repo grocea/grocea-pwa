@@ -1,0 +1,49 @@
+{
+  "ids": {
+    "A": "867bdb8d5dcb6c6bf096742c",
+    "B": "544ecb73fd6630ab4eab8c10"
+  },
+  "results": [
+    "A index eviction while origin serves B: repair refuses mismatched generation and preserves remaining A entries; fixture restores saved exact A index before lifecycle continuation",
+    "A→B natural waiting/activation; both old A tabs safe; true page+worker offline B deep reload including worker restart; pending queue and consent unchanged",
+    "deleted public shell produces honest unavailable status offline; exact inventory repaired on reconnect; IndexedDB/consent retained",
+    "200 application/json for required JavaScript rejects update and retains B",
+    "failed partial install removed partial cache and retained active B; API/auth/export navigation/cross-origin/unknown requests absent from CacheStorage; unrelated cache retained; pending profile replayed"
+  ],
+  "inventory": [
+    {
+      "key": "unrelated-app-sentinel",
+      "urls": [
+        "http://127.0.0.1:5184/sentinel"
+      ]
+    },
+    {
+      "key": "grocea-shell-544ecb73fd6630ab4eab8c10",
+      "urls": [
+        "http://127.0.0.1:5184/apple-touch-icon.png",
+        "http://127.0.0.1:5184/assets/index-6c29a90af2f0.js",
+        "http://127.0.0.1:5184/assets/index-Ct1ecjI6.css",
+        "http://127.0.0.1:5184/assets/inter-latin-400-normal-C38fXH4l.woff2",
+        "http://127.0.0.1:5184/assets/inter-latin-400-normal-CyCys3Eg.woff",
+        "http://127.0.0.1:5184/assets/inter-latin-500-normal-BL9OpVg8.woff",
+        "http://127.0.0.1:5184/assets/inter-latin-500-normal-Cerq10X2.woff2",
+        "http://127.0.0.1:5184/assets/inter-latin-600-normal-CiBQ2DWP.woff",
+        "http://127.0.0.1:5184/assets/inter-latin-600-normal-LgqL8muc.woff2",
+        "http://127.0.0.1:5184/assets/inter-latin-700-normal-BLAVimhd.woff",
+        "http://127.0.0.1:5184/assets/inter-latin-700-normal-Yt3aPRUw.woff2",
+        "http://127.0.0.1:5184/brand/grocea-icon.png",
+        "http://127.0.0.1:5184/icons.svg",
+        "http://127.0.0.1:5184/images/welcome/activity.png",
+        "http://127.0.0.1:5184/images/welcome/pantry.png",
+        "http://127.0.0.1:5184/images/welcome/recipe.png",
+        "http://127.0.0.1:5184/images/welcome/shopping.png",
+        "http://127.0.0.1:5184/index.html",
+        "http://127.0.0.1:5184/manifest.webmanifest",
+        "http://127.0.0.1:5184/pwa-192.png",
+        "http://127.0.0.1:5184/pwa-512.png"
+      ]
+    }
+  ],
+  "workerRestartCovered": true,
+  "physicalDeviceInstall": false
+}

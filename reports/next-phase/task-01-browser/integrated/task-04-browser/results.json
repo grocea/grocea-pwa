@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "anonymous reset link survives bootstrap; fragment stripped; success retained",
+    "authenticated reset survives bootstrap and lock; normal new-password login",
+    "controls, cancellation, inline reauthentication error and no overflow at 320px",
+    "controls, cancellation, inline reauthentication error and no overflow at 390px",
+    "controls, cancellation, inline reauthentication error and no overflow at 768px",
+    "controls, cancellation, inline reauthentication error and no overflow at 1440px",
+    "successful disposable account deletion; two-tab cache/outbox/trial/auth cleanup; other trial key preserved; reload cannot unlock"
+  ]
+}

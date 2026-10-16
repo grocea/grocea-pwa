@@ -67,6 +67,7 @@ export interface GroceaStorage {
   loadState(): Promise<GroceaState>
   saveState(state: GroceaState): Promise<void>
   saveCanonicalState?(state: GroceaState): Promise<void>
+  adoptCanonicalState?(state: GroceaState, revision: number): Promise<DatabaseMetadata | null>
   enqueueMutation(mutation: PendingMutation): Promise<void>
   listPendingMutations(): Promise<PendingMutation[]>
   removeMutation(id: string): Promise<void>
@@ -550,6 +551,33 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
       transaction.objectStore('state').put(value),
       transaction.done,
     ])
+  }
+
+  // One transaction fences other tabs: an empty-queue check outside this
+  // transaction could race a new local write or another tab's acknowledgement.
+  async adoptCanonicalState(state: GroceaState, revision: number): Promise<DatabaseMetadata | null> {
+    if (!isGroceaState(state) || !Number.isSafeInteger(revision) || revision < 0) throw new Error('Invalid remote snapshot.')
+    const transaction = this.requireDatabase().transaction(['canonical', 'state', 'outbox', 'metadata'], 'readwrite')
+    const [pending, current] = await Promise.all([
+      transaction.objectStore('outbox').count(),
+      transaction.objectStore('metadata').get(DATABASE_METADATA_KEY),
+    ])
+    try { assertAccountAvailable(this.ownerUserId) } catch (error) { transaction.abort(); throw error }
+    if (!current || pending || (current.syncCursor !== null && Number(current.syncCursor) > revision) || current.remoteImportStatus === 'conflicts') {
+      await transaction.done
+      assertAccountAvailable(this.ownerUserId)
+      return null
+    }
+    const metadata = { ...current, syncCursor: String(revision), remoteImportStatus: 'complete' as const }
+    const value = { key: CURRENT_STATE_KEY, value: cloneState(state) } as const
+    await Promise.all([
+      transaction.objectStore('canonical').put(value),
+      transaction.objectStore('state').put(value),
+      transaction.objectStore('metadata').put(metadata),
+      transaction.done,
+    ])
+    assertAccountAvailable(this.ownerUserId)
+    return metadata
   }
 
   async enqueueMutation(mutation: PendingMutation): Promise<void> {

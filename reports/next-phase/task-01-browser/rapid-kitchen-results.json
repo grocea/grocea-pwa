@@ -1,0 +1,10 @@
+{
+  "intermediateShoppingSyncWaits": 0,
+  "syncRetries": 0,
+  "results": [
+    "UI standalone shopping with checked 1000 g catalog item completed with Pantry update, one acknowledged outcome and actual completed server list",
+    "UI cook preview/confirm produced one acknowledged cooking outcome",
+    "UI cooking reversal adds one linked reversal, preserves original event and restores exact pre-cook balances",
+    "UI Add to Basket and recipe-generated shopping still persist linked recipe source"
+  ]
+}

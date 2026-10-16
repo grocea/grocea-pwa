@@ -1,0 +1,38 @@
+[
+  {
+    "width": 390,
+    "overflow": false,
+    "main": true,
+    "bodyWidth": 390,
+    "offlineQueue": "passed",
+    "duplicate": "passed",
+    "completion": "passed",
+    "staleConflict": "passed: explicit issue; dependent item blocked; remote unchanged",
+    "concurrentWrite": "not run at this width",
+    "runtimeErrors": []
+  },
+  {
+    "width": 1280,
+    "overflow": false,
+    "main": true,
+    "bodyWidth": 1280,
+    "offlineQueue": "passed",
+    "duplicate": "passed",
+    "completion": "passed",
+    "staleConflict": "not run at this width",
+    "concurrentWrite": "passed: new write during held creation response synced automatically",
+    "runtimeErrors": []
+  },
+  {
+    "width": 320,
+    "overflow": false,
+    "main": true,
+    "bodyWidth": 320,
+    "offlineQueue": "passed",
+    "duplicate": "passed",
+    "completion": "passed",
+    "staleConflict": "not run at this width",
+    "concurrentWrite": "not run at this width",
+    "runtimeErrors": []
+  }
+]
