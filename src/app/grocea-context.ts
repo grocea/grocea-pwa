@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type {
   ActivityEvent,
+  BulkStockRow,
   DraftRecipe,
   GroceaState,
   GroceryListItem,
@@ -27,6 +28,7 @@ export interface GroceaContextValue extends GroceaState {
   categoryName: (id: string) => string
   ingredient: (id: string) => Ingredient | undefined
   adjustStock: (ingredientId: string, operation: StockOperation, amount: bigint, reason: string) => Promise<void>
+  bulkAdjustStock: (rows: BulkStockRow[]) => Promise<void>
   setPantryTracking: (ingredientId: string, tracked: boolean) => Promise<void>
   createIngredient: (name: string, categoryId: string, family: MeasurementFamily, createStock?: boolean) => Promise<string>
   createRecipeDraft: (sourceRecipeId?: string) => Promise<string>

@@ -4,6 +4,7 @@ import { ActivityDetailScreen, ActivityListScreen } from '../features/activity/A
 import { CategoriesScreen, MoreScreen, ProfileScreen, SyncIssuesScreen, SystemStatesScreen } from '../features/more/MoreScreens'
 import { NewRecipeScreen, RecipeEditorScreen } from '../features/recipes/RecipeEditorScreens'
 import { CookPreviewScreen, CookingResultScreen, RecipeDetailScreen, RecipeListScreen } from '../features/recipes/RecipeScreens'
+import { BulkStockScreen } from '../features/pantry/BulkStockScreen'
 import { AddStockScreen, CatalogScreen, CreateIngredientScreen, PantryScreen } from '../features/pantry/screens'
 import WelcomePage from '../features/marketing/WelcomePage'
 import { BasketScreen, GroceriesScreen, GroceryListScreen, RestockShoppingScreen } from '../features/groceries/GroceryScreens'
@@ -144,6 +145,7 @@ function AccountGroceaApp({ userId }: { userId: string }) {
   return <GroceaProvider storage={storage}><Routes>
     <Route path="/" element={<Navigate to="/pantry" replace />} />
     <Route path="/pantry" element={<PantryScreen />} />
+    <Route path="/pantry/bulk" element={<BulkStockScreen />} />
     <Route path="/pantry/stock/new" element={<AddStockScreen />} />
     <Route path="/ingredients" element={<CatalogScreen />} />
     <Route path="/ingredients/new" element={<CreateIngredientScreen />} />

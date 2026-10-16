@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ApiError, fetchState, hasCsrfToken, importLocalState, sendMutation } from '../api/client'
 import type {
   ActivityEvent,
+  BulkStockRow,
   BasketItem,
   DraftRecipe,
   GroceaState,
@@ -16,7 +17,7 @@ import type {
   SyncStatus,
 } from '../domain/types'
 import { isPublishedRecipe } from '../domain/types'
-import { familyUnits, formatQuantityValue, parseQuantity, scaleQuantity } from '../shared/lib/quantity'
+import { familyUnits, formatQuantityValue, maximumQuantity, parseExactPackQuantity, parseQuantity, scaleQuantity } from '../shared/lib/quantity'
 import { GroceaContext, type GroceaContextValue, type StorageStatus } from './grocea-context'
 import { useBootSplash } from './boot-context'
 import { deleteLegacyStorage, groceaStorage, type DatabaseMetadata, type GroceaStorage } from './persistence'
@@ -165,8 +166,8 @@ interface Transition<T> {
 }
 
 class MutationBlockedError extends Error {
-  constructor() {
-    super('Connect to Grocea before you change this account.')
+  constructor(message = 'Connect to Grocea before you change this account.') {
+    super(message)
     this.name = 'MutationBlockedError'
   }
 }
@@ -318,6 +319,7 @@ const remapMutationIds = (mutation: PendingMutation, idMap: Record<string, strin
       generatedItemIds: remapObjects(payload.generatedItemIds, ['ingredientId', 'id']),
       recipeBasis: remapBasisRecipes(payload.recipeBasis),
       pantryBasis: remapObjects(payload.pantryBasis, ['ingredientId']),
+      rows: remapObjects(payload.rows, ['ingredientId']),
     },
   }
 }
@@ -332,7 +334,7 @@ function mutationCreatedIds(mutation: MutationLike): string[] {
   const ids: unknown[] = []
   if (mutation.type === 'category.create' || mutation.type === 'ingredient.create') ids.push(payload.id)
   if (mutation.type === 'recipe.create') ids.push(recipe?.id)
-  if (mutation.type === 'stock.operation' || mutation.type === 'recipe.cook' || mutation.type === 'grocery-list.complete') ids.push(payload.eventId)
+  if (mutation.type === 'stock.operation' || mutation.type === 'stock.bulk' || mutation.type === 'recipe.cook' || mutation.type === 'grocery-list.complete') ids.push(payload.eventId)
   if (mutation.type === 'activity.reverse') ids.push(payload.reversalId)
   if (mutation.type === 'grocery-list.create' || mutation.type === 'grocery-list.manual.create') {
     ids.push(payload.id, payload.listId)
@@ -845,6 +847,34 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         }
       })
     },
+    bulkAdjustStock: (rows: BulkStockRow[]) => commit(current => {
+      if (!rows.length || rows.length > 100 || new Set(rows.map(row => row.ingredientId)).size !== rows.length) {
+        throw new MutationBlockedError('Select between 1 and 100 different ingredients.')
+      }
+      const changes = rows.map(row => {
+        const ingredient = current.ingredients.find(item => item.id === row.ingredientId)
+        const amount = parseExactPackQuantity(row.amount, row.unit, row.packCount)
+        const before = current.balances[row.ingredientId] ?? 0n
+        if (!ingredient || !familyUnits[ingredient.family].includes(row.unit) || amount === null || (row.operation === 'add' && amount === 0n)) {
+          throw new MutationBlockedError('Check every ingredient, unit and exact amount before saving.')
+        }
+        if (before !== row.before) throw new MutationBlockedError('Stock changed while reviewing. Return to editing and review the new balances.')
+        const after = row.operation === 'set' ? amount : before + amount
+        const delta = after - before
+        if (after > maximumQuantity || after < -maximumQuantity || delta > maximumQuantity || delta < -maximumQuantity) {
+          throw new MutationBlockedError('A resulting balance or change is outside the supported range.')
+        }
+        return { ingredientId: row.ingredientId, before, delta, after }
+      })
+      const event: ActivityEvent = {
+        id: crypto.randomUUID(), type: 'manual', title: `Updated ${rows.length} pantry ${rows.length === 1 ? 'ingredient' : 'ingredients'}`,
+        detail: 'Bulk pantry update', occurredAt: new Date().toISOString(), changes,
+      }
+      return {
+        state: reducer(current, { type: 'cook', event }), result: undefined,
+        mutation: { type: 'stock.bulk', payload: { eventId: event.id, rows: rows.map(row => ({ ingredientId: row.ingredientId, operation: row.operation, amount: row.amount, unit: row.unit, packCount: row.packCount })) } },
+      }
+    }),
     adjustStock: (ingredientId: string, operation: StockOperation, amount: bigint, reason: string) => {
       const eventId = crypto.randomUUID()
       return commit(current => ({

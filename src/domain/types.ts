@@ -1,6 +1,7 @@
 export type MeasurementFamily = 'mass' | 'volume' | 'count'
 export type IngredientScope = 'global' | 'custom'
 export type StockOperation = 'add' | 'set' | 'remove'
+export interface BulkStockRow { ingredientId: string; operation: 'add' | 'set'; amount: string; unit: Unit; packCount: number; before: bigint }
 export type Unit = 'mg' | 'g' | 'kg' | 'ml' | 'L' | 'item'
 export type RecipeStatus = 'draft' | 'published'
 export type GroceryListStatus = 'active' | 'completed'

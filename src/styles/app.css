@@ -2185,3 +2185,68 @@ body { background: var(--warm); color: var(--ink); }
     .primary-navigation .nav-item:active { transform: none; }
   }
 }
+
+/* Bulk pantry editing and the measured pantry density/hidden-content repairs. */
+.app-page .sr-only { position: absolute; width: 1px; max-width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.pantry-track-link { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-size: 13px; }
+.bulk-content { max-width: 1180px; padding-bottom: 150px; }
+.bulk-intro { max-width: 680px; color: var(--muted); line-height: 1.5; }
+.bulk-layout { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); gap: 28px; align-items: start; }
+.bulk-layout h2, .bulk-review h2 { font-size: 20px; letter-spacing: -.025em; }
+.bulk-layout h2 span { color: var(--muted); font-size: 13px; }
+.bulk-selector { position: sticky; top: 20px; min-width: 0; }
+.bulk-catalog { max-height: 480px; overflow-y: auto; margin-top: 12px; border-block: 1px solid var(--line); }
+.bulk-catalog label { display: flex; align-items: center; gap: 12px; min-height: 62px; padding: 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.bulk-catalog label.selected { background: var(--green-soft); }
+.bulk-catalog label > span { display: grid; gap: 4px; }
+.bulk-catalog small { color: var(--muted); font-size: 12px; }
+.bulk-catalog input, .bulk-pack-toggle input { width: 18px; height: 18px; accent-color: var(--green); flex-shrink: 0; }
+.bulk-editor { min-width: 0; }
+.bulk-edit-row { position: relative; min-width: 0; margin: 0 0 20px; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.bulk-edit-row legend { padding: 0 6px; max-width: calc(100% - 45px); font-size: 17px; font-weight: 700; }
+.bulk-remove { position: absolute; top: -4px; right: 8px; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
+.bulk-edit-row .field-group { margin: 0; gap: 6px; }
+.bulk-edit-row > .field-group { margin-top: 8px; }
+.bulk-pack-toggle { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-block: 8px; font-size: 13px; }
+.bulk-amount-fields { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 10px; }
+.bulk-amount-fields.with-packs { grid-template-columns: minmax(65px, .65fr) minmax(0, 1fr) 75px; }
+.bulk-amount-fields input, .bulk-amount-fields select, .bulk-edit-row select { min-width: 0; width: 100%; min-height: 44px; }
+.bulk-projection { margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.bulk-projection strong { color: var(--green); }
+.bulk-save-actions { position: sticky; bottom: 105px; z-index: 5; display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 3px 12px rgb(21 39 29 / 8%); }
+.bulk-review { max-width: 760px; margin-inline: auto; }
+.bulk-review-row { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.bulk-review-row h3 { margin: 0; font-size: 18px; }
+.bulk-review-row p { color: var(--muted); font-size: 13px; }
+.bulk-review-row dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; }
+.bulk-review-row dt { color: var(--muted); font-size: 12px; }
+.bulk-review-row dd { margin: 5px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+@media (min-width: 980px) {
+  .desktop-wordmark { color: var(--green-deep); }
+  .bulk-save-actions { bottom: 18px; }
+}
+@media (max-width: 700px) {
+  .pantry-pulse { min-height: 0; padding: 12px 14px; flex-direction: row; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .pantry-pulse .eyebrow, .pantry-pulse p { display: none; }
+  .pantry-pulse strong { margin: 0; font-size: 26px; }
+  .pantry-pulse strong small { font-size: 12px; }
+  .pantry-pulse .pulse-action { font-size: 12px; white-space: nowrap; }
+  .pantry-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .pantry-actions .button { flex: 1 1 auto; font-size: 12px; padding-inline: 10px; }
+  .pantry-track-link { min-height: 36px; font-size: 12px; }
+  .pantry-view-tabs button { gap: 5px; padding-inline: 8px; }
+  .pantry-view-tabs button small { min-width: 20px; padding-inline: 4px; }
+  .bulk-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .bulk-selector { position: static; }
+  .bulk-catalog { max-height: 220px; }
+  .bulk-save-actions { padding: 9px; gap: 8px; }
+  .bulk-save-actions .button { min-width: 0; padding-inline: 10px; font-size: 12px; }
+  .bulk-edit-row { padding: 14px; }
+}
+
+@media (max-width: 700px) {
+  .pantry-pulse > div { min-width: 0; flex: 1 1 auto; }
+  .pantry-pulse strong { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+  .pantry-pulse .pulse-long-label { display: none; }
+  .pantry-pulse .pulse-action { width: auto; flex: 0 0 auto; padding-inline: 10px; }
+}

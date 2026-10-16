@@ -123,14 +123,14 @@ export function PantryScreen() {
           <p>{trackedIngredientIds.length} tracked · {inStockCount} in stock · {restockCount} need restock</p>
         </header>
 
-        <section className="pantry-pulse" aria-label="Pantry overview">
+        {inStockCount > 0 && <section className="pantry-pulse" aria-label="Pantry overview">
           <div>
             <span className="eyebrow">Pantry pulse</span>
-            <strong>{inStockCount} <small>ingredients ready</small></strong>
+            <strong>{inStockCount} <small><span className="pulse-long-label">ingredients </span>ready</small></strong>
             <p>{publishedRecipeCount ? `Browse ${publishedRecipeCount} recipes and check which ingredients are in stock.` : 'Add recipes to check their ingredients against your stock.'}</p>
           </div>
           <Link to="/recipes" className="pulse-action">Find a recipe <ArrowRight size={18} /></Link>
-        </section>
+        </section>}
 
         <div className="pantry-tools">
           <div className="segmented-control pantry-view-tabs" aria-label="Pantry stock view">
@@ -159,8 +159,9 @@ export function PantryScreen() {
         </div>
 
         <div className="pantry-actions">
-          <Link className="button primary" to="/pantry/stock/new"><Plus size={20} /> Add stock</Link>
-          <Link className="button secondary" to="/ingredients">Track ingredients <ArrowRight size={18} /></Link>
+          <Link className="button primary" to="/pantry/bulk">{inStockCount === 0 ? 'Set up pantry' : 'Update several items'}</Link>
+          <Link className="button secondary" to="/pantry/stock/new"><Plus size={18} /> Add stock</Link>
+          <Link className="pantry-track-link" to="/ingredients">Track ingredients <ArrowRight size={16} /></Link>
         </div>
 
         <section className="stock-list" aria-live="polite" aria-label={tab === 'stock' ? 'In-stock ingredients' : 'Ingredients needing restock'}>
@@ -190,7 +191,7 @@ export function PantryScreen() {
               </div>
             </section>
           ))}
-          {shown.length === 0 && <div className="empty-state"><strong>{tab === 'restock' && restockCount === 0 ? 'Nothing needs restocking' : tab === 'stock' && inStockCount === 0 ? 'No ingredients in stock yet' : 'No ingredients found'}</strong><span>{query || category !== 'all' ? 'Try another search or category.' : tab === 'restock' && restockCount === 0 ? 'Track an ingredient from the catalog when you want Grocea to watch its balance.' : 'Add a pantry balance or track an ingredient to get started.'}</span></div>}
+          {shown.length === 0 && <div className="empty-state"><strong>{tab === 'restock' && restockCount === 0 ? 'Nothing needs restocking' : tab === 'stock' && inStockCount === 0 ? 'No ingredients in stock yet' : 'No ingredients found'}</strong><span>{query || category !== 'all' ? 'Try another search or category.' : tab === 'restock' && restockCount === 0 ? 'Track an ingredient from the catalog when you want Grocea to watch its balance.' : 'Add a pantry balance or track an ingredient to get started.'}</span>{!query && category === 'all' && inStockCount === 0 && <Link to="/pantry/bulk">Set up pantry</Link>}</div>}
         </section>
       </main>
     </AppShell>

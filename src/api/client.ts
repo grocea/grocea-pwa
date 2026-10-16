@@ -1,5 +1,6 @@
 import type {
   ActivityEvent,
+  BulkStockRow,
   Category,
   DraftRecipe,
   GroceryList,
@@ -348,6 +349,12 @@ function mutationEntityIds(mutation: PendingMutation): string[] {
       add(payload.id)
       add(payload.categoryId)
       break
+    case 'stock.bulk':
+      add(payload.eventId)
+      if (Array.isArray(payload.rows)) payload.rows.forEach(row => {
+        if (row && typeof row === 'object') add((row as Record<string, unknown>).ingredientId)
+      })
+      break
     case 'stock.operation':
       add(payload.eventId)
       add(payload.ingredientId)
@@ -493,6 +500,16 @@ export async function sendMutation(mutation: PendingMutation): Promise<number | 
       path = `/api/pantry-stocks/${payload.ingredientId}/tracking`
       method = 'PUT'
       body = { tracked: payload.tracked }
+      break
+    case 'stock.bulk':
+      path = '/api/pantry-stocks/bulk'
+      body = {
+        event_id: payload.eventId as string,
+        rows: (payload.rows as BulkStockRow[]).map(row => ({
+          ingredient_id: row.ingredientId, operation: row.operation,
+          amount: row.amount, unit: row.unit, pack_count: row.packCount,
+        })),
+      } satisfies schemas['BulkStockCreate']
       break
     case 'stock.operation':
       path = `/api/pantry-stocks/${payload.ingredientId}/operations`

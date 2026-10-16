@@ -59,3 +59,23 @@ export const scaleQuantity = (quantity: bigint, servings: number, baseServings: 
   const denominator = BigInt(baseServings)
   return (numerator + denominator / 2n) / denominator
 }
+
+// Bulk entry never rounds: the final pack product must fit canonical thousandths.
+export const maximumQuantity = 999_999_999_999_999n
+export function parseExactPackQuantity(value: string, unit: Unit, packCount = 1): bigint | null {
+  if (!Number.isInteger(packCount) || packCount < 1 || packCount > 1_000_000) return null
+  const match = value.match(/^(\d{1,12})(?:\.(\d{1,6}))?$/)
+  if (!match) return null
+  const fraction = match[2] ?? ''
+  const denominator = 10n ** BigInt(fraction.length)
+  const numerator = BigInt(`${match[1]}${fraction}`) * unitFactors[unit] * BigInt(packCount)
+  if (numerator % denominator !== 0n) return null
+  const result = numerator / denominator
+  return result <= maximumQuantity ? result : null
+}
+
+export function formatExactQuantity(quantity: bigint, family: MeasurementFamily) {
+  const unit = quantity === 0n ? (family === 'mass' ? 'g' : family === 'volume' ? 'ml' : 'item') : displayUnitFor(quantity, family)
+  const value = formatQuantityValue(quantity, unit)
+  return `${value} ${unit === 'item' && value !== '1' ? 'items' : unit}`
+}

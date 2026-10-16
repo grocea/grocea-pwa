@@ -488,7 +488,9 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
     for (const candidate of [record?.value, canonical?.value]) {
       const normalized = candidate === undefined ? null : normalizeStateShape(candidate)
       if (!normalized || !isGroceaState(normalized)) continue
-      const next = reconcileGlobalFixtures(normalized, this.seed)
+      // Authenticated catalogs come from the server. Demo fixture IDs can reference
+      // categories absent from a server snapshot and must never enter an account cache.
+      const next = this.ownerUserId ? cloneState(normalized) : reconcileGlobalFixtures(normalized, this.seed)
       if (isGroceaState(next)) {
         reconciled = next
         break

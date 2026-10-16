@@ -13,6 +13,8 @@ export interface schemas {
   "BasketItemResponse": { "base_servings": number; "error": string | null; "recipe_id": string; "recipe_name": string; "servings": number; "valid": boolean }
   "BasketItemUpsert": { "servings": number }
   "BasketResponse": { "items": Array<schemas["BasketItemResponse"]> }
+  "BulkStockCreate": { "event_id": string; "reason"?: string; "rows": Array<schemas["BulkStockRow"]> }
+  "BulkStockRow": { "amount": string; "ingredient_id": string; "operation": "add" | "set"; "pack_count"?: number; "unit": schemas["Unit"] }
   "CategoryCreate": { "id"?: string | null; "name": string }
   "CategoryResponse": { "archived_at": string | null; "created_at": string; "id": string; "name": string; "scope": schemas["Scope"]; "updated_at": string }
   "CategoryUpdate": { "name": string }
