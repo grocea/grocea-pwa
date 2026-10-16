@@ -11,6 +11,7 @@ import type {
   ImportConflict,
   Ingredient,
   PendingMutation,
+  PantryPreferences,
   PublishedRecipe,
   StockOperation,
   SyncError,
@@ -55,8 +56,11 @@ function reducer(state: GroceaState, action: Action): GroceaState {
     }
   }
   if (action.type === 'tracking') {
+    const pantryPreferences = { ...state.pantryPreferences }
+    if (!action.tracked) delete pantryPreferences[action.ingredientId]
     return {
       ...state,
+      pantryPreferences,
       balances: action.tracked
         ? { ...state.balances, [action.ingredientId]: state.balances[action.ingredientId] ?? 0n }
         : state.balances,
@@ -886,6 +890,18 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         },
       }))
     },
+    setPantryPreferences: (ingredientId: string, preferences: PantryPreferences) => commit(current => {
+      const ingredient = current.ingredients.find(item => item.id === ingredientId)
+      if (!ingredient || !current.trackedIngredientIds.includes(ingredientId)) throw new Error('Track this ingredient before setting restock preferences.')
+      if (Object.values(preferences).some(value => value !== null && (value < 0n || value > maximumQuantity))) throw new Error('Enter nonnegative amounts within the supported range.')
+      return {
+        state: { ...current, pantryPreferences: { ...current.pantryPreferences, [ingredientId]: { ...preferences } } },
+        result: undefined,
+        mutation: { type: 'pantry.preferences', payload: { ingredientId, family: ingredient.family,
+          lowStockThreshold: preferences.lowStockThreshold?.toString() ?? null,
+          refillQuantity: preferences.refillQuantity?.toString() ?? null } },
+      }
+    }),
     setPantryTracking: (ingredientId: string, tracked: boolean) => commit(current => {
       const ingredient = current.ingredients.find(item => item.id === ingredientId)
       if (!ingredient) throw new Error('Grocea could not find that ingredient.')

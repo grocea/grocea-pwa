@@ -1,0 +1,60 @@
+{
+  "results": [
+    {
+      "width": 390,
+      "settingsMetric": {
+        "width": 390,
+        "pageWidth": 390,
+        "pageClient": 390
+      },
+      "pantryMetric": {
+        "width": 390,
+        "pageWidth": 390,
+        "pageClient": 390
+      },
+      "checks": "settings keyboard/validation; true offline save/reload/durable replay; running-low semantics; exact editable fixed refill; server synchronization; fresh-page settings; boundary; clear"
+    },
+    {
+      "width": 768,
+      "settingsMetric": {
+        "width": 768,
+        "pageWidth": 768,
+        "pageClient": 768
+      },
+      "pantryMetric": {
+        "width": 768,
+        "pageWidth": 768,
+        "pageClient": 768
+      },
+      "checks": "settings keyboard/validation; true offline save/reload/durable replay; running-low semantics; exact editable fixed refill; server synchronization; fresh-page settings; boundary; clear"
+    },
+    {
+      "width": 1440,
+      "settingsMetric": {
+        "width": 1440,
+        "pageWidth": 1440,
+        "pageClient": 1440
+      },
+      "pantryMetric": {
+        "width": 1440,
+        "pageWidth": 1196,
+        "pageClient": 1196
+      },
+      "checks": "settings keyboard/validation; true offline save/reload/durable replay; running-low semantics; exact editable fixed refill; server synchronization; fresh-page settings; boundary; clear"
+    },
+    {
+      "width": 320,
+      "settingsMetric": {
+        "width": 320,
+        "pageWidth": 320,
+        "pageClient": 320
+      },
+      "pantryMetric": {
+        "width": 320,
+        "pageWidth": 320,
+        "pageClient": 320
+      },
+      "checks": "settings keyboard/validation; true offline save/reload/durable replay; running-low semantics; exact editable fixed refill; server synchronization; fresh-page settings; boundary; clear"
+    }
+  ]
+}

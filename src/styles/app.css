@@ -2250,3 +2250,18 @@ body { background: var(--warm); color: var(--ink); }
   .pantry-pulse .pulse-long-label { display: none; }
   .pantry-pulse .pulse-action { width: auto; flex: 0 0 auto; padding-inline: 10px; }
 }
+
+/* Optional restock settings keep counts readable at the narrowest phone width. */
+.restock-preferences { display: grid; gap: 20px; max-width: 680px; }
+.restock-preferences .page-heading, .restock-preferences p { margin: 0; }
+.preference-toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; font-weight: 650; }
+.preference-toggle input { width: 20px; height: 20px; accent-color: var(--green); }
+.restock-summary { margin: 0 0 16px; }
+.pantry-view-tabs button small { flex-shrink: 0; }
+@media (max-width: 360px) {
+  .pantry-view-tabs button { flex-direction: column; justify-content: center; gap: 4px; padding: 7px 5px; }
+  .pantry-view-tabs button > span { font-size: 12px; }
+}
+
+.pantry-view-tabs button { justify-content: center; gap: 6px; padding-inline: 8px; }
+.pantry-view-tabs button > span { font-size: 13px; }

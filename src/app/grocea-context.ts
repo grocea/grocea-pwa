@@ -9,6 +9,7 @@ import type {
   Ingredient,
   MeasurementFamily,
   PendingMutation,
+  PantryPreferences,
   StockOperation,
   SyncError,
   SyncStatus,
@@ -29,6 +30,7 @@ export interface GroceaContextValue extends GroceaState {
   ingredient: (id: string) => Ingredient | undefined
   adjustStock: (ingredientId: string, operation: StockOperation, amount: bigint, reason: string) => Promise<void>
   bulkAdjustStock: (rows: BulkStockRow[]) => Promise<void>
+  setPantryPreferences: (ingredientId: string, preferences: PantryPreferences) => Promise<void>
   setPantryTracking: (ingredientId: string, tracked: boolean) => Promise<void>
   createIngredient: (name: string, categoryId: string, family: MeasurementFamily, createStock?: boolean) => Promise<string>
   createRecipeDraft: (sourceRecipeId?: string) => Promise<string>

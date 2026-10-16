@@ -57,7 +57,7 @@ function safeRecipeReturnTo(value: string | null) {
 }
 
 export function PantryScreen() {
-  const { ingredients, balances, trackedIngredientIds, categories, categoryName, recipes, groceryLists } = usePantry()
+  const { ingredients, balances, trackedIngredientIds, pantryPreferences, categories, categoryName, recipes, groceryLists } = usePantry()
   const location = useLocation()
   const navigate = useNavigate()
   const routeMessage = (location.state as { message?: string } | null)?.message
@@ -68,7 +68,10 @@ export function PantryScreen() {
 
   const tracked = useMemo(() => new Set(trackedIngredientIds), [trackedIngredientIds])
   const inStockCount = ingredients.filter((item) => tracked.has(item.id) && (balances[item.id] ?? 0n) > 0n).length
-  const restockCount = trackedIngredientIds.length - inStockCount
+  const depletedCount = trackedIngredientIds.length - inStockCount
+  const runningLowCount = ingredients.filter(item => tracked.has(item.id) && (balances[item.id] ?? 0n) > 0n
+    && (balances[item.id] ?? 0n) <= (pantryPreferences[item.id]?.lowStockThreshold ?? 0n)).length
+  const restockCount = depletedCount + runningLowCount
   const publishedRecipeCount = recipes.filter((recipe) => recipe.status === 'published').length
   useEffect(() => {
     if (routeMessage) navigate(location.pathname, { replace: true, state: null })
@@ -80,13 +83,13 @@ export function PantryScreen() {
         .filter((item) => {
           if (!tracked.has(item.id)) return false
           const balance = balances[item.id] ?? 0n
-          const matchesTab = tab === 'stock' ? balance > 0n : balance <= 0n
+          const matchesTab = tab === 'stock' ? balance > 0n : balance <= (pantryPreferences[item.id]?.lowStockThreshold ?? 0n)
           const matchesQuery = item.name.toLowerCase().includes(query.trim().toLowerCase())
           const matchesCategory = category === 'all' || item.categoryId === category
           return matchesTab && matchesQuery && matchesCategory
         })
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [balances, category, ingredients, query, tab, tracked],
+    [balances, category, ingredients, pantryPreferences, query, tab, tracked],
   )
   const ingredientGroups = useMemo(() => {
     if (query.trim()) {
@@ -120,7 +123,7 @@ export function PantryScreen() {
         <SuccessNotice message={notice} />
         <header className="page-heading">
           <h1 data-page-title tabIndex={-1}>Pantry</h1>
-          <p>{trackedIngredientIds.length} tracked · {inStockCount} in stock · {restockCount} need restock</p>
+          <p>{trackedIngredientIds.length} tracked · {depletedCount} depleted · {runningLowCount} running low</p>
         </header>
 
         {inStockCount > 0 && <section className="pantry-pulse" aria-label="Pantry overview">
@@ -164,6 +167,7 @@ export function PantryScreen() {
           <Link className="pantry-track-link" to="/ingredients">Track ingredients <ArrowRight size={16} /></Link>
         </div>
 
+        {tab === 'restock' && restockCount > 0 && <p className="muted-copy restock-summary">{depletedCount} depleted · {runningLowCount} running low. Running-low ingredients still have stock.</p>}
         <section className="stock-list" aria-live="polite" aria-label={tab === 'stock' ? 'In-stock ingredients' : 'Ingredients needing restock'}>
           {ingredientGroups.map((group) => (
             <section className="stock-group" key={group.id} aria-labelledby={`stock-group-${group.id}`}>
@@ -177,12 +181,12 @@ export function PantryScreen() {
                   return (
                     <Link
                       key={ingredient.id}
-                      className={`stock-row${(balances[ingredient.id] ?? 0n) <= 0n ? ' warning' : ''}`}
+                      className={`stock-row${(balances[ingredient.id] ?? 0n) <= (pantryPreferences[ingredient.id]?.lowStockThreshold ?? 0n) ? ' warning' : ''}`}
                       to={tab === 'restock' ? `/groceries/restock/${ingredient.id}` : `/pantry/stock/new?ingredient=${ingredient.id}`}
                       aria-label={tab === 'restock' ? `Add ${ingredient.name} to shopping list` : `Adjust stock for ${ingredient.name}, ${quantity} available`}
                     >
                       <span className="ingredient-icon">{ingredientIcon(ingredient)}</span>
-                      <span className="stock-name"><strong>{ingredient.name}</strong>{group.showCategory && <small>{categoryName(ingredient.categoryId)}</small>}</span>
+                      <span className="stock-name"><strong>{ingredient.name}</strong>{tab === 'restock' && <small>{(balances[ingredient.id] ?? 0n) > 0n ? 'Running low' : (balances[ingredient.id] ?? 0n) < 0n ? 'Below zero' : 'Empty'}</small>}{group.showCategory && <small>{categoryName(ingredient.categoryId)}</small>}</span>
                       <span className="stock-quantity"><strong>{quantity}</strong>{tab === 'restock' && <small>{groceryLists.some(list => list.status === 'active' && list.items.some(item => item.ingredientId === ingredient.id)) ? 'Already on list' : 'Add to shopping list'}</small>}</span>
                       <CaretRight className="stock-row-caret" size={18} weight="bold" aria-hidden="true" />
                     </Link>
@@ -199,7 +203,7 @@ export function PantryScreen() {
 }
 
 export function AddStockScreen() {
-  const { ingredients, balances, adjustStock } = usePantry()
+  const { ingredients, balances, trackedIngredientIds, adjustStock } = usePantry()
   const navigate = useNavigate()
   const location = useLocation()
   const params = new URLSearchParams(location.search)
@@ -316,6 +320,7 @@ export function AddStockScreen() {
       <form className="form-screen stock-adjustment-form" onSubmit={submit} noValidate aria-busy={pending}>
         {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Stock was not updated</strong><small>{formError}</small></span></div>}
         <p className="sr-only" data-testid="stock-projection-announcement" role="status" aria-live="polite" aria-atomic="true">{projectionAnnouncement}</p>
+        {trackedIngredientIds.includes(ingredient.id) && <Link className="pantry-track-link" to={`/pantry/${ingredient.id}/preferences`}>Restock preferences for {ingredient.name}</Link>}
         <div className="stock-adjustment-layout">
           <section className="workflow-card stock-form-card">
             <section className="workflow-section" aria-labelledby="stock-item-heading">

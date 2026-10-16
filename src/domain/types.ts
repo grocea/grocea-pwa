@@ -93,7 +93,9 @@ export interface GroceryList {
   updatedAt: string
   completedAt?: string
 }
+export interface PantryPreferences { lowStockThreshold: bigint | null; refillQuantity: bigint | null }
 export interface GroceaState {
+  pantryPreferences: Record<string, PantryPreferences>
   categories: Category[]
   ingredients: Ingredient[]
   balances: Record<string, bigint>

@@ -195,6 +195,10 @@ export function mapApiState(value: ApiState): { state: GroceaState; revision: nu
       ingredients,
       balances,
       trackedIngredientIds,
+      pantryPreferences: Object.fromEntries(value.pantry_stocks.filter(stock => trackedIngredientIds.includes(stock.ingredient_id)).map(stock => [stock.ingredient_id, {
+        lowStockThreshold: stock.low_stock_threshold == null ? null : decimalToMinor(stock.low_stock_threshold),
+        refillQuantity: stock.refill_quantity == null ? null : decimalToMinor(stock.refill_quantity),
+      }])) ,
       recipes: value.recipes.map(mapRecipe),
       activity: value.activity.map(mapActivity),
       profile,
@@ -359,6 +363,7 @@ function mutationEntityIds(mutation: PendingMutation): string[] {
       add(payload.eventId)
       add(payload.ingredientId)
       break
+    case 'pantry.preferences':
     case 'pantry.tracking':
       add(payload.ingredientId)
       break
@@ -495,6 +500,13 @@ export async function sendMutation(mutation: PendingMutation): Promise<number | 
         measurement_family: payload.family,
         track_in_pantry: payload.createStock,
       }
+      break
+    case 'pantry.preferences':
+      path = `/api/pantry-stocks/${payload.ingredientId}/preferences`
+      method = 'PUT'
+      body = { measurement_family: payload.family,
+        low_stock_threshold: payload.lowStockThreshold == null ? null : minorToDecimal(BigInt(payload.lowStockThreshold as string)),
+        refill_quantity: payload.refillQuantity == null ? null : minorToDecimal(BigInt(payload.refillQuantity as string)) }
       break
     case 'pantry.tracking':
       path = `/api/pantry-stocks/${payload.ingredientId}/tracking`

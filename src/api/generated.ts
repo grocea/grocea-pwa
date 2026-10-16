@@ -45,7 +45,8 @@ export interface schemas {
   "LocalImportResponse": { "conflicts": Array<schemas["ImportConflict"]>; "id_map": { [key: string]: string }; "revision": number }
   "ManualGroceryListCreate": { "id": string; "title"?: string }
   "MeasurementFamily": "mass" | "volume" | "count"
-  "PantryStockResponse": { "created_at": string; "id": string; "ingredient_id": string; "quantity": string; "updated_at": string }
+  "PantryPreferencesUpdate": { "low_stock_threshold"?: number | string | null; "measurement_family": schemas["MeasurementFamily"]; "refill_quantity"?: number | string | null }
+  "PantryStockResponse": { "created_at": string; "id": string; "ingredient_id": string; "low_stock_threshold": string | null; "quantity": string; "refill_quantity": string | null; "updated_at": string }
   "PantryTrackingUpdate": { "tracked": boolean }
   "ProfileResponse": { "created_at": string; "display_name": string; "id": string; "measurement_system": "metric"; "preferred_servings": number | null; "updated_at": string }
   "ProfileUpdate": { "display_name"?: string | null; "preferred_servings"?: number | null }

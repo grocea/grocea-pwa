@@ -10,13 +10,13 @@ preparation_gate: [FEATURE-PREPARATION.md](FEATURE-PREPARATION.md)
 
 | ID | Task | Status | Dependencies | Plan |
 |---|---|---|---|---|
-| T01 | Offline reliability and verification | draft | T02 → T03 → T04 → T05 → T06 → D1 | [Plan](plans/01.md) |
+| T01 | Offline reliability and verification | draft | T02 → T03 → T05 → T04 → T06 → D1 | [Plan](plans/01.md) |
 | T02 | Standalone shopping and restock-to-list | done | none | [Plan](plans/02.md) |
 | T03 | Fast pantry setup and bulk adjustments | done | T02 | [Plan](plans/03.md) |
 | T04 | Account recovery, export and deletion | draft | T05 | [Plan](plans/04.md) |
-| T05 | Optional low-stock and refill preferences | draft | T03 | [Plan](plans/05.md) |
+| T05 | Optional low-stock and refill preferences | done | T03 | [Plan](plans/05.md) |
 | T06 | One-week trial toolkit and opt-in collection | draft | T04 | [Plan](plans/06.md) |
-| D1 | Design audit and justified targeted repair | needs_review (audit complete) | none | DESIGN-STUDY.md |
+| D1 | Targeted marketing repair (audit complete) | draft | T06 | [Plan](plans/D1.md) |
 
 ## Execution governance
 
@@ -49,4 +49,4 @@ wiki_policy: current product/API facts go in PRODUCT.md/README/compact STATUS; n
 
 ## Design gate
 
-Design study agent is collecting actual screenshots and taste lint/inspection. Screenshot audit confirms targeted app improvements, with no wholesale visual rewrite. Public welcome needs a contained composition/copy repair; observed tablet overflow and desktop wordmark contrast are concrete defects. Public welcome repair may proceed only from the recorded critique and must preserve pre-existing user edits. No full application rewrite is approved by assumption.
+Design study is complete with actual screenshots and taste lint/inspection. Screenshot audit confirms targeted app improvements, with no wholesale visual rewrite. Public welcome needs a contained composition/copy repair; observed tablet overflow and desktop wordmark contrast are concrete defects. Public welcome repair may proceed only from the recorded critique and must preserve pre-existing user edits. No full application rewrite is approved by assumption.

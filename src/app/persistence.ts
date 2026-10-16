@@ -246,6 +246,7 @@ function normalizeStateShape(value: unknown): unknown {
   })
   return {
     ...value,
+    pantryPreferences: isRecord(value.pantryPreferences) ? value.pantryPreferences : {},
     basket: Array.isArray(value.basket) ? value.basket : [],
     groceryLists: Array.isArray(value.groceryLists) ? value.groceryLists : [],
     trackedIngredientIds: Array.isArray(value.trackedIngredientIds)
@@ -271,6 +272,7 @@ export function isGroceaState(value: unknown): value is GroceaState {
     || !Array.isArray(value.groceryLists)
     || !value.groceryLists.every(isGroceryList)
     || !isProfile(value.profile)
+    || !isRecord(value.pantryPreferences)
     || !isRecord(value.balances)
     || !Array.isArray(value.trackedIngredientIds)
     || !value.trackedIngredientIds.every(isString)) return false
@@ -283,6 +285,11 @@ export function isGroceaState(value: unknown): value is GroceaState {
   const ingredients = new Map(value.ingredients.map(ingredient => [ingredient.id, ingredient]))
   if (new Set(value.trackedIngredientIds).size !== value.trackedIngredientIds.length
     || value.trackedIngredientIds.some(id => !ingredients.has(id))) return false
+  const trackedIds = new Set(value.trackedIngredientIds)
+  if (Object.entries(value.pantryPreferences).some(([id, settings]) =>
+    !trackedIds.has(id) || !isRecord(settings)
+    || !['lowStockThreshold', 'refillQuantity'].every(key => settings[key] === null
+      || (typeof settings[key] === 'bigint' && settings[key] >= 0n && settings[key] <= 999_999_999_999_999n)))) return false
   if (value.ingredients.some(ingredient => !categoryIds.has(ingredient.categoryId))) return false
   if (value.recipes.some(recipe => recipe.ingredients.some(item => {
     const ingredient = ingredients.get(item.ingredientId)
@@ -296,6 +303,7 @@ export function cloneState(state: GroceaState): GroceaState {
     categories: state.categories.map(category => ({ ...category })),
     ingredients: state.ingredients.map(ingredient => ({ ...ingredient })),
     balances: { ...state.balances },
+    pantryPreferences: Object.fromEntries(Object.entries(state.pantryPreferences).map(([id, preferences]) => [id, { ...preferences }])),
     trackedIngredientIds: [...state.trackedIngredientIds],
     recipes: state.recipes.map(recipe => ({
       ...recipe,
@@ -398,6 +406,7 @@ export function reconcileGlobalFixtures(persisted: GroceaState, seed: GroceaStat
     ingredients,
     recipes,
     balances,
+    pantryPreferences: Object.fromEntries(Object.entries(persisted.pantryPreferences).filter(([id]) => ingredients.some(item => item.id === id))),
     trackedIngredientIds: persisted.trackedIngredientIds.filter(id => ingredients.some(item => item.id === id)),
   }
 }

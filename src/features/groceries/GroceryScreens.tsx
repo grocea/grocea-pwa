@@ -158,8 +158,9 @@ function amountLabel(item: GroceryListItem) {
   return `${whole}${fraction ? `.${fraction}` : ''}${item.unit ? ` ${item.unit}` : ''}`
 }
 
-function ItemEditor({ initial, ingredients, fixedIngredient, onCancel, onSave }: {
+function ItemEditor({ initial, initialQuantity, ingredients, fixedIngredient, onCancel, onSave }: {
   fixedIngredient?: Ingredient
+  initialQuantity?: bigint
   initial?: GroceryListItem
   ingredients: Ingredient[]
   onCancel: () => void
@@ -172,11 +173,13 @@ function ItemEditor({ initial, ingredients, fixedIngredient, onCancel, onSave }:
   const [label, setLabel] = useState(initial?.label ?? '')
   const initialKnownUnit = initial?.unit && ['mg', 'g', 'kg', 'ml', 'L', 'item'].includes(initial.unit) ? initial.unit as Unit : defaultUnit
   const [unit, setUnit] = useState<string>(initialKnownUnit ?? '')
-  const [amount, setAmount] = useState(() => initial?.quantity === undefined
-    ? ''
+  const [amountDraft, setAmount] = useState<string | null>(() => fixedIngredient && !initial ? null : initial?.quantity === undefined
+    ? initialQuantity == null ? '' : formatQuantityValue(initialQuantity, defaultUnit)
     : initial?.family && initialKnownUnit
       ? formatQuantityValue(initial.quantity, initialKnownUnit)
       : (Number(initial.quantity) / 1000).toString())
+  // Follow synced preferences until the user edits the amount; preserve any draft afterwards.
+  const amount = amountDraft ?? (initialQuantity == null ? '' : formatQuantityValue(initialQuantity, (unit || defaultUnit) as Unit))
   const [error, setError] = useState('')
   const action = usePendingAction(async () => {
     const activeIngredient = mode === 'catalog' ? selectedIngredient : undefined
@@ -371,7 +374,7 @@ export function GroceryListScreen() {
 
 export function RestockShoppingScreen() {
   const { ingredientId } = useParams()
-  const { ingredients, groceryLists, addRestockToList } = useGrocea()
+  const { ingredients, trackedIngredientIds, pantryPreferences, groceryLists, addRestockToList } = useGrocea()
   const navigate = useNavigate()
   const ingredient = ingredients.find(item => item.id === ingredientId)
   const active = groceryLists.find(list => list.status === 'active')
@@ -379,9 +382,10 @@ export function RestockShoppingScreen() {
   return <AppShell><BackHeader title="Add to shopping list" fallbackTo="/pantry" /><main className="detail-screen grocery-screen">
     {!ingredient ? <EmptyState icon={WarningCircle} title="Ingredient unavailable" message="Choose an ingredient from Pantry." action={<Link className="button secondary" to="/pantry">Back to Pantry</Link>} /> : <>
       <PageHeading title={ingredient.name} subtitle={active ? 'Add this essential to your active shopping list.' : 'Grocea will start a shopping list for this essential.'} />
+      {trackedIngredientIds.includes(ingredient.id) && <Link className="pantry-track-link" to={`/pantry/${ingredient.id}/preferences`}>Restock preferences</Link>}
       {alreadyOnList && active ? <div className="warning-banner" role="status"><ListChecks /><span><strong>Already on your shopping list</strong><small>{ingredient.name} is on “{displayGroceryListTitle(active.title)}”. You can edit its amount there.</small></span><Link className="button secondary compact" to={`/groceries/${active.id}`}>Open list</Link></div> : <>
         <p className="muted-copy">Set the amount to buy, or leave it blank and decide while shopping.</p>
-        <ItemEditor fixedIngredient={ingredient} ingredients={[ingredient]} onCancel={() => navigate('/pantry')} onSave={async input => {
+        <ItemEditor key={ingredient.id} initialQuantity={(pantryPreferences[ingredient.id]?.refillQuantity ?? 0n) > 0n ? pantryPreferences[ingredient.id].refillQuantity! : undefined} fixedIngredient={ingredient} ingredients={[ingredient]} onCancel={() => navigate('/pantry')} onSave={async input => {
           const result = await addRestockToList(ingredient.id, input.quantity)
           navigate(`/groceries/${result.listId}`, { state: { message: result.alreadyOnList ? `${ingredient.name} is already on this list.` : `${ingredient.name} added to your shopping list.` } })
         }} />

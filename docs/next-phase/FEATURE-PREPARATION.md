@@ -15,7 +15,7 @@ source_of_truth: TASK-PLAN.md plus the six linked plans. Product policy remains 
 - Existing sync-issue UI already exposes retry/discard. Production service-worker and actual authenticated offline/reconnect coverage need verification.
 - ML receipt OCR/Jev is a separate prototype, not a production receipt-to-pantry contract.
 - Product notes establish no user-study outcome evidence. A real one-week trial needs consenting participants and elapsed time.
-- Design audit is running in reports/next-phase/design-study.md. Initial source/visual direction retains app navigation and Kitchen Ledger identity; public-page repair is scoped separately.
+- Design audit is complete in reports/next-phase/design-study.md. The source/visual direction retains app navigation and Kitchen Ledger identity; public-page repair is scoped separately.
 
 ## Decisions
 
@@ -33,7 +33,7 @@ source_of_truth: TASK-PLAN.md plus the six linked plans. Product policy remains 
 scope_in: six plans, local backend/PWA implementation, generated contracts, local integration/browser verification, evidence reports, study kit, targeted public-site design repair justified by audit.
 scope_out: deployment, real-account deletion, remote DB writes/migrations, sending external email/messages, household sharing, expiry batches, recipe import, production OCR integration, external analytics services, reinstating pytest/Vitest.
 constraints: PWA-first with desktop support; metric-only; privacy by personal account; no credentials or real user pantry screenshots in reports; no fabricated product claims.
-existing_user_edits: grocea-pwa/.gitignore and grocea-pwa/src/features/marketing/WelcomePage.tsx were modified before this work.
+existing_user_edits: grocea-backend/.gitignore and grocea-pwa/src/features/marketing/WelcomePage.tsx were modified before this work.
 
 ## External completion requirements
 
