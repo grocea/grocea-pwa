@@ -1798,6 +1798,7 @@ button:active:not(:disabled), .button:active, .nav-item:active { transform: scal
 .stock-group .stock-name strong { font-size: 15px; line-height: 1.25; }
 .stock-group .stock-name small { color: var(--quiet); font-size: 12px; }
 .stock-group .stock-quantity { text-align: right; }
+.stock-group .stock-quantity small { display: block; margin-top: 4px; color: var(--green); font-size: 11px; }
 .stock-group .stock-quantity strong {
   color: var(--green);
   font-size: 15px;

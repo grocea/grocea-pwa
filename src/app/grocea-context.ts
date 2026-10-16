@@ -41,6 +41,8 @@ export interface GroceaContextValue extends GroceaState {
   removeRecipeFromBasket: (recipeId: string) => Promise<void>
   clearBasket: () => Promise<void>
   confirmBasket: () => Promise<string>
+  startShoppingList: () => Promise<string>
+  addRestockToList: (ingredientId: string, quantity?: bigint) => Promise<{ listId: string; alreadyOnList: boolean }>
   renameGroceryList: (listId: string, title: string) => Promise<void>
   addGroceryItem: (listId: string, item: Pick<GroceryListItem, 'label' | 'ingredientId' | 'quantity' | 'unit'>) => Promise<string>
   updateGroceryItem: (listId: string, item: GroceryListItem) => Promise<void>

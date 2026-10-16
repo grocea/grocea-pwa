@@ -6,7 +6,7 @@ import { NewRecipeScreen, RecipeEditorScreen } from '../features/recipes/RecipeE
 import { CookPreviewScreen, CookingResultScreen, RecipeDetailScreen, RecipeListScreen } from '../features/recipes/RecipeScreens'
 import { AddStockScreen, CatalogScreen, CreateIngredientScreen, PantryScreen } from '../features/pantry/screens'
 import WelcomePage from '../features/marketing/WelcomePage'
-import { BasketScreen, GroceriesScreen, GroceryListScreen } from '../features/groceries/GroceryScreens'
+import { BasketScreen, GroceriesScreen, GroceryListScreen, RestockShoppingScreen } from '../features/groceries/GroceryScreens'
 import { RouteTransitionManager } from '../shared/ui/RouteTransitionManager'
 import { GroceaLoadingSplash } from '../shared/ui/GroceaLoadingSplash'
 import { GroceaProvider } from './GroceaProvider'
@@ -159,6 +159,7 @@ function AccountGroceaApp({ userId }: { userId: string }) {
     <Route path="/activity/:id" element={<ActivityDetailScreen />} />
     <Route path="/more" element={<MoreScreen />} />
     <Route path="/groceries" element={<GroceriesScreen />} />
+    <Route path="/groceries/restock/:ingredientId" element={<RestockShoppingScreen />} />
     <Route path="/groceries/:id" element={<GroceryListScreen />} />
     <Route path="/categories" element={<CategoriesScreen />} />
     <Route path="/profile" element={<ProfileScreen />} />

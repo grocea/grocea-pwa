@@ -22,6 +22,7 @@ import { useBootSplash } from './boot-context'
 import { deleteLegacyStorage, groceaStorage, type DatabaseMetadata, type GroceaStorage } from './persistence'
 import { demoMode } from './demo'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
+import { orderQueuedMutations } from './mutationQueue'
 
 type Action =
   | { type: 'stock'; eventId: string; ingredientId: string; operation: StockOperation; amount: bigint; reason: string }
@@ -333,7 +334,7 @@ function mutationCreatedIds(mutation: MutationLike): string[] {
   if (mutation.type === 'recipe.create') ids.push(recipe?.id)
   if (mutation.type === 'stock.operation' || mutation.type === 'recipe.cook' || mutation.type === 'grocery-list.complete') ids.push(payload.eventId)
   if (mutation.type === 'activity.reverse') ids.push(payload.reversalId)
-  if (mutation.type === 'grocery-list.create') {
+  if (mutation.type === 'grocery-list.create' || mutation.type === 'grocery-list.manual.create') {
     ids.push(payload.id, payload.listId)
     generatedItemIds.forEach(value => {
       if (value && typeof value === 'object') ids.push((value as Record<string, unknown>).id)
@@ -498,6 +499,15 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
           return remapped
         }))
       }
+      const { ordered, blocked } = orderQueuedMutations(queued)
+      for (const current of blocked) {
+        if (storage.updateMutation) await storage.updateMutation({
+          ...current,
+          status: 'failed',
+          error: { code: 'DEPENDENCY_CYCLE', message: 'Queued changes have unresolved dependencies. Review this sync issue.', retryable: false },
+        })
+      }
+      queued = ordered
       const failedIds = new Set(queued.filter(item => item.status === 'failed').map(item => item.id))
       for (const current of queued) {
         if (current.status === 'failed') continue
@@ -526,7 +536,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         if (storage.updateMutation) await storage.updateMutation(mutation)
         try {
           const nextRevision = await sendMutation(mutation)
-          if (nextRevision !== undefined) remoteRevision = nextRevision
+          if (nextRevision !== undefined) {
+            remoteRevision = nextRevision
+            metadata = { ...metadata, syncCursor: String(nextRevision) }
+            await storage.saveMetadata(metadata)
+          }
         } catch (error) {
           const { apiError, syncError: nextSyncError } = toSyncError(error)
           if (apiError.authRequired) {
@@ -592,6 +606,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       }
 
       const remaining = await storage.listPendingMutations()
+      // Writes can arrive while this snapshot is syncing. Their sync event was
+      // ignored by the in-flight guard, so schedule a pass with the saved cursor.
+      if (remaining.some(item => item.status === 'pending' && !queued.some(sent => sent.id === item.id))) {
+        scheduleRetry(0)
+      }
       if (remaining.length === 0 && metadata.remoteImportStatus !== 'conflicts') {
         const remote = await fetchState()
         if (storage.saveCanonicalState) await storage.saveCanonicalState(remote.state)
@@ -787,7 +806,45 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     })
   }, [refreshQueueStatus, storage, updateStorageStatus])
 
+  const startShoppingList = useCallback(() => commit(current => {
+    const active = current.groceryLists.find(list => list.status === 'active')
+    if (active) return { state: current, result: active.id }
+    const id = crypto.randomUUID()
+    const now = new Date().toISOString()
+    const list: GroceryList = { id, title: 'Shopping list', status: 'active', recipes: [], items: [], createdAt: now, updatedAt: now }
+    return {
+      state: { ...current, groceryLists: [list, ...current.groceryLists] },
+      result: id,
+      mutation: { type: 'grocery-list.manual.create', payload: { id, title: list.title } },
+    }
+  }), [commit])
+
   const actions = useMemo(() => ({
+    startShoppingList,
+    addRestockToList: async (ingredientId: string, quantity?: bigint) => {
+      const listId = await startShoppingList()
+      return commit(current => {
+        const list = current.groceryLists.find(candidate => candidate.id === listId && candidate.status === 'active')
+        const ingredient = current.ingredients.find(candidate => candidate.id === ingredientId)
+        if (!list || !ingredient) throw new Error('The ingredient or active shopping list is unavailable.')
+        if (list.items.some(item => item.ingredientId === ingredientId)) {
+          return { state: current, result: { listId, alreadyOnList: true } }
+        }
+        const now = new Date().toISOString()
+        const item: GroceryListItem = {
+          id: crypto.randomUUID(), ingredientId, label: ingredient.name,
+          categoryName: current.categories.find(category => category.id === ingredient.categoryId)?.name ?? 'Other',
+          family: ingredient.family, quantity, unit: quantity === undefined ? undefined : canonicalUnit(ingredient),
+          checked: false, origin: 'manual', edited: false, sources: [], createdAt: now, updatedAt: now,
+        }
+        return {
+          state: { ...current, groceryLists: current.groceryLists.map(candidate => candidate.id === listId
+            ? { ...candidate, items: [...candidate.items, item], updatedAt: now } : candidate) },
+          result: { listId, alreadyOnList: false },
+          mutation: { type: 'grocery-list.item.create', payload: { listId, item, preventDuplicateIngredient: true } },
+        }
+      })
+    },
     adjustStock: (ingredientId: string, operation: StockOperation, amount: bigint, reason: string) => {
       const eventId = crypto.randomUUID()
       return commit(current => ({
@@ -1224,7 +1281,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         mutation: { type: 'grocery-list.delete', payload: { listId, restoreRecipes } },
       }
     }),
-  }), [commit])
+  }), [commit, startShoppingList])
 
   const retrySync = useCallback(async () => {
     const queued = await storage.listPendingMutations()

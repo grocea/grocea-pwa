@@ -22,7 +22,7 @@ export interface schemas {
   "GroceryListComplete": { "event_id": string; "pantry_item_ids"?: Array<string> }
   "GroceryListCreate": { "generated_item_ids"?: Array<schemas["GroceryListGeneratedItemId"]>; "id": string; "pantry_basis"?: Array<schemas["GroceryListPantryBasis"]>; "recipe_basis"?: Array<schemas["GroceryListRecipeBasis"]>; "title"?: string | null }
   "GroceryListGeneratedItemId": { "id": string; "ingredient_id": string }
-  "GroceryListItemCreate": { "id": string; "ingredient_id"?: string | null; "label": string; "quantity"?: number | string | null; "unit"?: string | null }
+  "GroceryListItemCreate": { "id": string; "ingredient_id"?: string | null; "label": string; "prevent_duplicate_ingredient"?: boolean; "quantity"?: number | string | null; "unit"?: string | null }
   "GroceryListItemResponse": { "category_name": string; "checked": boolean; "created_at": string; "edited": boolean; "id": string; "ingredient_id": string | null; "label": string; "measurement_family": schemas["MeasurementFamily"] | null; "origin": "generated" | "manual"; "original_pantry": string | null; "original_quantity": string | null; "original_required": string | null; "quantity": string | null; "sources": Array<schemas["GroceryListItemSourceResponse"]>; "unit": string | null; "updated_at": string }
   "GroceryListItemSourceResponse": { "quantity": string; "recipe_id": string; "recipe_name": string; "servings": number; "unit": schemas["Unit"] }
   "GroceryListItemUpdate": { "checked": boolean; "ingredient_id"?: string | null; "label": string; "quantity"?: number | string | null; "unit"?: string | null }
@@ -41,6 +41,7 @@ export interface schemas {
   "IngredientUpdate": { "category_id"?: string | null; "measurement_family"?: schemas["MeasurementFamily"] | null; "name"?: string | null }
   "LocalImportRequest": { "import_id": string; "state": { [key: string]: unknown } }
   "LocalImportResponse": { "conflicts": Array<schemas["ImportConflict"]>; "id_map": { [key: string]: string }; "revision": number }
+  "ManualGroceryListCreate": { "id": string; "title"?: string }
   "MeasurementFamily": "mass" | "volume" | "count"
   "PantryStockResponse": { "created_at": string; "id": string; "ingredient_id": string; "quantity": string; "updated_at": string }
   "PantryTrackingUpdate": { "tracked": boolean }

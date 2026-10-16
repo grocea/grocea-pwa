@@ -380,6 +380,7 @@ function mutationEntityIds(mutation: PendingMutation): string[] {
     case 'basket.recipe.remove':
       add(payload.recipeId)
       break
+    case 'grocery-list.manual.create':
     case 'grocery-list.create':
       add(payload.id)
       add(payload.listId)
@@ -543,6 +544,10 @@ export async function sendMutation(mutation: PendingMutation): Promise<number | 
       method = 'DELETE'
       body = undefined
       break
+    case 'grocery-list.manual.create':
+      path = '/api/grocery-lists'
+      body = { id: payload.id, title: payload.title }
+      break
     case 'grocery-list.create':
       path = '/api/grocery-lists/from-basket'
       body = {
@@ -578,7 +583,7 @@ export async function sendMutation(mutation: PendingMutation): Promise<number | 
     case 'grocery-list.item.create': {
       const item = payload.item as GroceryListItem
       path = `/api/grocery-lists/${payload.listId}/items`
-      body = groceryItemPayload(item, true)
+      body = { ...groceryItemPayload(item, true), prevent_duplicate_ingredient: payload.preventDuplicateIngredient === true }
       break
     }
     case 'grocery-list.item.update': {

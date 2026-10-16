@@ -57,7 +57,7 @@ function safeRecipeReturnTo(value: string | null) {
 }
 
 export function PantryScreen() {
-  const { ingredients, balances, trackedIngredientIds, categories, categoryName, recipes } = usePantry()
+  const { ingredients, balances, trackedIngredientIds, categories, categoryName, recipes, groceryLists } = usePantry()
   const location = useLocation()
   const navigate = useNavigate()
   const routeMessage = (location.state as { message?: string } | null)?.message
@@ -177,12 +177,12 @@ export function PantryScreen() {
                     <Link
                       key={ingredient.id}
                       className={`stock-row${(balances[ingredient.id] ?? 0n) <= 0n ? ' warning' : ''}`}
-                      to={`/pantry/stock/new?ingredient=${ingredient.id}`}
-                      aria-label={`Adjust stock for ${ingredient.name}, ${quantity} available`}
+                      to={tab === 'restock' ? `/groceries/restock/${ingredient.id}` : `/pantry/stock/new?ingredient=${ingredient.id}`}
+                      aria-label={tab === 'restock' ? `Add ${ingredient.name} to shopping list` : `Adjust stock for ${ingredient.name}, ${quantity} available`}
                     >
                       <span className="ingredient-icon">{ingredientIcon(ingredient)}</span>
                       <span className="stock-name"><strong>{ingredient.name}</strong>{group.showCategory && <small>{categoryName(ingredient.categoryId)}</small>}</span>
-                      <span className="stock-quantity"><strong>{quantity}</strong></span>
+                      <span className="stock-quantity"><strong>{quantity}</strong>{tab === 'restock' && <small>{groceryLists.some(list => list.status === 'active' && list.items.some(item => item.ingredientId === ingredient.id)) ? 'Already on list' : 'Add to shopping list'}</small>}</span>
                       <CaretRight className="stock-row-caret" size={18} weight="bold" aria-hidden="true" />
                     </Link>
                   )
