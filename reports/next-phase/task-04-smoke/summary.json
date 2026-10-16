@@ -1,0 +1,12 @@
+{
+  "url": "http://127.0.0.1:5184/forgot-password",
+  "started_at": "2026-10-16T15:09:14.540Z",
+  "checks": {
+    "fetch_reachable": true,
+    "html_non_empty": true,
+    "screenshots": "skipped-no-browser-driver"
+  },
+  "errors": [],
+  "status": 200,
+  "html_length": 2189
+}

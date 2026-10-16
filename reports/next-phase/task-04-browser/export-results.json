@@ -1,0 +1,8 @@
+{
+  "checks": [
+    "real offline profile edit plus targeted mutation-endpoint outage warn before download; explicit server-only snapshot excludes pending name, preserves second-device server edit and includes archive",
+    "visible data/confirmation/error captures and nested no-overflow at 320px",
+    "visible data/confirmation/error captures and nested no-overflow at 390px",
+    "visible data/confirmation/error captures and nested no-overflow at 1440px"
+  ]
+}

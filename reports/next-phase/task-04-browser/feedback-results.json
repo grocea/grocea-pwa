@@ -1,0 +1,6 @@
+{
+  "checks": [
+    "wrong-password feedback is adjacent to focused deletion password and both are visible at320px; session stays usable",
+    "long synthetic email wraps while avatar keeps its size"
+  ]
+}

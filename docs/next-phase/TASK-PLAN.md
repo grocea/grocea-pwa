@@ -13,7 +13,7 @@ preparation_gate: [FEATURE-PREPARATION.md](FEATURE-PREPARATION.md)
 | T01 | Offline reliability and verification | draft | T02 → T03 → T05 → T04 → T06 → D1 | [Plan](plans/01.md) |
 | T02 | Standalone shopping and restock-to-list | done | none | [Plan](plans/02.md) |
 | T03 | Fast pantry setup and bulk adjustments | done | T02 | [Plan](plans/03.md) |
-| T04 | Account recovery, export and deletion | draft | T05 | [Plan](plans/04.md) |
+| T04 | Account recovery, export and deletion | done | T05 | [Plan](plans/04.md) |
 | T05 | Optional low-stock and refill preferences | done | T03 | [Plan](plans/05.md) |
 | T06 | One-week trial toolkit and opt-in collection | draft | T04 | [Plan](plans/06.md) |
 | D1 | Targeted marketing repair (audit complete) | draft | T06 | [Plan](plans/D1.md) |

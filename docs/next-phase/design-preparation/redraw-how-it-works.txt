@@ -1,0 +1,140 @@
+# DIRECTION SHEET — The page is the object
+seed 16102026 · drawn 2026-10-16 · redraws: 3 · sector consumer-app · tone warm
+Brief: Grocea connects exact metric pantry stock, recipe readiness, shopping and traceable cooking for individual home cooks; show the real kitchen loop honestly
+
+| | |
+| --- | --- |
+| Direction | The page is the object |
+| Hero | Invitation card, cropped |
+| Type | kept from the brand |
+| Colour | kept from the brand |
+| Sections | showcase (Live demo with controls) → how-it-works (Pinned fragment, changing state) → features (Stacking colour sheets) → cta (Three photographs, then a field) → footer (Contact as the headline) |
+| Motion | Slow crossfade |
+| Photographs | the "Architecture" set, as atmosphere |
+
+This is the direction for this build. Adopt it. Do not blend it with the layout you would have made anyway,
+and do not redraw because it is unfamiliar: unfamiliar is the point. Redraw a slot only when it conflicts
+with a stated brand constraint or needs an asset that does not exist, and say why in your report.
+
+The parts of this sheet were written separately and will disagree in small ways. Settle every disagreement in this order:
+**house rules** (including type no smaller than 13px and body text of 16px or more) → **the direction** (the idea, the composition habits, where the
+one accent goes) → **the type system and the palette** (which face does which job, the five size steps, which colour is the ground and where the
+accent goes) → **the hero blueprint** → **the section blueprints**. Under each blueprint below, "Adjusted for this page" lists where it disagrees.
+In practice: take geometry from blueprints (columns, proportions, what sits where) and take everything else from above them. Map every size a
+blueprint names onto one of your five type steps instead of adding a sixth. Use one button shape, one corner radius and one pair of page margins on
+the whole page, whatever individual blueprints say. If a blueprint names a kind of typeface (a light serif, a heavy grotesk), use the dealt face.
+
+## 1. The idea
+Find the printed or physical artefact that already exists in the subject's world and build the page as that thing. A wedding site is the invitation card. A restaurant is its menu. A conference is the ticket; a record is its sleeve; a shop is the receipt or the swing tag; an archive is a stack of tabbed folders; a course is the syllabus sheet. The artefact supplies everything a template would otherwise invent: its proportions, its typographic manners, its way of grouping information. Visitors recognise the object instantly, which is why these pages feel specific.
+
+Before anything else, write one sentence in your notes: "On this page, <the subject's own material> becomes <the device>."
+Fill the first blank from your inventory of what only this client has (its name and what it means, its street, its numbers, its
+constraint), then put the nearest competitor in the sentence: if it still works, the idea is the category's, not the client's.
+Then name the one live thing the visitor can do on the page (SKILL.md step 4).
+
+## 2. Composition
+The first screen shows the artefact as a single filled panel (paper colour on a contrasting ground) centred or offset, with believable proportions: a card at 5:7, a ticket at about 2.2:1 with a notch cut by `clip-path`, a menu as a tall sheet. All primary content lives on it, set the way that object is set: centred and symmetrical for an invitation, in tidy aligned columns for a menu or ticket. The ground behind is a flat colour or one full-bleed photograph. As the page continues, each section is another piece of the same stationery: a second card, a tear-off stub, a folded panel, always filled shapes with real edges (straight, notched, scalloped, perforated by a dotted `border` of round dots at 4px or more), never outlined boxes. The footer is the back of the object.
+
+## 3. Type
+Kept from the brand. Take the manners of the artefact: a bookish serif with small caps avoided, or a blunt condensed face for tickets and posters. Sizes stay within what print would use relative to the panel; the name is large on the panel, details are small and exact.
+
+## 4. Colour
+Kept from the brand. Paper and ink plus the ground the paper sits on. Two or three flat colours in total, like a two-colour print job.
+
+## 5. Imagery
+**This subject is software and there are no screenshots, so its pictures are its own interface.** Wherever this sheet says photograph, image or object, build a believable fragment of the product in HTML at real size (real labels, numbers that add up, one item hovered or selected), put the attribute `data-ui` on its root, and crop or scale it the way the blueprint treats a photograph: a full-bleed close crop, a tile, the fixed half of a split. Where a fragment makes no sense, use a flat colour field with type on it. Never a fake dashboard of grey bars, never a device frame. If the product works on something physical (ships, plants, buildings, a city), one real picture of that world can carry a section: find it with `node /Users/ammar/.agents/skills/design-taste-frontend/scripts/assets.mjs "<that world>"`, download it with `--get`, credit it on the page, and never let it pass for the product or its customers.
+
+Optional. One photograph behind the object, or small photographs placed on it like tipped-in plates. The object itself is the image.
+
+**Floor (the inspector checks it):** at least four real pictures on the page, usually six to twelve; SVG drawings do not count. One moving picture where an honest clip exists: `node <skill>/scripts/assets.mjs --video "<query>"`, used as a muted loop with a poster frame. Whatever this direction says about pictures, it is carried out with real ones.
+
+Optional atmosphere, two at most, from the "Architecture" set (structure, lines, bridges, facades and building interiors). The page does not need them.
+Order of preference for imagery: (1) the project's own photographs and product shots; (2) images you generate, if an image tool is
+available; (3) real pictures of the subject's world found in the open collections (assets.mjs, downloaded and credited on the page);
+(4) drawings of the subject in code; (5) these. They are real photographs (Unsplash licence, served by picsum.photos) of places, light and
+texture. They are atmosphere, never a stand-in for a specific product, dish, person or interface. List the ones you use in your report so
+they can be replaced.
+- `https://picsum.photos/id/608/1600/1000` — Symmetrical view beneath a pier with wooden pillars and breaking waves · mid tone · dark brown, teal, pale blue · native landscape · photo: Keith Misner
+- `https://picsum.photos/id/1033/1600/1000` — Symmetrical dark concourse with escalators and teal-lit glass walls · dark tone · dark teal, black, amber · native landscape · photo: Erez Attias
+- `https://picsum.photos/id/693/1600/1000` — Red suspension bridge tower rising from fog above rugged cliffs · mid tone · rust red, grey, dark teal · calm area: left · native landscape · photo: Rob Bye
+- `https://picsum.photos/id/954/1600/1000` — Narrow opening in a white wall revealing a white staircase · light tone · off-white, pale beige · calm area: left · native landscape · photo: Todd Quackenbush
+The last two path numbers are width and height: request the exact crop you render (`/1200/1500` for a 4:5 portrait, `/2400/1350` for a hero) and
+add `?grayscale` to desaturate. Use at most two. Always set `width`, `height`, `alt` and `loading="lazy"` (not on the hero image).
+
+## 6. Hero — Invitation card, cropped
+A flat field of one soft colour fills the viewport. Centred on it is a single portrait card in paper colour, 5:7, on columns 4–9, its top edge 190px down and its lower third cut off by the bottom of the viewport, so the page visibly continues as the rest of the card. The card is a filled shape with scalloped inner corners, made with `clip-path` or with four corner circles in the field colour, and no outline. Inside, with 56px padding, everything is centred and symmetrical like letterpress stationery. The two names, or the title, are set in a large italic serif at clamp(56px, 5.6vw, 88px) on two lines, staggered so line one sits left of centre and line two right. Between and beneath them, date, time and place appear as short lines at 15px in sentence case, separated by space and by one solid 10px diamond. The top row sits on the field above the card at 28px margins: a small monogram top-left, three text links centred, and the single action, a solid rectangular button in the ink colour, top-right.
+
+On a phone: The card becomes full width minus 12px margins, starts 96px down and is still cropped by the bottom edge, with its scalloped top corners kept. The names stay on two lines at 12vw, centred without the stagger, and the details follow at 15px. The monogram sits top-left and the action button top-right on the field; the three links move onto the card's lower part, below the fold.
+Headline: The two names or the title on two lines, up to about 12 characters per line, set as they would be printed on the card.
+
+Adjusted for this page:
+- It sets text at 10px: use your small step (13px or more) instead.
+- It names a kind of typeface: use the brand faces.
+
+## 7. Sections, in order
+Each is a composition to rebuild with this project's content. Keep the geometry; change the subject. Re-order or drop a
+section when the argument of the page needs it (see references/copy.md), never to fall back to a card grid.
+
+### 1. showcase — Live demo with controls (split)
+One filled panel, 680–760px wide and about 640px tall, radius 12px, in a tone clearly darker or lighter than the ground, placed on the text column's left edge or centred, with at least 15vh of empty ground above and below. The panel is split 62/38 into two flat areas that differ by one tone. Left area: the product doing its job on real content at true size. Right area: a narrow column of working controls, six to nine stacked rows 44px tall, each with a name at 14px on the left and a slider, toggle or value on the right; changing one changes the demonstration at once. A text link sits in the panel's bottom-left corner. The heading, two to four words at 24–32px, sits above the panel on its left edge with one sentence at 16px; under the panel, one line of start instruction.
+On a phone: The panel fills the width. The demonstration takes the top at 4:3; the controls follow beneath as full-width rows 52px tall, only the four most telling ones, with a text link that reveals the rest. Heading and sentence sit above at 24px and 16px.
+
+Adjusted for this page:
+- It names its own corners: use the one radius of this page (square unless the direction says otherwise) and one button shape.
+
+### 2. how-it-works — Pinned fragment, changing state (pinned)
+Two columns. Right, columns 7–12: a stage that is position: sticky; top: 14vh, holding one fragment of the real interface at true size on a single flat stage colour, about 520px square. Left, columns 1–5: three statements, each in its own block 80vh tall, so one is in view at a time. A statement is a two-line sentence at 28–32px that begins with its order word ('Paste a link.', 'Then pick the parts you want.', 'Share it when it looks right.') plus one supporting line at 16px. The statement nearest the viewport's centre is in full ink; the others sit at 30%. As each statement becomes active the fragment changes to the matching state: an empty field, a filled list with two rows selected, a finished result with its confirmation. Build the states in HTML and switch a class; do not swap screenshots. The heading, two to four words at 24–28px, sits above the first statement.
+On a phone: The stage is sticky at the top, 46svh tall, the fragment fitted by cropping to its active region, not by shrinking its text. Statements scroll beneath it in blocks 60svh tall at 22px. The stage releases after the third statement.
+
+Adjusted for this page:
+- It fades text: anything a visitor reads, inactive items of a list included, is `--ink` or `--muted` at full strength (contrast 4.5:1 or more). The active item is told apart by `--ink` against `--muted`, weight or the accent, not by fading the rest.
+
+### 3. features — Stacking colour sheets (stack)
+Three to five capabilities, each a full-width flat colour sheet about 86svh tall with only its top corners rounded at 28px. Every sheet is position: sticky, with top offsets rising by 72px from one sheet to the next, so each new sheet slides up over the last and leaves the previous sheet's title band showing, like tabbed folders in a drawer. Inside a sheet: the capability name top-left at clamp(28px, 3vw, 44px), sitting within that 72px band; a paragraph of up to 40ch at 18px bottom-left; and in columns 7–12 one photograph filling the sheet from below the band to the bottom edge, square corners, no inset. Sheet colours follow the palette in a fixed order, with ink chosen per sheet. The heading, two to four words at clamp(40px, 5vw, 80px), sits on the ground above the stack with 48px beneath and scrolls away normally.
+On a phone: Sheets stay sticky but the offset shrinks to 52px and the name drops to 22px so it fits the visible band. Inside each sheet the photograph comes first at 4:3 and full width, then the paragraph at 17px with 20px padding. Sheets are as tall as their content, 70svh at least.
+
+Adjusted for this page:
+- It names its own corners: use the one radius of this page (square unless the direction says otherwise) and one button shape.
+
+### 4. cta — Three photographs, then a field (strip)
+Two parts with no gap between them. First, a strip of three photographs butted edge to edge across the full viewport, each one third wide and 40svh tall, `object-fit: cover`, no gutters and no captions; give all three the same treatment. Directly beneath, a band in one flat palette colour, about 44svh tall. In the band, columns 1–7: the closing statement at 26–30px over three lines in the band's assigned ink, with exactly one phrase underlined by a 4px bar (`text-decoration-thickness: 4px; text-underline-offset: 6px`), and that phrase is the link; two lines at 16px follow 32px lower. In the lower-right corner, columns 11–12, a small portrait photograph (4:5, about 150px wide) sits 40px from the band's edges: the person who will answer. There is no button; the underlined phrase is the action.
+On a phone: The strip becomes one full-width photograph at 4:3 with the other two side by side beneath it at half width each, still gutterless. The band follows: statement at 22px, the two small lines, and the portrait at 96px wide in the bottom-right corner.
+
+Adjusted for this page:
+- It draws lines or borders: keep them only inside a table, a form or a `data-ui` fragment; elsewhere separate with space or a change of ground.
+
+### 5. footer — Contact as the headline (statement)
+A full-bleed field in one saturated palette colour, at least 90svh tall. Top row, 40px from the edge: two or three short notes at 15px in columns 1–7 (address, hours, a one-line description) and a back-to-top text link at the right margin. Then a tall empty gap. In the lower half, the way to get in touch is the display line: the telephone number or the email address itself, set at 8–9vw, flush left, hard against the margin, as one link. An email address may break once, before the @, giving two lines. Size it with `clamp()` so the longest line fills at least 80% of the width. Under it, one row of small text at 14px spread across three positions: links at the left, credits in the centre, city and year at the right. The wordmark appears only small, in the top row.
+On a phone: Notes stack at the top at 15px. The contact line sits in the lower half at 12vw; a telephone number stays on one line, an email breaks before the @ and is sized so each half fits the width. The meta row becomes three stacked lines at 13px.
+
+## 8. Motion — Slow crossfade
+The principal photograph quietly changes: three or four images of the same framing crossfade over about 1.6 seconds, holding five to six seconds each, or the fixed image changes when its matching section arrives. It should feel like light shifting in a room. Pause when the tab is hidden; under reduced motion show only the first image.
+This is the signature move, the one loud moment. Around it the page still needs the rest of the motion layer (SKILL.md step 9): an entrance for the parts of every section, feedback on every control, and one moving picture. The inspector fails a page that barely moves. Recipes: references/motion.md.
+
+## 9. Where the richness comes from
+Recognition. The shaped edges, the print-like alignment and the limited inks make a familiar object out of plain HTML.
+
+## 10. How this direction goes wrong
+Choose an artefact that truly belongs to the subject, or it becomes costume. Shape the edges with fills and `clip-path`; an outlined rectangle with a thin border is not an object. Keep text sizes readable on a phone, where the object becomes full width with its shaped edge kept at top and bottom.
+
+## 11. Real references
+Studied sites that work this way. Take the principle, never the specifics: no names, copy, images or signature assets of theirs.
+- **ARCHIV** (One Page Love, studied score 7.2) `opl-archiv`
+  Idea: A waitlist page as a museum plinth: one cut-out everyday object at a time, centred on off-white beneath a heavy serif wordmark.
+  Hero: Off-white single screen with no scroll. A heavy high-contrast serif wordmark in black caps sits top-left at a 56px margin, about 410px wide (28% of the viewport) and 80px tall. Opposite, top-right at the same margin, one line of 14px sans description aligns with the wordmark's top. Dead centre, one photographed object (a painted wooden pepper mill about 140px wide and 440px tall) stands on a barely visible lighter rounded square with a soft contact shadow; other objects replace it in turn. Below, a centred 11px grey line, then a white rounded email field 236px wide with a circled arrow inside its right end. Roughly 80% is empty.
+  Worth taking: Build a pre-launch page from four elements only (wordmark top-left, one-line description top-right, a single centred object, an email field) and leave the rest of the screen empty.
+- **Le Petit Bleu** (One Page Love, studied score 7.8) `opl-le-petit-bleu`
+  Idea: The cafe's teal-and-white stripes become the whole system: one teal ink on cream, everything boxed in thin double outlines like printed menu cards, beside a permanently visible photo of the room.
+  Hero: Viewport split 50/50 with 12px gaps. Left: a cream panel with a thin pale-teal outline and rounded corners. Inside, a second outlined box is the nav bar: two-line hamburger left, teal brush-script logo about 300px wide centred, a caps order link right. Below, a two-line light serif headline at about 3.5vw, centred, in teal, then two centred stacks, each a bold caps label, a serif line and a solid teal button wrapped in a second thin outline. Right: a full-height rounded photo of a striped booth, with an outlined hours bar across its top, three slide dots bottom-left and a white address card bottom-right.
+  Worth taking: Print everything in one brand ink on cream, including body text, rules and buttons, and let photographs supply the other colours.
+- **PROOOOF** (One Page Love, studied score 7.4) `opl-proooof`
+  Idea: The product's output is the page: a wall of photos each wearing its coloured EXIF strip, with all the copy folded into one small floating card.
+  Hero: The whole viewport is a six-column masonry of photographs on a warm off-white ground with about 15px gutters, columns offset vertically so rows never line up. Each photo has a flat strip fused to its bottom edge carrying tiny monospaced capture data, every strip a different solid colour (black, red, orange, yellow, violet, green). Dead centre floats a white card about 380px wide and 410px tall with roughly 28px corner radius and a soft shadow. It contains an extended wordmark with chained O's, a two-row accordion with the first row open, an App Store badge and a monospaced line of links. There is no navigation.
+  Worth taking: Show the product's output at wall scale as the background and confine all copy to one small card on top of it.
+Full notes on any of them: `node draw.mjs --site <id>`.
+
+## Always
+Headlines two lines or fewer at every width. No eyebrow labels, no monospace, no 01/02/03, no thin rules, no gradients, no shadows at rest,
+no cream-and-terracotta, no violet. `inspect.mjs` measures all of it.
+
+Saved to /Users/ammar/Documents/Grocea/grocea-pwa/docs/next-phase/design-preparation/direction.json · reprint with `node draw.mjs --show`
