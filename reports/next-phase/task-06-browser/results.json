@@ -1,0 +1,15 @@
+{
+  "environment": "loopback production build + disposable accounts + Chromium emulation",
+  "results": [
+    "pre-consent offline action does not become an outcome after consent/reconnect",
+    "consented durable candidate survives true page+SW offline reload; real server ACK promotes it once",
+    "notes add/edit/delete and direct export whitelist",
+    "journal no horizontal overflow at 320px",
+    "journal no horizontal overflow at 390px",
+    "journal no horizontal overflow at 768px",
+    "journal no horizontal overflow at 1440px",
+    "stop and clear invalidate offline pending candidates across reconnect/new consent",
+    "injected trial write quota during real ACK: honest paused state, successful kitchen sync/outbox drain",
+    "real disposable-account deletion clears actual journal namespace"
+  ]
+}

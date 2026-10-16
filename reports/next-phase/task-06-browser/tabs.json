@@ -1,0 +1,8 @@
+{
+  "environment": "real Chromium tabs + production journal module transpiled without behavior changes; synthetic candidates only",
+  "results": [
+    "simultaneous cross-tab ACK + note retains both under shared Web Lock",
+    "simultaneous cross-tab stop + ACK leaves stopped consent, no candidate resurrection or late promotion",
+    "held journal lock does not grant newly started consent to an originally unconsented action"
+  ]
+}

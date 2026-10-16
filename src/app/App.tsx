@@ -1,3 +1,4 @@
+import { TrialScreen } from '../features/trial/TrialScreen'
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ActivityDetailScreen, ActivityListScreen } from '../features/activity/ActivityScreens'
@@ -166,6 +167,7 @@ function AccountGroceaApp({ userId }: { userId: string }) {
     <Route path="/recipes/:id/complete/:eventId" element={<CookingResultScreen />} />
     <Route path="/activity" element={<ActivityListScreen />} />
     <Route path="/activity/:id" element={<ActivityDetailScreen />} />
+    <Route path="/trial" element={<TrialScreen />} />
     <Route path="/more" element={<MoreScreen />} />
     <Route path="/groceries" element={<GroceriesScreen />} />
     <Route path="/groceries/restock/:ingredientId" element={<RestockShoppingScreen />} />

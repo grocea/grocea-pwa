@@ -1,3 +1,5 @@
+import { useAuth } from './auth-context'
+import { consentPeriod, trialCandidate, trialAcknowledge, trialReject, trialReturn } from './trial-journal'
 import { AccountUnavailableError } from './account-lifecycle'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ApiError, fetchState, hasCsrfToken, importLocalState, sendMutation } from '../api/client'
@@ -411,6 +413,17 @@ function mutationRevision(value: unknown): number | undefined {
 }
 
 export function GroceaProvider({ children, storage = groceaStorage }: { children: ReactNode; storage?: GroceaStorage }) {
+  const { account } = useAuth()
+  const trialUserId = account?.id ?? ''
+  useEffect(() => {
+    const recordReturn = () => { if (trialUserId && document.visibilityState === 'visible') trialReturn(trialUserId) }
+    recordReturn()
+    window.addEventListener('focus', recordReturn)
+    document.addEventListener('visibilitychange', recordReturn)
+    window.addEventListener('pointerdown', recordReturn)
+    window.addEventListener('keydown', recordReturn)
+    return () => { window.removeEventListener('focus', recordReturn); document.removeEventListener('visibilitychange', recordReturn); window.removeEventListener('pointerdown', recordReturn); window.removeEventListener('keydown', recordReturn) }
+  }, [trialUserId])
   const [state, setState] = useState<GroceaState | null>(null)
   const [storageStatus, setStorageStatus] = useState<StorageStatus>('loading')
   const [storageError, setStorageError] = useState<string | null>(null)
@@ -511,6 +524,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         }))
       }
       const { ordered, blocked } = orderQueuedMutations(queued)
+      trialReject(trialUserId, blocked.map(item => item.id))
       for (const current of blocked) {
         if (storage.updateMutation) await storage.updateMutation({
           ...current,
@@ -533,6 +547,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             },
           }
           if (storage.updateMutation) await storage.updateMutation(failed)
+          trialReject(trialUserId, [failed.id])
           failedIds.add(failed.id)
           continue
         }
@@ -547,6 +562,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         if (storage.updateMutation) await storage.updateMutation(mutation)
         try {
           const nextRevision = await sendMutation(mutation)
+          trialAcknowledge(trialUserId, mutation.id)
           if (nextRevision !== undefined) {
             remoteRevision = nextRevision
             metadata = { ...metadata, syncCursor: String(nextRevision) }
@@ -562,6 +578,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             setSyncStatus('offline')
             break
           }
+          if (!apiError.retryable || apiError.code === 'STATE_REVISION_CONFLICT') trialReject(trialUserId, [mutation.id])
           setSyncError(nextSyncError)
           const failed: PendingMutation = {
             ...mutation,
@@ -655,7 +672,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       syncingRef.current = false
       completeSync()
     }
-  }, [refreshQueueStatus, scheduleRetry, storage, updateMutationAvailability, updateStorageStatus])
+  }, [refreshQueueStatus, scheduleRetry, storage, trialUserId, updateMutationAvailability, updateStorageStatus])
 
   const boot = useCallback(async () => {
     bootReportRef.current = null
@@ -753,7 +770,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       window.removeEventListener('grocea:auth-validated', syncAfterAuth)
       storage.close?.()
     }
-  }, [boot, storage, synchronize])
+  }, [boot, storage, trialUserId, synchronize])
 
   useEffect(() => {
     const reportKey = state
@@ -774,6 +791,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }, [boot, markFailure, markReady, state, storageError, storageStatus])
 
   const commit = useCallback(function commit<T>(transition: (current: GroceaState) => Transition<T>): Promise<T> {
+    const trialPeriod = consentPeriod(trialUserId)
     const operation = writeQueue.current.then(async () => {
       if (statusRef.current !== 'ready' || !stateRef.current) {
         throw new Error('Local storage is unavailable. Try again before you make changes.')
@@ -800,6 +818,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
             await storage.saveState(next.state)
             await storage.enqueueMutation(mutation)
           }
+          trialCandidate(trialUserId, trialPeriod, mutation.id, mutation.type, mutation.createdAt)
         } else {
           await storage.saveState(next.state)
         }
@@ -817,7 +836,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       }
       throw error
     })
-  }, [refreshQueueStatus, storage, updateStorageStatus])
+  }, [refreshQueueStatus, storage, trialUserId, updateStorageStatus])
 
   const startShoppingList = useCallback(() => commit(current => {
     const active = current.groceryLists.find(list => list.status === 'active')
@@ -1369,16 +1388,18 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
         }
       })
     }
+    trialReject(trialUserId, [...discarded])
     await Promise.all([...discarded].map(mutationId => storage.removeMutation(mutationId)))
     await refreshQueueStatus()
     await synchronize()
-  }, [refreshQueueStatus, storage, synchronize])
+  }, [refreshQueueStatus, storage, trialUserId, synchronize])
 
   const discardAllPending = useCallback(async () => {
     const queued = await storage.listPendingMutations()
+    trialReject(trialUserId, queued.map(item => item.id))
     await Promise.all(queued.map(item => storage.removeMutation(item.id)))
     await refreshQueueStatus()
-  }, [refreshQueueStatus, storage])
+  }, [refreshQueueStatus, storage, trialUserId])
 
   const reset = useCallback(async () => {
     updateStorageStatus('loading')
