@@ -1,0 +1,270 @@
+[
+  {
+    "width": 390,
+    "pantryMetric": {
+      "documentWidth": 390,
+      "viewport": 390,
+      "pageWidth": 390,
+      "pageClient": 390,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(37, 79, 58)"
+    },
+    "reviewMetric": {
+      "documentWidth": 390,
+      "viewport": 390,
+      "pageWidth": 390,
+      "pageClient": 390,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(37, 79, 58)"
+    },
+    "single": {
+      "width": 390,
+      "pageWidth": 390,
+      "pageClient": 390,
+      "hiddenWidth": 1
+    },
+    "productionServiceWorker": true,
+    "realOfflineReload": "passed with unchanged account categories, ingredients, balances, activity and tracking",
+    "oneMutationAndEvent": "passed",
+    "keyboardSelectionRemoval": "passed",
+    "validationFocus": "passed",
+    "unavailable": "not repeated at this viewport",
+    "stale": "not repeated at this viewport",
+    "runtimeErrors": []
+  },
+  {
+    "width": 768,
+    "pantryMetric": {
+      "documentWidth": 768,
+      "viewport": 768,
+      "pageWidth": 768,
+      "pageClient": 768,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(37, 79, 58)"
+    },
+    "reviewMetric": {
+      "documentWidth": 768,
+      "viewport": 768,
+      "pageWidth": 768,
+      "pageClient": 768,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(37, 79, 58)"
+    },
+    "single": {
+      "width": 768,
+      "pageWidth": 768,
+      "pageClient": 768,
+      "hiddenWidth": 1
+    },
+    "productionServiceWorker": true,
+    "realOfflineReload": "passed with unchanged account categories, ingredients, balances, activity and tracking",
+    "oneMutationAndEvent": "passed",
+    "keyboardSelectionRemoval": "passed",
+    "validationFocus": "passed",
+    "unavailable": "passed: archive during review disables save, editable fallback preserves other rows",
+    "stale": "passed: failed atomic Set retained as one sync issue; server stock/event unchanged",
+    "runtimeErrors": []
+  },
+  {
+    "width": 1440,
+    "pantryMetric": {
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "pageWidth": 1196,
+      "pageClient": 1196,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(25, 59, 43)"
+    },
+    "reviewMetric": {
+      "documentWidth": 1440,
+      "viewport": 1440,
+      "pageWidth": 1196,
+      "pageClient": 1196,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(25, 59, 43)"
+    },
+    "single": {
+      "width": 1440,
+      "pageWidth": 1440,
+      "pageClient": 1440,
+      "hiddenWidth": 1
+    },
+    "productionServiceWorker": true,
+    "realOfflineReload": "passed with unchanged account categories, ingredients, balances, activity and tracking",
+    "oneMutationAndEvent": "passed",
+    "keyboardSelectionRemoval": "passed",
+    "validationFocus": "passed",
+    "unavailable": "not repeated at this viewport",
+    "stale": "not repeated at this viewport",
+    "runtimeErrors": []
+  },
+  {
+    "width": 320,
+    "pantryMetric": {
+      "documentWidth": 320,
+      "viewport": 320,
+      "pageWidth": 320,
+      "pageClient": 320,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(37, 79, 58)"
+    },
+    "reviewMetric": {
+      "documentWidth": 320,
+      "viewport": 320,
+      "pageWidth": 320,
+      "pageClient": 320,
+      "fonts": [
+        {
+          "weight": "400",
+          "status": "loaded"
+        },
+        {
+          "weight": "500",
+          "status": "unloaded"
+        },
+        {
+          "weight": "600",
+          "status": "unloaded"
+        },
+        {
+          "weight": "700",
+          "status": "loaded"
+        }
+      ],
+      "wordmarkColor": "rgb(37, 79, 58)"
+    },
+    "single": {
+      "width": 320,
+      "pageWidth": 320,
+      "pageClient": 320,
+      "hiddenWidth": 1
+    },
+    "productionServiceWorker": true,
+    "realOfflineReload": "passed with unchanged account categories, ingredients, balances, activity and tracking",
+    "oneMutationAndEvent": "passed",
+    "keyboardSelectionRemoval": "passed",
+    "validationFocus": "passed",
+    "unavailable": "not repeated at this viewport",
+    "stale": "not repeated at this viewport",
+    "runtimeErrors": []
+  }
+]
