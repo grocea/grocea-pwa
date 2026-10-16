@@ -4,6 +4,8 @@ export interface components {
 }
 
 export interface schemas {
+  "AccountDeleteRequest": { "confirmation": "DELETE"; "current_password": string }
+  "AccountExportResponse": { "data": { [key: string]: Array<{ [key: string]: unknown }> }; "exported_at": string; "format"?: "grocea-account-export"; "restore_supported"?: false; "source"?: "server"; "state_revision": number; "version"?: 1 }
   "ActivityResponse": { "changes": Array<schemas["StockChangeResponse"]>; "detail": string; "id": string; "occurred_at": string; "recipe_id": string | null; "reversal_of": string | null; "reversed_at": string | null; "servings": number | null; "title": string; "type": "cooking" | "manual" | "reversal" }
   "AuthAccountResponse": { "email": string; "id": string }
   "AuthLoginRequest": { "email": string; "password": string }
@@ -48,6 +50,8 @@ export interface schemas {
   "PantryPreferencesUpdate": { "low_stock_threshold"?: number | string | null; "measurement_family": schemas["MeasurementFamily"]; "refill_quantity"?: number | string | null }
   "PantryStockResponse": { "created_at": string; "id": string; "ingredient_id": string; "low_stock_threshold": string | null; "quantity": string; "refill_quantity": string | null; "updated_at": string }
   "PantryTrackingUpdate": { "tracked": boolean }
+  "PasswordResetConfirm": { "new_password": string; "token": string }
+  "PasswordResetRequest": { "email": string }
   "ProfileResponse": { "created_at": string; "display_name": string; "id": string; "measurement_system": "metric"; "preferred_servings": number | null; "updated_at": string }
   "ProfileUpdate": { "display_name"?: string | null; "preferred_servings"?: number | null }
   "RecipeCreate": { "base_servings": number; "description"?: string; "id": string; "ingredients"?: Array<schemas["RecipeIngredientWrite"]>; "name"?: string; "steps"?: Array<string> }
@@ -56,6 +60,7 @@ export interface schemas {
   "RecipeResponse": { "base_servings": number; "created_at": string; "description": string; "id": string; "ingredients": Array<schemas["RecipeIngredientResponse"]>; "name": string; "scope": schemas["Scope"]; "status": schemas["RecipeStatus"]; "steps": Array<string>; "updated_at": string }
   "RecipeStatus": "draft" | "published"
   "RecipeUpdate": { "base_servings": number; "description": string; "ingredients": Array<schemas["RecipeIngredientWrite"]>; "name": string; "steps": Array<string> }
+  "RecoveryResponse": { "message": string }
   "ReverseActivityCreate": { "event_id": string }
   "Scope": "global" | "custom"
   "ScopeFilter": "all" | "global" | "custom"

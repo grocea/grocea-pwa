@@ -83,3 +83,24 @@ safe-merges compatible custom data, preserves exact balances/history, and
 reports conflicts without overwriting existing server data. The service worker
 keeps same-origin `/api/*` network-only and the app-shell cache is versioned for
 auth rollouts. Cross-origin API requests are not handled by the service worker.
+
+
+### Account recovery, export and deletion
+
+Forgot-password and reset pages are public and work while signed in. Reset tokens stay in memory, are removed from the URL fragment immediately, and are never stored with offline data. SMTP must be configured on the backend; accepted requests do not promise mail delivery.
+
+Profile provides version1 server JSON export and online current-password account deletion. Export waits for local writes and active sync; remaining queued/failed/import-conflicting work requires an explicit server-only exclusion choice. It does not promise restore support. Account deletion removes server records and this browser's account IndexedDB/outbox/canonical state, authentication markers, and trial journal across same-origin tabs. Other devices may retain local copies: sign out or clear Grocea site data on those devices. Reconnection rejects revoked sessions but does not remotely erase caches or downloaded exports.
+
+Cleanup uses account-scoped pause/deletion markers and request/account generations. A blocked IndexedDB deletion shows a retry screen; reload resumes persistent cleanup. Account switching rejects delayed response-body continuations. Development demo storage remains isolated.
+
+T06 trial storage contract: import `TRIAL_STORAGE_PREFIX` / `clearTrialStorage` from `src/app/account-lifecycle.ts`. Keys are exactly `grocea:trial:<userId>` or begin `grocea:trial:<userId>:`. Deletion clears only those keys for its account, preserving other accounts. No journal transmission is implied.
+
+Repeatable local production browser checks (backend `tools/verify_account.py --serve`, build fixture5184, and development demo5185 must be running):
+
+```sh
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs node tools/verify-account-browser.mjs
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs node tools/verify-account-fencing.mjs
+GROCEA_CDP_MODULE=/absolute/path/to/cdp.mjs node tools/verify-account-export.mjs
+```
+
+These create only synthetic disposable accounts and use real local storage/service workers. Scripts keep credentials/reset links in memory and save redacted results/screenshots. They do not verify physical installed devices, production SMTP, deployment or remote cache erasure.

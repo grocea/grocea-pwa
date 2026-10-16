@@ -20,6 +20,13 @@ const apiOrigin = import.meta.env.PROD
   ? ''
   : ((import.meta.env.VITE_API_ORIGIN as string | undefined)?.replace(/\/$/, '') ?? '')
 let csrfToken: string | null = null
+let requestGeneration = 0
+let expectedAccount: string | null = null
+export function invalidateAccountRequests() { requestGeneration += 1; csrfToken = null; expectedAccount = null }
+export function setRequestAccount(userId: string | null) {
+  if (expectedAccount !== userId) { requestGeneration += 1; csrfToken = null }
+  expectedAccount = userId
+}
 
 export interface AuthAccount {
   id: string
@@ -54,7 +61,7 @@ export class ApiError extends Error {
   }
 
   get authRequired() {
-    return this.status === 401 || this.code === 'AUTHENTICATION_REQUIRED'
+    return this.code === 'AUTHENTICATION_REQUIRED' || (this.status === 401 && this.code !== 'INVALID_CREDENTIALS')
   }
 }
 
@@ -230,12 +237,14 @@ interface RequestResult<T> {
 
 async function requestWithMeta<T>(path: string, init: RequestInit = {}): Promise<RequestResult<T>> {
   if (demoMode) throw new ApiError(0, 'DEMO_MODE', 'API requests are disabled in development demo mode.')
+  const generation = requestGeneration
   let response: Response
   try {
     const headers = new Headers(init.headers)
     if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
     const unsafe = ['POST', 'PUT', 'PATCH', 'DELETE'].includes((init.method ?? 'GET').toUpperCase())
-    const csrfExempt = path === '/api/auth/login' || path === '/api/auth/register'
+    const csrfExempt = path === '/api/auth/login' || path === '/api/auth/register' || path.startsWith('/api/auth/password-reset/')
+    if (expectedAccount && !path.startsWith('/api/auth/')) headers.set('X-Account-ID', expectedAccount)
     if (unsafe && csrfToken && !csrfExempt) headers.set('X-CSRF-Token', csrfToken)
     response = await fetch(`${apiOrigin}${path}`, {
       ...init,
@@ -245,12 +254,14 @@ async function requestWithMeta<T>(path: string, init: RequestInit = {}): Promise
   } catch {
     throw new ApiError(0, 'NETWORK_UNAVAILABLE', 'Backend API is unavailable.')
   }
+  if (generation !== requestGeneration) throw new ApiError(0, 'ACCOUNT_CHANGED', 'Account changed while the request was running.')
   if (!response.ok) {
     const body = await response.json().catch(() => null) as {
       code?: string
       message?: string
       details?: Record<string, unknown>
     } | null
+    if (generation !== requestGeneration) throw new ApiError(0, 'ACCOUNT_CHANGED', 'Account changed while the request was running.')
     const error = new ApiError(
       response.status,
       body?.code ?? 'API_ERROR',
@@ -265,6 +276,7 @@ async function requestWithMeta<T>(path: string, init: RequestInit = {}): Promise
   const rawStateRevision = response.headers.get('X-State-Revision')
   const stateRevision = rawStateRevision === null ? undefined : Number(rawStateRevision)
   const result = response.status === 204 ? undefined as T : await response.json() as T
+  if (generation !== requestGeneration) throw new ApiError(0, 'ACCOUNT_CHANGED', 'Account changed while the request was running.')
   return { value: result, stateRevision: Number.isFinite(stateRevision) ? stateRevision : undefined }
 }
 
@@ -277,7 +289,6 @@ export async function registerAccount(email: string, password: string, displayNa
     method: 'POST',
     body: JSON.stringify({ email, password, display_name: displayName }),
   })
-  setCsrfToken(session.csrf_token)
   return session
 }
 
@@ -286,13 +297,11 @@ export async function loginAccount(email: string, password: string): Promise<Aut
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
-  setCsrfToken(session.csrf_token)
   return session
 }
 
 export async function fetchSession(): Promise<AuthSession> {
   const session = await request<AuthSession>('/api/auth/session')
-  setCsrfToken(session.csrf_token)
   return session
 }
 
@@ -306,7 +315,6 @@ export async function changePassword(currentPassword: string, newPassword: strin
     method: 'PATCH',
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   })
-  setCsrfToken(session.csrf_token)
   return session
 }
 
@@ -684,4 +692,16 @@ export async function importLocalState(
     idMap: response.id_map,
     conflicts: response.conflicts.map(item => ({ kind: item.kind, localId: item.local_id, message: item.message })),
   }
+}
+
+
+export async function requestPasswordReset(email: string) {
+  return request<{ message: string }>('/api/auth/password-reset/request', { method: 'POST', body: JSON.stringify({ email }) })
+}
+export async function confirmPasswordReset(token: string, newPassword: string) {
+  await request<void>('/api/auth/password-reset/confirm', { method: 'POST', body: JSON.stringify({ token, new_password: newPassword }) })
+}
+export async function exportAccount() { return request<schemas['AccountExportResponse']>('/api/account/export') }
+export async function deleteAccount(currentPassword: string) {
+  await request<void>('/api/account', { method: 'DELETE', body: JSON.stringify({ current_password: currentPassword, confirmation: 'DELETE' }) })
 }

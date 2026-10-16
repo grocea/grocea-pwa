@@ -1,3 +1,4 @@
+import { assertAccountAvailable, registerAccountConnection, closeAccountConnections, clearTrialStorage } from './account-lifecycle'
 import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type {
   ActivityEvent,
@@ -419,6 +420,7 @@ function requestPersistentStorage(): void {
 
 export class IndexedDbGroceaStorage implements GroceaStorage {
   private database?: IDBPDatabase<GroceaDatabase>
+  private unregisterConnection?: () => void
   private readonly seed: GroceaState
   private readonly databaseName: string
   private readonly ownerUserId?: string
@@ -430,8 +432,10 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
   }
 
   async open(): Promise<void> {
+    assertAccountAvailable(this.ownerUserId)
     if (this.database) return
     const database = await openDB<GroceaDatabase>(this.databaseName, DATABASE_VERSION, {
+      blocking: () => { this.close() },
       upgrade(db) {
         if (!db.objectStoreNames.contains('canonical')) db.createObjectStore('canonical', { keyPath: 'key' })
         if (!db.objectStoreNames.contains('state')) db.createObjectStore('state', { keyPath: 'key' })
@@ -442,13 +446,17 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
         if (!db.objectStoreNames.contains('metadata')) db.createObjectStore('metadata', { keyPath: 'key' })
       },
     })
+    try { assertAccountAvailable(this.ownerUserId) }
+    catch (error) { database.close(); throw error }
     this.database = database
+    if (this.ownerUserId) this.unregisterConnection = registerAccountConnection(this.ownerUserId, () => this.close())
 
     const [existing, existingMetadata, existingCanonical] = await Promise.all([
       database.get('state', CURRENT_STATE_KEY),
       database.get('metadata', DATABASE_METADATA_KEY),
       database.get('canonical', CURRENT_STATE_KEY),
     ])
+    assertAccountAvailable(this.ownerUserId)
     if (!existing) {
       const accountScoped = Boolean(this.ownerUserId)
       const legacyRaw = accountScoped || typeof localStorage === 'undefined' ? null : localStorage.getItem(LEGACY_STORAGE_KEY)
@@ -480,6 +488,7 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
       if (legacyRaw !== null) localStorage.removeItem(LEGACY_STORAGE_KEY)
     }
     const metadata = await database.get('metadata', DATABASE_METADATA_KEY)
+    assertAccountAvailable(this.ownerUserId)
     if (this.ownerUserId && metadata?.ownerUserId !== this.ownerUserId) {
       throw new Error('Grocea database belongs to another account.')
     }
@@ -626,16 +635,23 @@ export class IndexedDbGroceaStorage implements GroceaStorage {
   }
 
   close(): void {
+    this.unregisterConnection?.()
+    this.unregisterConnection = undefined
     this.database?.close()
     this.database = undefined
   }
 
   async destroy(): Promise<void> {
     this.close()
-    await deleteDB(this.databaseName)
+    if (this.ownerUserId) closeAccountConnections(this.ownerUserId)
+    await Promise.race([
+      deleteDB(this.databaseName),
+      new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('Close other Grocea tabs, then retry cleanup.')), 4000)),
+    ])
   }
 
   private requireDatabase(): IDBPDatabase<GroceaDatabase> {
+    assertAccountAvailable(this.ownerUserId)
     if (!this.database) throw new Error('Grocea storage is not open.')
     return this.database
   }
@@ -764,4 +780,13 @@ export async function migrateLegacyStorage(userId: string): Promise<void> {
   const metadata = await accountStorage.getMetadata()
   await accountStorage.saveMetadata({ ...metadata, legacyClaimed: metadata.legacyClaimed || legacyClaimed || localStorageClaimed, remoteImportStatus: 'pending', syncCursor: null })
   accountStorage.close()
+}
+
+
+export async function purgeAccountStorage(userId: string): Promise<void> {
+  closeAccountConnections(userId)
+  const storage = createGroceaStorage(userId)
+  await storage.destroy()
+  clearTrialStorage(userId)
+  if (await legacyStorageOwner() === userId) await deleteLegacyStorage(userId)
 }

@@ -1,3 +1,4 @@
+import { AccountUnavailableError } from './account-lifecycle'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ApiError, fetchState, hasCsrfToken, importLocalState, sendMutation } from '../api/client'
 import type {
@@ -424,6 +425,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   const statusRef = useRef<StorageStatus>('loading')
   const writeQueue = useRef<Promise<void>>(Promise.resolve())
   const syncingRef = useRef(false)
+  const syncCompletionRef = useRef<Promise<void>>(Promise.resolve())
   const deviceIdRef = useRef<string>(crypto.randomUUID())
   const retryTimerRef = useRef<number | null>(null)
   const bootReportRef = useRef<string | null>(null)
@@ -467,8 +469,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
 
   const synchronize = useCallback(async (importCandidate?: GroceaState) => {
     if (demoMode) return
-    if (!storage.getMetadata || !storage.saveMetadata || statusRef.current !== 'ready' || syncingRef.current) return
+    if (syncingRef.current) { await syncCompletionRef.current; return }
+    if (!storage.getMetadata || !storage.saveMetadata || statusRef.current !== 'ready') return
     syncingRef.current = true
+    let completeSync: () => void = () => {}
+    syncCompletionRef.current = new Promise<void>(resolve => { completeSync = resolve })
     setSyncStatus('syncing')
     let initialSyncPending = initialSyncPendingRef.current
     try {
@@ -632,6 +637,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       }
       await refreshQueueStatus()
     } catch (error) {
+      if (error instanceof AccountUnavailableError) return
       const { apiError, syncError: nextSyncError } = toSyncError(error)
       if (apiError.authRequired) {
         setSyncError(null)
@@ -647,6 +653,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
       if (apiError.retryable) scheduleRetry(1)
     } finally {
       syncingRef.current = false
+      completeSync()
     }
   }, [refreshQueueStatus, scheduleRetry, storage, updateMutationAvailability, updateStorageStatus])
 
@@ -805,7 +812,7 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
     })
     writeQueue.current = operation.then(() => undefined, () => undefined)
     return operation.catch(error => {
-      if (!(error instanceof MutationBlockedError)) {
+      if (!(error instanceof MutationBlockedError) && !(error instanceof AccountUnavailableError)) {
         updateStorageStatus('error', error instanceof Error ? error.message : 'Grocea could not save your change on this device.')
       }
       throw error
@@ -1342,8 +1349,11 @@ export function GroceaProvider({ children, storage = groceaStorage }: { children
   }, [storage, synchronize])
 
   const flushPending = useCallback(async () => {
+    await writeQueue.current
     await synchronize()
-    return (await storage.listPendingMutations()).length === 0
+    await writeQueue.current
+    const metadata = await storage.getMetadata?.()
+    return (await storage.listPendingMutations()).length === 0 && metadata?.remoteImportStatus === 'complete'
   }, [storage, synchronize])
 
   const discardSyncIssue = useCallback(async (id: string) => {

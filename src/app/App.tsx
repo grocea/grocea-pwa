@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from './auth-context'
 import { BootSplashProvider, useBootSplash } from './boot-context'
 import { createGroceaStorage, deleteLegacyStorage, legacyStorageExists, migrateLegacyStorage } from './persistence'
 import { createDemoStorage, demoMode } from './demo'
+import { RecoveryScreen } from '../features/auth/RecoveryScreen'
 import { AuthScreen } from '../features/auth/AuthScreens'
 import '../styles/app.css'
 
@@ -24,7 +25,9 @@ export default function App() {
 }
 
 function AppContent() {
-  const { status, account } = useAuth()
+  const { status, account, cleanup, retryCleanup } = useAuth()
+  const location = useLocation()
+  if (["/forgot-password", "/reset-password"].includes(location.pathname)) return <RecoveryScreen key={location.pathname} confirm={location.pathname === "/reset-password"} />
   const bootKey = `${status}:${account?.id ?? 'none'}`
   return <BootSplashProvider key={bootKey}>
     {demoMode && <details style={{ position: 'fixed', bottom: 'calc(90px + env(safe-area-inset-bottom, 0px))', right: 12, zIndex: 40, maxWidth: 'min(320px, calc(100vw - 24px))', padding: 12, borderRadius: 12, background: 'var(--surface, white)', border: '1px solid var(--line)', boxShadow: '0 2px 12px #0002' }}>
@@ -32,7 +35,7 @@ function AppContent() {
       <p>Sample data stays in this browser. Sign-in and password changes are simulated. Changes persist after reload.</p>
       <button className="button secondary compact" type="button" onClick={() => window.dispatchEvent(new Event('grocea:demo-reset'))} disabled={!account}>Reset demo data</button>
     </details>}
-    <AppRoutes />
+    {cleanup ? <main className="storage-state"><div className="storage-state-card"><h1>Finishing account cleanup</h1><p>{cleanup.error ?? 'Removing account data from this device…'}</p>{cleanup.error && <button className="button primary" onClick={() => void retryCleanup()}>Retry cleanup</button>}</div></main> : <AppRoutes />}
   </BootSplashProvider>
 }
 
@@ -63,10 +66,12 @@ function AppRoutes() {
     document.head.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', 'https://grocea-pwa.ammar-jmldn.workers.dev/welcome')
   }, [location.pathname])
   const accountSession = status === 'authenticated' || status === 'offline-authenticated'
-  const showSplash = location.pathname !== '/welcome' && (status === 'loading' || (accountSession && (phase === 'pending' || phase === 'failure')))
+  const showSplash = !['/welcome', '/forgot-password', '/reset-password'].includes(location.pathname) && (status === 'loading' || (accountSession && (phase === 'pending' || phase === 'failure')))
   return <>
     <RouteTransitionManager /><Routes>
     <Route path="/welcome" element={<WelcomePage />} />
+    <Route path="/forgot-password" element={<RecoveryScreen />} />
+    <Route path="/reset-password" element={<RecoveryScreen confirm />} />
     <Route path="/login" element={<PublicAuthRoute mode="login" />} />
     <Route path="/register" element={<PublicAuthRoute mode="register" />} />
     <Route path="*" element={<ProtectedRoutes />} />
@@ -109,7 +114,7 @@ function safeReturnTo(value: string | null): string {
 function GroceaApp() {
   const { account } = useAuth()
   if (!account) return null
-  return <AccountGroceaApp userId={account.id} />
+  return <AccountGroceaApp key={account.id} userId={account.id} />
 }
 
 function AccountGroceaApp({ userId }: { userId: string }) {

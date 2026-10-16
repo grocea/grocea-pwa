@@ -2265,3 +2265,16 @@ body { background: var(--warm); color: var(--ink); }
 
 .pantry-view-tabs button { justify-content: center; gap: 6px; padding-inline: 8px; }
 .pantry-view-tabs button > span { font-size: 13px; }
+
+
+/* Account data controls stay readable on narrow installed-PWA viewports. */
+.profile-summary.large > span { flex-shrink: 0; }
+.profile-summary.large > div { min-width: 0; }
+.profile-summary.large small { overflow-wrap: anywhere; }
+.account-data-controls > .button { max-width: 100%; white-space: normal; }
+.account-data-controls .form-actions { flex-wrap: wrap; }
+
+.account-data-controls form { scroll-margin-bottom: 110px; }
+@media (max-width: 480px) {
+  .account-data-controls .form-actions { display: grid; grid-template-columns: 1fr; }
+}

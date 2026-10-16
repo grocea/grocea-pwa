@@ -83,6 +83,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
       <button className="button primary auth-submit" disabled={pending}>{pending ? 'Working…' : isRegister ? 'Create account' : 'Sign in'} <ArrowRight /></button>
     </form>
     <div className="auth-footnote"><CheckCircle /><span>Grocea stores your session credentials in a secure HttpOnly cookie. Grocea keeps offline data separate for each account.</span></div>
+    {!isRegister && <p className="auth-switch"><Link to="/forgot-password">Forgot password?</Link></p>}
     <p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Grocea?'} <Link to={`/${isRegister ? 'login' : 'register'}${location.search}`}>{isRegister ? 'Sign in' : 'Create an account'}</Link></p>
   </div></main>
 }
