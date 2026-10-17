@@ -3,7 +3,15 @@ import { useSyncExternalStore } from 'react'
 export type ShellStatus = 'checking' | 'ready' | 'waiting' | 'unavailable'
 let status: ShellStatus = 'checking'
 let registered = false
+let activeRegistration: ServiceWorkerRegistration | null = null
 export function getShellStatus() { return status }
+// Queued changes live in IndexedDB, so a user-requested reload keeps them.
+export function applyShellUpdate() {
+  const waiting = activeRegistration?.waiting
+  if (!waiting) return false
+  waiting.postMessage({ type: 'GROCEA_SKIP_WAITING' })
+  return true
+}
 function subscribe(listener: () => void) {
   window.addEventListener('grocea:shell-status', listener)
   return () => window.removeEventListener('grocea:shell-status', listener)
@@ -34,9 +42,14 @@ export function registerServiceWorker() {
   const register = async () => {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+      activeRegistration = registration
       const check = () => { void inspect(registration) }
       check()
-      navigator.serviceWorker.addEventListener('controllerchange', check)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // A waiting build took over; every open tab must load its matching shell.
+        if (status === 'waiting') window.location.reload()
+        else check()
+      })
       navigator.serviceWorker.addEventListener('message', event => { if (event.data?.type === 'GROCEA_SHELL_READY') check() })
       registration.addEventListener('updatefound', () => {
         const installing = registration.installing

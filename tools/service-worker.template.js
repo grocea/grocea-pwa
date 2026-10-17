@@ -75,6 +75,8 @@ self.addEventListener('activate', event => {
   })());
 });
 self.addEventListener('message', event => {
+  // Only on an explicit user tap; the page reloads once this worker takes control.
+  if (event.data?.type === 'GROCEA_SKIP_WAITING') { self.skipWaiting(); return; }
   if (event.data?.type !== 'GROCEA_SHELL_VERSION') return;
   event.waitUntil((async () => {
     const complete = await ensureShell();

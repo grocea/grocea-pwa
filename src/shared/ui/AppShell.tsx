@@ -1,7 +1,7 @@
 import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
-import { getShellStatus } from '../../registerServiceWorker'
+import { applyShellUpdate, getShellStatus } from '../../registerServiceWorker'
 import { useGrocea } from '../../app/grocea-context'
 
 const navItems = [
@@ -90,7 +90,10 @@ function ShellNotice() {
     update()
     return () => window.removeEventListener('grocea:shell-status', update)
   }, [])
-  return <>{shellStatus === 'waiting' && <div className="shell-update-notice" role="status">Update ready. Close all Grocea tabs and reopen to use it. Saved changes stay on this device.</div>}{shellStatus === 'unavailable' && <div className="shell-update-notice" role="status">App download incomplete. Connect and reopen Grocea before relying on offline launch.</div>}</>
+  const [updating, setUpdating] = useState(false)
+  // The page reloads when the new build takes control; re-enable if it never does.
+  const update = () => { if (applyShellUpdate()) { setUpdating(true); window.setTimeout(() => setUpdating(false), 6000) } }
+  return <>{shellStatus === 'waiting' && <div className="shell-update-notice" role="status"><span>Update ready. Saved changes stay on this device.</span><button className="button secondary compact" type="button" disabled={updating} aria-busy={updating} onClick={update}>{updating ? 'Updating…' : 'Update now'}</button></div>}{shellStatus === 'unavailable' && <div className="shell-update-notice" role="status">App download incomplete. Connect and reopen Grocea before relying on offline launch.</div>}</>
 }
 
 export function AppShell({ children, navigation = false, action }: { children: ReactNode; navigation?: boolean; action?: ReactNode }) {
