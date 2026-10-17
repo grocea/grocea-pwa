@@ -19,7 +19,11 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [displayName, setDisplayName] = useState('')
+  // The welcome page can hand over a display name typed into its sign-up preview.
+  const [displayName, setDisplayName] = useState(() => {
+    const handedOver = (location.state as { displayName?: unknown } | null)?.displayName
+    return isRegister && typeof handedOver === 'string' ? handedOver.slice(0, 120) : ''
+  })
   const [confirmation, setConfirmation] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
