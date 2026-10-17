@@ -164,6 +164,8 @@
 .storage-state-card h1, .storage-state-card p { margin: 0; }
 .storage-state-card p { color: var(--muted); line-height: 1.5; }
 .storage-opening { position: fixed; inset: 0; z-index: 100; width: 100%; min-height: 100svh; overflow: hidden; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); color: #e7eadb; background: var(--brand-green); isolation: isolate; }
+/* iOS standalone tints the status-bar edge from the root background, not from fixed overlays. */
+html:has(.storage-opening), html:has(.storage-opening) body { background: var(--brand-green); }
 .storage-opening-content { position: relative; z-index: 1; width: min(100%, 390px); display: grid; justify-items: center; gap: 14px; text-align: center; }
 .storage-opening-logo { position: relative; width: 174px; height: 174px; display: grid; place-items: center; isolation: isolate; animation: storage-opening-logo-breathe 2200ms ease-in-out infinite; }
 .storage-opening-logo::before { content: ''; position: absolute; inset: -34px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgb(216 242 111 / 18%) 0%, rgb(216 242 111 / 8%) 42%, transparent 72%); filter: blur(8px); pointer-events: none; }
