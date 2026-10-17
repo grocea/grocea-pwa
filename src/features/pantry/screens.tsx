@@ -316,11 +316,10 @@ export function AddStockScreen() {
 
   return (
     <AppShell>
-      <BackHeader title="Adjust stock" eyebrow={operation === 'add' ? 'Increase pantry stock' : operation === 'set' ? 'Set pantry balance' : 'Decrease pantry stock'} fallbackTo={returnTo ?? '/pantry'} action={<span className="history-status" role="status" aria-label="Creates an activity record after saving"><ClockCounterClockwise aria-hidden="true" /><span>Creates activity record</span></span>} />
+      <BackHeader title="Adjust stock" subtitle={ingredient.name} fallbackTo={returnTo ?? '/pantry'} action={<span className="history-status" role="status" aria-label="Creates an activity record after saving"><ClockCounterClockwise aria-hidden="true" /><span>Creates activity record</span></span>} />
       <form className="form-screen stock-adjustment-form" onSubmit={submit} noValidate aria-busy={pending}>
         {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Stock was not updated</strong><small>{formError}</small></span></div>}
         <p className="sr-only" data-testid="stock-projection-announcement" role="status" aria-live="polite" aria-atomic="true">{projectionAnnouncement}</p>
-        {trackedIngredientIds.includes(ingredient.id) && <Link className="pantry-track-link" to={`/pantry/${ingredient.id}/preferences`}>Restock preferences for {ingredient.name}</Link>}
         <div className="stock-adjustment-layout">
           <section className="workflow-card stock-form-card">
             <section className="workflow-section" aria-labelledby="stock-item-heading">
@@ -333,6 +332,7 @@ export function AddStockScreen() {
                     {sortedIngredients.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 </div>
+                {trackedIngredientIds.includes(ingredient.id) && <Link className="pantry-track-link ingredient-preferences-link" to={`/pantry/${ingredient.id}/preferences`}>Restock preferences for {ingredient.name}<CaretRight size={14} weight="bold" aria-hidden="true" /></Link>}
               </div>
             </section>
 
@@ -539,7 +539,7 @@ export function CreateIngredientScreen() {
 
   return (
     <AppShell>
-      <BackHeader title="Create ingredient" eyebrow="Add a custom ingredient" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
+      <BackHeader title="Create ingredient" subtitle="Add a custom ingredient" fallbackTo={draft ? `/recipes/${draft.id}/edit/ingredients` : '/ingredients'} />
       <form className="form-screen create-form workflow-form" onSubmit={submit} noValidate aria-busy={pending}>
         {formError && <div className="form-error-banner" role="alert"><WarningCircle size={20} aria-hidden="true" /><span><strong>Ingredient was not created</strong><small>{formError}</small></span></div>}
         <div className="info-banner"><Info size={21} /><span>Create a custom ingredient only if the catalog has no match.</span></div>

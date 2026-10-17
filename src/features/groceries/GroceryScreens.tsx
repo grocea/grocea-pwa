@@ -332,7 +332,7 @@ export function GroceryListScreen() {
   }
   const checkedCount = list.items.filter(item => item.checked).length
   const remainingCount = list.items.length - checkedCount
-  return <AppShell><BackHeader title={active ? 'Shopping list' : 'Past list'} titleAs="span" fallbackTo="/groceries" eyebrow={active ? 'In progress' : `Completed ${formatListDate(list.completedAt ?? list.createdAt)}`} />
+  return <AppShell><BackHeader title={active ? 'Shopping list' : 'Past list'} titleAs="span" fallbackTo="/groceries" subtitle={active ? 'In progress' : `Completed ${formatListDate(list.completedAt ?? list.createdAt)}`} />
     <main className="detail-screen grocery-screen grocery-list-screen"><ToastNotice message={message} />{error && <div className="warning-banner danger" role="alert"><WarningCircle /><span>{error}</span></div>}
       {active ? <section className="active-list-overview">
         {!titleEditing ? <div className="grocery-title-row"><div className="grocery-title-copy"><h1 data-page-title tabIndex={-1}>{displayGroceryListTitle(list.title)}</h1></div><button className="icon-button" type="button" aria-label="Edit list name" onClick={beginTitleEdit}><PencilSimple size={19} /></button></div> : <form className="grocery-title-form editing" onSubmit={saveTitle} aria-busy={titleState === 'saving'}>

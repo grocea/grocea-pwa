@@ -1,4 +1,4 @@
-import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
+import { ArrowClockwise, Basket, BookOpen, CaretLeft, CheckCircle, Clock, ClockCounterClockwise, CloudArrowDown, DotsThree, Package, User, UserCircle, WarningCircle, WifiSlash } from '@phosphor-icons/react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { applyShellUpdate, getShellStatus } from '../../registerServiceWorker'
@@ -93,14 +93,37 @@ function ShellNotice() {
   const [updating, setUpdating] = useState(false)
   // The page reloads when the new build takes control; re-enable if it never does.
   const update = () => { if (applyShellUpdate()) { setUpdating(true); window.setTimeout(() => setUpdating(false), 6000) } }
-  return <>{shellStatus === 'waiting' && <div className="shell-update-notice" role="status"><span>Update ready. Saved changes stay on this device.</span><button className="button secondary compact" type="button" disabled={updating} aria-busy={updating} onClick={update}>{updating ? 'Updating…' : 'Update now'}</button></div>}{shellStatus === 'unavailable' && <div className="shell-update-notice" role="status">App download incomplete. Connect and reopen Grocea before relying on offline launch.</div>}</>
+  return <>{shellStatus === 'waiting' && <div className="shell-update-notice" role="status"><span>Update ready. Saved changes stay on this device.</span><button className="button secondary compact" type="button" disabled={updating} aria-busy={updating} onClick={update}>{updating ? 'Updating…' : 'Update now'}</button></div>}{shellStatus === 'unavailable' && <div className="shell-update-notice" role="status"><CloudArrowDown size={20} aria-hidden="true" /><span>App download incomplete. Connect and reopen Grocea before relying on offline launch.</span></div>}</>
+}
+
+// Marks the page as scrolled so the top bar can lift off the content beneath it.
+function useScrolledFlag() {
+  const page = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const element = page.current
+    if (!element) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      element.toggleAttribute('data-scrolled', element.scrollTop > 2)
+    }
+    const schedule = () => { if (!frame) frame = window.requestAnimationFrame(update) }
+    update()
+    element.addEventListener('scroll', schedule, { passive: true })
+    return () => {
+      element.removeEventListener('scroll', schedule)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
+  }, [])
+  return page
 }
 
 export function AppShell({ children, navigation = false, action }: { children: ReactNode; navigation?: boolean; action?: ReactNode }) {
+  const page = useScrolledFlag()
   return <div className={`app-shell${navigation ? ' with-navigation' : ''}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     {navigation && <Navigation />}
-    <div className="app-page" id="main-content">{children}{action}</div>
+    <div className="app-page" id="main-content" ref={page}>{children}{action}</div>
   </div>
 }
 
@@ -112,7 +135,7 @@ export function BrandHeader({ action }: { action?: ReactNode }) {
   return <><header className="brand-header"><Wordmark className="wordmark" /><div className="header-action"><Link to="/sync-issues" className={`sync-indicator ${status}`} aria-label={`Synchronization status: ${syncLabel}`} title={syncLabel}><StatusIcon size={21} weight={status === 'synced' ? 'fill' : 'bold'} aria-hidden="true" />{pendingMutationCount > 0 && <span className="sync-count" aria-hidden="true">{pendingMutationCount > 99 ? '99+' : pendingMutationCount}</span>}<span className={status === 'synced' ? 'sr-only' : 'sync-visible-label'}>{syncLabel}</span></Link>{action ?? <Link to="/profile" className="avatar" aria-label="Open profile">{profile.displayName.slice(0, 1).toUpperCase()}</Link>}</div></header><div className="app-header-offset" aria-hidden="true" /><ShellNotice /></>
 }
 
-export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pantry', titleAs = 'h1' }: { title: string; eyebrow?: string; action?: ReactNode; onBack?: () => void; fallbackTo?: string; titleAs?: 'h1' | 'span' }) {
+export function BackHeader({ title, subtitle, action, onBack, fallbackTo = '/pantry', titleAs = 'h1' }: { title: string; subtitle?: string; action?: ReactNode; onBack?: () => void; fallbackTo?: string; titleAs?: 'h1' | 'span' }) {
   const navigate = useNavigate()
   const back = onBack ?? (() => {
     const index = (window.history.state as { idx?: number } | null)?.idx
@@ -120,7 +143,11 @@ export function BackHeader({ title, eyebrow, action, onBack, fallbackTo = '/pant
     else navigate(fallbackTo, { replace: true })
   })
   const Title = titleAs
-  return <><header className="back-header"><button className="icon-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={24} /></button><div><Title {...(titleAs === 'h1' ? { 'data-page-title': true, tabIndex: -1 } : {})}>{title}</Title>{eyebrow && <small>{eyebrow}</small>}</div><span className="header-action">{action ?? <span className="header-spacer" />}</span></header><div className="app-header-offset" aria-hidden="true" /><ShellNotice /></>
+  return <><header className="back-header">
+    <button className="icon-button back-button" type="button" onClick={back} aria-label="Go back"><CaretLeft size={22} weight="bold" /></button>
+    <div className="back-header-title"><Title {...(titleAs === 'h1' ? { 'data-page-title': true, tabIndex: -1 } : {})}>{title}</Title>{subtitle && <p>{subtitle}</p>}</div>
+    {action && <div className="header-action">{action}</div>}
+  </header><div className="app-header-offset" aria-hidden="true" /><ShellNotice /></>
 }
 
 export function PageHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {

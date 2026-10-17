@@ -2302,3 +2302,107 @@ body { background: var(--warm); color: var(--ink); }
 .sync-indicator:has(.sync-visible-label) { width: auto; min-width: 36px; gap: 5px; padding: 7px; }
 .shell-update-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 18px; color: var(--green); background: var(--green-soft); font-size: 13px; line-height: 1.5; position: relative; z-index: 31; }
 .shell-update-notice .button { flex: none; }
+
+/* Top bar and page frame — one left-aligned title stack, one shared gutter, rows that fill their width. */
+.app-shell { --page-gutter: clamp(18px, 4vw, 56px); --mobile-header-height: calc(60px + env(safe-area-inset-top, 0px)); }
+.brand-header, .back-header {
+  min-height: 64px;
+  border-bottom: 0;
+  background: var(--warm);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transition: box-shadow 220ms ease;
+}
+/* The bar only casts a shadow once content is passing beneath it. */
+.app-page[data-scrolled] .brand-header, .app-page[data-scrolled] .back-header { box-shadow: 0 12px 22px -20px rgb(21 39 29 / 50%); }
+
+.back-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 6px;
+}
+.back-header .back-button { margin-left: -11px; color: var(--ink); border-radius: 12px; }
+.back-header .back-button:hover { background: rgb(37 79 58 / 8%); }
+.back-header-title { min-width: 0; display: grid; gap: 1px; }
+.back-header .back-header-title > :is(h1, span) {
+  width: auto;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.back-header .back-header-title > p {
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.back-header > .header-action { min-width: 0; justify-self: end; }
+
+.shell-update-notice {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 6px var(--page-gutter) 0;
+  padding: 12px 14px;
+  color: var(--green-deep);
+  border-radius: 12px;
+  background: var(--green-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.shell-update-notice:has(.button) { align-items: center; }
+.shell-update-notice > svg { flex: none; margin-top: 1px; color: var(--green); }
+.shell-update-notice > span { flex: 1; min-width: 0; }
+
+/* Field labels read as sentence-case captions, not shouted micro-labels. */
+.field-group > label, .field-group > legend, .field-group > span {
+  color: #3d4d43;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.form-screen.stock-adjustment-form { padding-inline: var(--page-gutter); }
+.field-group > legend { padding: 0; }
+.ingredient-select-control select { grid-row: 1 / -1; }
+.balance-preview small, .mobile-balance-preview small { letter-spacing: 0; text-transform: none; }
+.ingredient-preferences-link { justify-self: start; min-height: 36px; font-weight: 600; text-underline-offset: 3px; }
+.stock-form-card > .form-actions {
+  border-top: 0;
+  background: var(--surface);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media (max-width: 979px) {
+  .brand-header, .back-header { padding-inline: max(var(--page-gutter), env(safe-area-inset-left, 0px)) max(var(--page-gutter), env(safe-area-inset-right, 0px)); }
+}
+
+@media (max-width: 620px) {
+  /* Desktop grid alignment must not shrink the card to its content on phones. */
+  .stock-adjustment-layout { align-items: stretch; }
+  /* Grow the card rather than using a percentage height, so the action bar meets the bottom edge. */
+  .stock-form-card { flex: 1 0 auto; min-height: 0; }
+  .history-status { display: none; }
+  .stock-form-card > .form-actions {
+    width: calc(100% + 2 * var(--page-gutter));
+    margin-inline: calc(var(--page-gutter) * -1);
+    padding-inline: var(--page-gutter);
+    box-shadow: 0 -14px 24px -22px rgb(21 39 29 / 45%);
+  }
+}
+.wide-form > .profile-summary.large { margin-inline: auto; }
+.bulk-content > .bulk-intro { margin-inline: 0; }

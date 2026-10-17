@@ -33,7 +33,7 @@ export function TrialScreen() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
     setMessage('Export downloaded. Review your notes before sharing it yourself.')
   }
-  return <AppShell navigation><BackHeader title="One-week trial" fallbackTo="/more" eyebrow="OPTIONAL · THIS BROWSER" /><main className="screen-content trial-content">
+  return <AppShell navigation><BackHeader title="One-week trial" fallbackTo="/more" subtitle="Optional · this browser only" /><main className="screen-content trial-content">
     <PageHeading title="Your trial journal" subtitle="Try the kitchen workflow. Keep a private record of the friction." />
     <div className="info-banner"><span><strong>No automatic sharing</strong><br />This journal stays with this account in this browser/device. It is not synced across devices. Clearing browser data can remove it.</span></div>
     {error && <div className="warning-banner danger" role="alert"><span><strong>Journal recording paused</strong><br />This browser could not read or save the journal. Kitchen actions still work. Some trial outcomes may be missing. Clear the journal to try a new consent period; if storage remains blocked, recording stays unavailable.</span></div>}

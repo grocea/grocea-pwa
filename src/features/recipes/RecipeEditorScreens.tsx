@@ -118,7 +118,7 @@ export function RecipeEditorScreen() {
   const attempted = attemptedStage === stage
 
   return <AppShell>
-    <BackHeader title="Recipe draft" eyebrow="Autosaved locally" action={<span className="tag">Draft</span>} onBack={previous} />
+    <BackHeader title="Recipe draft" subtitle="Autosaved locally" action={<span className="tag">Draft</span>} onBack={previous} />
     <form className="recipe-editor" onSubmit={next} noValidate aria-busy={leaveAction.pending || publishAction.pending}>
       <nav className="editor-progress" aria-label="Recipe creation progress">{stages.map((item, itemIndex) => <Link key={item} to={`/recipes/${editableDraft.id}/edit/${item}`} aria-current={item === stage ? 'step' : undefined} className={item === stage ? 'active' : itemIndex < index ? 'complete' : ''}><span>{itemIndex < index ? <Check /> : itemIndex + 1}</span><small>{labels[item]}</small></Link>)}</nav>
       <header className="editor-heading"><p>Step {index + 1} of {stages.length}</p><h1 ref={heading} tabIndex={-1}>{labels[stage]}</h1></header>
