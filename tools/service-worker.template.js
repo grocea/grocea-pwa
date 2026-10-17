@@ -26,7 +26,9 @@ async function fillShell(cache) {
   // serve B while an open A client still needs exact A bytes after eviction.
   const staged = [];
   for (const path of PRECACHE) {
-    const response = await fetch(new Request(path, { cache: 'reload', credentials: 'omit', redirect: 'error' }));
+    // Cloudflare assets redirect /index.html to /; fetch the canonical URL, cache under /index.html.
+    const url = path === '/index.html' ? '/' : path;
+    const response = await fetch(new Request(url, { cache: 'reload', credentials: 'omit', redirect: 'error' }));
     const type = response.headers.get('Content-Type') || '';
     if (response.status !== 200 || response.type === 'opaque' || !expectedType(path, type)) throw new Error('Incomplete app shell');
     const digest = await crypto.subtle.digest('SHA-256', await response.clone().arrayBuffer());

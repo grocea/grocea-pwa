@@ -2098,6 +2098,8 @@ body { background: var(--warm); color: var(--ink); }
 .nav-glass-selection { display: none; }
 @media (max-width: 979px) {
   .app-shell { --mobile-navigation-height: calc(80px + var(--mobile-bottom-inset)); }
+  /* iOS blurs the status bar over translucent top-edge elements; an opaque header stays crisp. */
+  .brand-header, .back-header { background: var(--warm); -webkit-backdrop-filter: none; backdrop-filter: none; }
   .primary-navigation {
     left: max(12px, env(safe-area-inset-left, 0px));
     right: max(12px, env(safe-area-inset-right, 0px));

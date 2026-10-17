@@ -51,6 +51,12 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == "/api" or path.startswith("/api/"):
             return self.proxy()
+        if path == "/index.html":
+            # Match Cloudflare assets html_handling, which redirects to the canonical URL.
+            self.send_response(307)
+            self.send_header("Location", "/")
+            self.end_headers()
+            return
         # A/B fixtures can have equal second-resolution mtimes and lengths.
         # Never answer 304 for mutable shell/worker using mtime alone.
         if path in {'/', '/index.html', '/sw.js'}:
