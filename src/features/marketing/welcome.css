@@ -133,8 +133,6 @@ body:has(.welcome-page){background:#FFFFFF}
 .welcome-specimen-tile .welcome-dough{position:absolute;inset:16% 0 2%;background:var(--tile)}
 .welcome-specimen-tile img{position:absolute;left:50%;bottom:4%;height:88%;width:auto;max-width:none;transform:translateX(-50%);mix-blend-mode:multiply}
 .welcome-specimen.is-wide .welcome-specimen-tile{aspect-ratio:8/5}
-.welcome-specimen.is-wide .welcome-dough{inset:0}
-.welcome-specimen.is-wide .welcome-specimen-tile img{inset:0;left:0;width:100%;height:100%;transform:none;object-fit:cover;object-position:50% 12%;-webkit-mask:var(--dough-mask) center/100% 100% no-repeat;mask:var(--dough-mask) center/100% 100% no-repeat}
 .welcome-specimen-tomato{--tile:var(--dough)}
 .welcome-specimen-rice{--tile:var(--lime)}
 .welcome-specimen-coffee{--tile:var(--leaf)}
